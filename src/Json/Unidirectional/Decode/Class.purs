@@ -9,7 +9,7 @@ import Data.Identity (Identity)
 import Data.List (List)
 import Data.List.Types (NonEmptyList)
 import Data.Map (Map)
-import Data.Maybe (Maybe)
+import Data.Maybe (Maybe(..))
 import Data.NonEmpty (NonEmpty)
 import Data.Nullable (Nullable)
 import Data.Set (Set)
@@ -21,6 +21,7 @@ import Data.These (These)
 import Data.Tuple (Tuple(..))
 import Foreign.Object (Object)
 import Json.Primitive.Decode (class IsDecodeJsonError, JsonDecoder, decodeField', failWithPath, onMissingField)
+import Json.Types (Optional(..))
 import Json.Unidirectional.Decode.Value (class RebuildRecord, decodeArray, decodeBoolean, decodeChar, decodeCodePoint, decodeEither, decodeIdentity, decodeInt, decodeList, decodeMap, decodeMaybeTagged, decodeNonEmpty, decodeNonEmptyArray, decodeNonEmptyList, decodeNonEmptySet, decodeNonEmptyString, decodeNullToUnit, decodeNullable, decodeNumber, decodeObject, decodeRecordPrim, decodeSet, decodeString, decodeThese, decodeTuple, decodeVoid)
 import Prim.Coerce (class Coercible)
 import Prim.RowList as RowList
@@ -122,6 +123,20 @@ class BuildPropDecoders err rl out | err rl -> out where
 -- a `These`-like accumulation for `Alt` specifically.
 instance IsDecodeJsonError err => BuildPropDecoders err RowList.Nil Unit where
   buildPropDecoders _ = pure unit
+else instance
+  ( DecodeJson err a
+  , BuildPropDecoders err tailList out
+  , IsSymbol sym
+  , IsDecodeJsonError err
+  ) =>
+  BuildPropDecoders err (RowList.Cons sym (Optional (Maybe a)) tailList) (Tuple (Tuple (Proxy sym) (Optional (Maybe a))) out) where
+  buildPropDecoders (RowListObject obj) = ado
+    tailRecord <- buildPropDecoders (RowListObject obj :: RowListObject err tailList Json)
+    label <- Tuple _sym <$> decodeField' obj keyStr (pure (Optional Nothing)) ((\a -> Optional (Just a)) <$> decodeJson)
+    in Tuple label tailRecord
+    where
+    _sym = Proxy :: Proxy sym
+    keyStr = reflectSymbol _sym
 else instance
   ( DecodeJson err a
   , BuildPropDecoders err tailList out

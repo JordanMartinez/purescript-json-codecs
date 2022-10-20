@@ -9,7 +9,8 @@ import Data.Identity (Identity)
 import Data.List (List)
 import Data.List.Types (NonEmptyList)
 import Data.Map (Map)
-import Data.Maybe (Maybe)
+import Data.Maybe (Maybe(..))
+import Data.Newtype (unwrap)
 import Data.NonEmpty (NonEmpty)
 import Data.Nullable (Nullable)
 import Data.Set (Set)
@@ -21,6 +22,7 @@ import Data.These (These)
 import Data.Tuple (Tuple)
 import Foreign.Object (Object)
 import Foreign.Object as Object
+import Json.Types (Optional)
 import Json.Unidirectional.Encode.Value (encodeArray, encodeBoolean, encodeChar, encodeCodePoint, encodeEither, encodeIdentity, encodeInt, encodeList, encodeMap, encodeMaybeTagged, encodeNonEmpty, encodeNonEmptyArray, encodeNonEmptyList, encodeNonEmptySet, encodeNonEmptyString, encodeNullable, encodeNumber, encodeObject, encodeObjectPrim, encodeSet, encodeString, encodeThese, encodeTuple, encodeUnitToNull, encodeVoid)
 import Prim.Coerce (class Coercible)
 import Prim.Row as Row
@@ -121,6 +123,26 @@ class EncodeRecordInput rl rec | rl -> rec where
 
 instance EncodeRecordInput RowList.Nil {} where
   encodeRecordInput _ = Object.empty
+else instance
+  ( EncodeJson a
+  , EncodeRecordInput tailList { | tailRows }
+  , Row.Cons sym (Optional (Maybe a)) tailRows outRows
+  , IsSymbol sym
+  ) =>
+  EncodeRecordInput (RowList.Cons sym (Optional (Maybe a)) tailList) { | outRows } where
+  encodeRecordInput (RowListRecord input) =
+    encodeValue $ encodeRecordInput (RowListRecord tail :: RowListRecord tailList { | tailRows })
+    where
+    encodeValue = case value of
+      Nothing -> identity
+      Just a -> Object.insert keyStr (encodeJson a)
+    _sym = Proxy :: Proxy sym
+    keyStr = reflectSymbol _sym
+
+    tail :: { | tailRows }
+    tail = unsafeCoerce input
+
+    value = unwrap $ Record.get _sym input
 else instance
   ( EncodeJson a
   , EncodeRecordInput tailList { | tailRows }

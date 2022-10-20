@@ -5,6 +5,7 @@ import Prelude
 import Data.Argonaut.Core (Json)
 import Data.Array as Array
 import Data.Either (either)
+import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Dodo (plainText, twoSpaces)
 import Dodo.Ansi (ansiGraphics)
@@ -13,6 +14,7 @@ import Effect.Class.Console (log)
 import Foreign.Object (Object)
 import Foreign.Object as Object
 import Json.Decode.Class (decodeJson)
+import Json.Encode.Class (encodeJson)
 import Json.Errors.AnsiDodoError (AnsiDodoError, printAnsiDodoError)
 import Json.Errors.AnsiDodoError as ADE
 import Json.Errors.PlainDodoError (PlainDodoError, printPlainDodoError)
@@ -20,6 +22,7 @@ import Json.Errors.PlainDodoError as PDE
 import Json.Errors.PrimitiveJsonError (PrimitiveJsonError, printPrimitiveJsonError)
 import Json.Errors.PrimitiveJsonError as PJE
 import Json.Primitive.Decode (class IsDecodeJsonError, JsonDecoder, runJsonDecoder)
+import Json.Types (Optional(..))
 import Json.Unidirectional.Encode.Value (encodeBoolean, encodeArray, encodeInt, encodeNumber, encodeObject, encodeRecord, encodeString, encodeUnitToNull)
 
 main :: Effect Unit
@@ -40,6 +43,11 @@ main = do
   runDecoderADE "Decode Record incorrectly" exampleRec decodeRecIncorrectlyADE show
   log "==="
   runDecoderADE "Decode Record incorrectly" exampleRec (decodeJson :: JsonDecoder AnsiDodoError IncorrectRecordType) show
+  runDecoderADE "Decode Record incorrectly" exampleRec (decodeJson :: JsonDecoder AnsiDodoError { boolean :: Boolean, noExists :: Optional (Maybe Int) }) show
+  runDecoderADE "Roundtrip check"
+    ((encodeJson :: { noField :: Optional (Maybe Int) } -> Json) { noField: Optional Nothing })
+    (decodeJson :: JsonDecoder AnsiDodoError { noField :: Optional (Maybe Int) })
+    show
 
 runDecoderPJE
   :: forall a

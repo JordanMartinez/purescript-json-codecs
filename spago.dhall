@@ -1,0 +1,33 @@
+{ name = "my-project"
+, dependencies =
+  [ "argonaut-core"
+  , "arrays"
+  , "bifunctors"
+  , "console"
+  , "control"
+  , "dodo-printer"
+  , "effect"
+  , "either"
+  , "foldable-traversable"
+  , "foreign-object"
+  , "identity"
+  , "integers"
+  , "lists"
+  , "maybe"
+  , "newtype"
+  , "nonempty"
+  , "nullable"
+  , "ordered-collections"
+  , "prelude"
+  , "record"
+  , "safe-coerce"
+  , "strings"
+  , "these"
+  , "transformers"
+  , "tuples"
+  , "unsafe-coerce"
+  , "validation"
+  ]
+, packages = ./packages.dhall
+, sources = [ "src/**/*.purs", "test/**/*.purs" ]
+}

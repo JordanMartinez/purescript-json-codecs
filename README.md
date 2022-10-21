@@ -5,11 +5,11 @@ A JSON codec library that supports value-based and configurable typeclass-based 
 ## Design
 
 Address gripes with other JSON codec libraries:
-- `simple-json`:
-  - I don't want to have to fork the repo to benefit from it / change various type class instances.
-  - I don't want to use your poor error type, `NonEmptyList ForeignError`
-- `argonaut-codec`/`codec-argonaut`:
-  - I don't want to use your poor error type, `JsonDecodeError`
+- [`simple-json`](https://pursuit.purescript.org/packages/purescript-simple-json/):
+  - I don't want to have to [fork or copy the repo](https://github.com/justinwoo/purescript-simple-json#how-should-i-actually-use-this-library) to benefit from it / change various type class instances.
+  - I don't want to use your information-poor error type, `NonEmptyList ForeignError`
+- [`argonaut-codec`](https://pursuit.purescript.org/packages/purescript-argonaut-codecs)/[`codec-argonaut`](https://pursuit.purescript.org/packages/purescript-codec-argonaut):
+  - I don't want to use your information-poor error type, `JsonDecodeError`
   - I want one library for value-based or typeclass-based codecs
 
 Improve error messages:

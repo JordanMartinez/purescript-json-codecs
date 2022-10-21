@@ -88,7 +88,7 @@ type JsonErrorHandlers e =
   , onMissingIndex :: Array JsonOffset -> Int -> e
   , onUnrefinableValue :: Array JsonOffset -> String -> e
   , onStructureError :: Array JsonOffset -> String -> e
-  , withHint :: Array JsonOffset -> TypeHint -> e -> e
+  , addHint :: Array JsonOffset -> TypeHint -> e -> e
   }
 
 type JsonDecoderInput e =
@@ -138,21 +138,21 @@ failWithStructureError :: forall e a. String -> JsonDecoder e a
 failWithStructureError msg = JsonDecoder $ ReaderT \input ->
   invalid $ input.handlers.onStructureError input.pathSoFar msg
 
-withHint :: forall err a. TypeHint -> JsonDecoder err a -> JsonDecoder err a
-withHint hint (JsonDecoder (ReaderT f)) = JsonDecoder $ ReaderT \input ->
-  lmap (input.handlers.withHint input.pathSoFar hint) $ f input
+addHint :: forall err a. TypeHint -> JsonDecoder err a -> JsonDecoder err a
+addHint hint (JsonDecoder (ReaderT f)) = JsonDecoder $ ReaderT \input ->
+  lmap (input.handlers.addHint input.pathSoFar hint) $ f input
 
 addTypeHint :: forall e a. String -> JsonDecoder e a -> JsonDecoder e a
-addTypeHint = withHint <<< TyName
+addTypeHint = addHint <<< TyName
 
 addCtorHint :: forall e a. String -> JsonDecoder e a -> JsonDecoder e a
-addCtorHint = withHint <<< CtorName
+addCtorHint = addHint <<< CtorName
 
 addSubtermHint :: forall e a. Int -> JsonDecoder e a -> JsonDecoder e a
-addSubtermHint = withHint <<< Subterm
+addSubtermHint = addHint <<< Subterm
 
 addFieldHint :: forall e a. String -> JsonDecoder e a -> JsonDecoder e a
-addFieldHint = withHint <<< Field
+addFieldHint = addHint <<< Field
 
 -- | Works like `alt`/`<|>`. Decodes using the first decoder and, if that fails,
 -- | decodes using the second decoder. Errors from both decoders accumulate.

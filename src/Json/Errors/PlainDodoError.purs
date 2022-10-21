@@ -37,7 +37,7 @@ handlersPde =
         [ D.text msg
         , docifyPath path
         ]
-  , withHint: \path hint err ->
+  , addHint: \path hint err ->
       D.lines
         [ docifyHint hint path
         , D.indent err

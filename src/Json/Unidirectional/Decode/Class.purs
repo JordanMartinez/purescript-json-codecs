@@ -18,14 +18,17 @@ import Data.String (CodePoint)
 import Data.String.NonEmpty.Internal (NonEmptyString)
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.These (These)
-import Data.Tuple (Tuple(..))
+import Data.Tuple (Tuple)
 import Foreign.Object (Object)
 import Json.Primitive.Decode (JsonDecoder, decodeField', failWithMissingField)
 import Json.Types (Optional(..))
-import Json.Unidirectional.Decode.Value (class RebuildRecord, decodeArray, decodeBoolean, decodeChar, decodeCodePoint, decodeEither, decodeIdentity, decodeInt, decodeList, decodeMap, decodeMaybeTagged, decodeNonEmpty, decodeNonEmptyArray, decodeNonEmptyList, decodeNonEmptySet, decodeNonEmptyString, decodeNullToUnit, decodeNullable, decodeNumber, decodeObject, decodeRecordPrim, decodeSet, decodeString, decodeThese, decodeTuple, decodeVoid)
+import Json.Unidirectional.Decode.Value (decodeArray, decodeBoolean, decodeChar, decodeCodePoint, decodeEither, decodeIdentity, decodeInt, decodeList, decodeMap, decodeMaybeTagged, decodeNonEmpty, decodeNonEmptyArray, decodeNonEmptyList, decodeNonEmptySet, decodeNonEmptyString, decodeNullToUnit, decodeNullable, decodeNumber, decodeObject, decodeRecordPrim, decodeSet, decodeString, decodeThese, decodeTuple, decodeVoid)
 import Prim.Coerce (class Coercible)
+import Prim.Row as Row
 import Prim.RowList as RowList
 import Prim.RowList as RowToList
+import Record.Builder (Builder, buildFromScratch)
+import Record.Builder as Builder
 import Type.Proxy (Proxy(..))
 
 class DecodeJson err a where
@@ -108,40 +111,43 @@ newtype RowListObject err rl a = RowListObject (Object a)
 
 instance
   ( RowToList.RowToList rows rl
-  , BuildPropDecoders err rl out
-  , RebuildRecord out {} { | rows }
+  , BuildPropDecoders err rl { | rows }
   ) =>
   DecodeJson err { | rows } where
-  decodeJson = decodeRecordPrim \obj -> buildPropDecoders (RowListObject obj :: RowListObject err rl Json)
+  decodeJson = decodeRecordPrim \obj -> buildFromScratch <$> buildPropDecoders (RowListObject obj :: RowListObject err rl Json)
 
 class BuildPropDecoders err rl out | err rl -> out where
-  buildPropDecoders :: RowListObject err rl Json -> JsonDecoder err out
+  buildPropDecoders :: RowListObject err rl Json -> JsonDecoder err (Builder {} out)
 
-instance BuildPropDecoders err RowList.Nil Unit where
-  buildPropDecoders _ = pure unit
+instance BuildPropDecoders err RowList.Nil {} where
+  buildPropDecoders _ = pure identity
 else instance
   ( DecodeJson err a
-  , BuildPropDecoders err tailList out
+  , BuildPropDecoders err tailList { | intermediate }
+  , Row.Lacks sym intermediate
+  , Row.Cons sym (Optional (Maybe a)) intermediate out
   , IsSymbol sym
   ) =>
-  BuildPropDecoders err (RowList.Cons sym (Optional (Maybe a)) tailList) (Tuple (Tuple (Proxy sym) (Optional (Maybe a))) out) where
+  BuildPropDecoders err (RowList.Cons sym (Optional (Maybe a)) tailList) { | out } where
   buildPropDecoders (RowListObject obj) = ado
-    tailRecord <- buildPropDecoders (RowListObject obj :: RowListObject err tailList Json)
-    label <- Tuple _sym <$> decodeField' obj keyStr (pure (Optional Nothing)) ((\a -> Optional (Just a)) <$> decodeJson)
-    in Tuple label tailRecord
+    tailBuilder <- buildPropDecoders (RowListObject obj :: RowListObject err tailList Json)
+    value <- decodeField' obj keyStr (pure (Optional Nothing)) ((\a -> Optional (Just a)) <$> decodeJson)
+    in Builder.insert _sym value <<< tailBuilder
     where
     _sym = Proxy :: Proxy sym
     keyStr = reflectSymbol _sym
 else instance
   ( DecodeJson err a
-  , BuildPropDecoders err tailList out
+  , BuildPropDecoders err tailList { | intermediate }
+  , Row.Lacks sym intermediate
+  , Row.Cons sym a intermediate out
   , IsSymbol sym
   ) =>
-  BuildPropDecoders err (RowList.Cons sym a tailList) (Tuple (Tuple (Proxy sym) a) out) where
+  BuildPropDecoders err (RowList.Cons sym a tailList) { | out } where
   buildPropDecoders (RowListObject obj) = ado
-    tailRecord <- buildPropDecoders (RowListObject obj :: RowListObject err tailList Json)
-    label <- Tuple _sym <$> decodeField' obj keyStr (failWithMissingField keyStr) decodeJson
-    in Tuple label tailRecord
+    tailBuilder <- buildPropDecoders (RowListObject obj :: RowListObject err tailList Json)
+    value <- decodeField' obj keyStr (failWithMissingField keyStr) decodeJson
+    in Builder.insert _sym value <<< tailBuilder
     where
     _sym = Proxy :: Proxy sym
     keyStr = reflectSymbol _sym

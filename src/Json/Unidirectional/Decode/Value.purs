@@ -38,8 +38,6 @@ module Json.Unidirectional.Decode.Value
   , insertOptionalPropDecoders
   , class DecodeRowList
   , decodeRowList
-  , class RebuildRecord
-  , rebuildRecord
   , module Exports
   ) where
 
@@ -324,33 +322,30 @@ decodeCodePoint = addTypeHint "CodePoint" JPDQ.do
       pure cp
 
 decodeRecord
-  :: forall err propsRl props decoderRl decoderRows tuples outputRows
+  :: forall err propsRl props decoderRl decoderRows outputRows
    . RowList.RowToList props propsRl
   => RowToList decoderRows decoderRl
   => InsertRequiredPropDecoders err propsRl { | props } {} { | decoderRows }
-  => DecodeRowList err decoderRl { | decoderRows } tuples
-  => RebuildRecord tuples {} { | outputRows }
+  => DecodeRowList err decoderRl { | decoderRows } { | outputRows }
   => { | props }
   -> JsonDecoder err { | outputRows }
 decodeRecord props =
   decodeRecord' (buildRecordDecoder $ decodeRequiredProps props)
 
 decodeRecord'
-  :: forall err rl decoderRows outputRows tuples
-   . DecodeRowList err rl { | decoderRows } tuples
-  => RebuildRecord tuples {} { | outputRows }
+  :: forall err rl decoderRows outputRows
+   . DecodeRowList err rl { | decoderRows } { | outputRows }
   => RLRecordDecoder err rl { | decoderRows }
   -> JsonDecoder err { | outputRows }
 decodeRecord' propDecoders = decodeRecordPrim (decodeRowList propDecoders)
 
 decodeRecordPrim
-  :: forall err outputRows tuples
-   . RebuildRecord tuples {} { | outputRows }
-  => (Object Json -> JsonDecoder err tuples)
+  :: forall err outputRows
+   . (Object Json -> JsonDecoder err { | outputRows })
   -> JsonDecoder err { | outputRows }
 decodeRecordPrim decoder = addTypeHint "Record" JPDQ.do
   obj <- JPD.decodeObjectPrim
-  buildFromScratch <<< rebuildRecord <$> decoder obj
+  decoder obj
 
 buildRecordDecoder
   :: forall err rl decoderRows
@@ -496,22 +491,25 @@ instance Semigroupoid (RLRecordDecoderBuilder err) where
 instance Category (RLRecordDecoderBuilder err) where
   identity = RLRecordDecoderBuilder identity
 
+-- | Decodes an `Object Json` into a `Record rows` and works whether fields are required or optional.
 class DecodeRowList :: Type -> RowList Type -> Type -> Type -> Constraint
 class DecodeRowList err rowList inputRec out | err rowList -> inputRec out where
   decodeRowList :: RLRecordDecoder err rowList inputRec -> Object Json -> JsonDecoder err out
 
-instance DecodeRowList err RowList.Nil {} Unit where
-  decodeRowList _ _ = pure unit
+instance DecodeRowList err RowList.Nil {} {} where
+  decodeRowList _ _ = pure {}
 else instance
   ( Row.Cons sym (PropDecoder err a) tail inputRows
-  , DecodeRowList err tailList { | tail } out
+  , DecodeRowList err tailList { | tail } { | intermediateRows }
+  , Row.Lacks sym intermediateRows
+  , Row.Cons sym (a) intermediateRows outRows
   , IsSymbol sym
   ) =>
-  DecodeRowList err (RowList.Cons sym (PropDecoder err a) tailList) { | inputRows } (Tuple (Tuple (Proxy sym) a) out) where
+  DecodeRowList err (RowList.Cons sym (PropDecoder err a) tailList) { | inputRows } { | outRows } where
   decodeRowList (RLRecordDecoder fieldDecoders) obj = ado
     tailRecord <- decodeRowList (RLRecordDecoder fieldDecodersTail :: RLRecordDecoder err tailList { | tail }) obj
-    label <- Tuple _sym <$> decodeField' obj keyStr field.onMissingField field.decoder
-    in Tuple label tailRecord
+    value <- decodeField' obj keyStr field.onMissingField field.decoder
+    in Record.insert _sym value tailRecord
     where
     _sym = Proxy :: Proxy sym
     keyStr = reflectSymbol _sym
@@ -520,20 +518,3 @@ else instance
     fieldDecodersTail = unsafeCoerce fieldDecoders
 
     (PropDecoder field :: PropDecoder err a) = Record.get _sym fieldDecoders
-
-class RebuildRecord a from to | a -> from to where
-  rebuildRecord :: a -> Builder from to
-
-instance RebuildRecord Unit {} {} where
-  rebuildRecord _ = identity
-else instance
-  ( RebuildRecord tail { | beforeRows } { | middleRows }
-  , Row.Cons sym a middleRows afterRows
-  , Row.Lacks sym middleRows
-  , IsSymbol sym
-  ) =>
-  RebuildRecord (Tuple (Tuple (Proxy sym) a) tail) { | beforeRows } { | afterRows } where
-  rebuildRecord (Tuple (Tuple _sym a) tail) =
-    rebuildRecord tail >>> Builder.insert _sym a
-
--- class ToRowList ::

@@ -24,7 +24,7 @@ import Dodo as D
 import Dodo.Ansi (Color(..), GraphicsParam, foreground)
 import Foreign.Object (Object)
 import Json.Errors.PrimitiveJsonError (printMissingField, printMissingIndex, printTypeMismatchErr)
-import Json.Primitive.Decode (class IsDecodeJsonError, JsonDecoder, JsonOffset, TypeHint(..), failWithPath, onError, printJsonOffsetPath)
+import Json.Primitive.Decode (class IsDecodeJsonError, JsonDecoder, JsonOffset, TypeHint(..), onError, printJsonOffsetPath)
 import Json.Unidirectional.Decode.Value (class DecodeRowList, class InsertOptionalPropDecoders, class InsertRequiredPropDecoders, class RebuildRecord, PropDecoder, RLRecordDecoder, RLRecordDecoderBuilder)
 import Json.Unidirectional.Decode.Value as JUDV
 import Prim.Coerce (class Coercible)
@@ -262,12 +262,6 @@ decodeRecord
   => { | props }
   -> JsonDecoder AnsiDodoError { | outputRows }
 decodeRecord = JUDV.decodeRecord
-  ( \field -> failWithPath \path -> AnsiDodoError $
-      D.lines
-        [ D.text $ printMissingField field
-        , docifyPath path
-        ]
-  )
 
 decodeRecord'
   :: forall rl decoderRows tuples outputRows
@@ -291,7 +285,6 @@ decodeRequiredProp
   => Row.Lacks sym oldRows
   => Proxy sym
   -> JsonDecoder AnsiDodoError a
-  -> JsonDecoder AnsiDodoError a
   -> RLRecordDecoderBuilder AnsiDodoError { | oldRows } { | newRows }
 decodeRequiredProp = JUDV.decodeRequiredProp
 
@@ -309,8 +302,7 @@ decodeRequiredProps
   :: forall propsRl props oldRows newRows
    . RowList.RowToList props propsRl
   => InsertRequiredPropDecoders AnsiDodoError propsRl { | props } { | oldRows } { | newRows }
-  => (forall a. String -> JsonDecoder AnsiDodoError a)
-  -> { | props }
+  => { | props }
   -> (RLRecordDecoderBuilder AnsiDodoError { | oldRows } { | newRows })
 decodeRequiredProps = JUDV.decodeRequiredProps
 

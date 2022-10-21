@@ -254,12 +254,6 @@ decodeRecord
   => { | props }
   -> JsonDecoder PlainDodoError { | outputRows }
 decodeRecord = JUDV.decodeRecord
-  ( \field -> failWithPath \path -> PlainDodoError $
-      D.lines
-        [ D.text $ printMissingField field
-        , docifyPath path
-        ]
-  )
 
 decodeRecord'
   :: forall rl decoderRows tuples outputRows
@@ -283,7 +277,6 @@ decodeRequiredProp
   => Row.Lacks sym oldRows
   => Proxy sym
   -> JsonDecoder PlainDodoError a
-  -> JsonDecoder PlainDodoError a
   -> RLRecordDecoderBuilder PlainDodoError { | oldRows } { | newRows }
 decodeRequiredProp = JUDV.decodeRequiredProp
 
@@ -301,8 +294,7 @@ decodeRequiredProps
   :: forall propsRl props oldRows newRows
    . RowList.RowToList props propsRl
   => InsertRequiredPropDecoders PlainDodoError propsRl { | props } { | oldRows } { | newRows }
-  => (forall a. String -> JsonDecoder PlainDodoError a)
-  -> { | props }
+  => { | props }
   -> (RLRecordDecoderBuilder PlainDodoError { | oldRows } { | newRows })
 decodeRequiredProps = JUDV.decodeRequiredProps
 

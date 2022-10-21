@@ -73,7 +73,7 @@ import Data.These (These(..))
 import Data.TraversableWithIndex (forWithIndex)
 import Data.Tuple (Tuple(..))
 import Foreign.Object (Object)
-import Json.Primitive.Decode (class IsDecodeJsonError, JsonDecoder(..), JsonOffset(..), alt, addCtorHint, addSubtermHint, addTypeHint, decodeField, decodeField', decodeString, failWithPath, onStructureError, onUnrefinableValue, withOffset)
+import Json.Primitive.Decode (class IsDecodeJsonError, JsonDecoder(..), JsonOffset(..), addCtorHint, addSubtermHint, addTypeHint, alt, decodeField, decodeField', decodeString, failWithPath, onMissingField, onStructureError, onUnrefinableValue, withOffset)
 import Json.Primitive.Decode (decodeBoolean, decodeNumber, decodeString, decodeNull, decodeArrayPrim, decodeIndex, decodeIndex', decodeObjectPrim, decodeField, decodeField') as Exports
 import Json.Primitive.Decode as JPD
 import Json.Primitive.Decode.Qualified as JPDQ
@@ -351,11 +351,10 @@ decodeRecord
   => InsertRequiredPropDecoders err propsRl { | props } {} { | decoderRows }
   => DecodeRowList err decoderRl { | decoderRows } tuples
   => RebuildRecord tuples {} { | outputRows }
-  => (forall a. String -> JsonDecoder err a)
-  -> { | props }
+  => { | props }
   -> JsonDecoder err { | outputRows }
-decodeRecord onMissingField props =
-  decodeRecord' (buildRecordDecoder $ decodeRequiredProps onMissingField props)
+decodeRecord props =
+  decodeRecord' (buildRecordDecoder $ decodeRequiredProps props)
 
 decodeRecord'
   :: forall err rl decoderRows outputRows tuples
@@ -389,12 +388,12 @@ decodeRequiredProp
    . Row.Cons sym (PropDecoder err a) oldRows newRows
   => IsSymbol sym
   => Row.Lacks sym oldRows
+  => IsDecodeJsonError err
   => Proxy sym
   -> JsonDecoder err a
-  -> JsonDecoder err a
   -> RLRecordDecoderBuilder err { | oldRows } { | newRows }
-decodeRequiredProp _sym onMissingField decoder =
-  RLRecordDecoderBuilder (Builder.insert _sym (PropDecoder { onMissingField, decoder }))
+decodeRequiredProp _sym decoder =
+  RLRecordDecoderBuilder (Builder.insert _sym (PropDecoder { onMissingField: failWithPath \p -> onMissingField p $ reflectSymbol _sym, decoder }))
 
 decodeOptionalProp
   :: forall sym err a oldRows newRows
@@ -412,11 +411,10 @@ decodeRequiredProps
   :: forall err propsRl props oldRows newRows
    . RowList.RowToList props propsRl
   => InsertRequiredPropDecoders err propsRl { | props } { | oldRows } { | newRows }
-  => (forall a. String -> JsonDecoder err a)
-  -> { | props }
+  => { | props }
   -> (RLRecordDecoderBuilder err { | oldRows } { | newRows })
-decodeRequiredProps onMissingField props =
-  insertRequiredPropDecoders onMissingField (RLRecordDecoder props :: RLRecordDecoder err propsRl { | props })
+decodeRequiredProps props =
+  insertRequiredPropDecoders (RLRecordDecoder props :: RLRecordDecoder err propsRl { | props })
 
 decodeOptionalProps
   :: forall err propsRl props oldRows newRows
@@ -438,12 +436,11 @@ class
   | err propsRl -> propsRec oldRec newRec
   where
   insertRequiredPropDecoders
-    :: (forall a. String -> JsonDecoder err a)
-    -> RLRecordDecoder err propsRl propsRec
+    :: RLRecordDecoder err propsRl propsRec
     -> RLRecordDecoderBuilder err oldRec newRec
 
 instance InsertRequiredPropDecoders err RowList.Nil {} { | oldRows } { | oldRows } where
-  insertRequiredPropDecoders _ _ = RLRecordDecoderBuilder identity
+  insertRequiredPropDecoders _ = RLRecordDecoderBuilder identity
 
 else instance
   ( Row.Cons sym (JsonDecoder err a) propsTail props
@@ -451,6 +448,7 @@ else instance
   , Row.Lacks sym intermediateRows
   , Row.Cons sym (PropDecoder err a) intermediateRows newRows
   , IsSymbol sym
+  , IsDecodeJsonError err
   ) =>
   InsertRequiredPropDecoders
     err
@@ -459,15 +457,15 @@ else instance
     { | oldRows }
     { | newRows }
   where
-  insertRequiredPropDecoders onMissingField (RLRecordDecoder newDecoders) = do
+  insertRequiredPropDecoders (RLRecordDecoder newDecoders) = do
     let
       _sym = Proxy :: Proxy sym
 
       tailDecoders :: { | propsTail }
       tailDecoders = unsafeCoerce newDecoders
       ((RLRecordDecoderBuilder intermediateDecoders) :: RLRecordDecoderBuilder err { | oldRows } { | intermediateRows }) =
-        insertRequiredPropDecoders onMissingField (RLRecordDecoder tailDecoders :: RLRecordDecoder err propsRlTail { | propsTail })
-      propDecoder = PropDecoder { onMissingField: onMissingField $ reflectSymbol _sym, decoder: Record.get _sym newDecoders }
+        insertRequiredPropDecoders (RLRecordDecoder tailDecoders :: RLRecordDecoder err propsRlTail { | propsTail })
+      propDecoder = PropDecoder { onMissingField: failWithPath \p -> onMissingField p $ reflectSymbol _sym, decoder: Record.get _sym newDecoders }
     RLRecordDecoderBuilder (intermediateDecoders >>> Builder.insert _sym propDecoder)
 
 --

@@ -277,7 +277,7 @@ decodeRecord
   => RebuildRecord tuples {} { | outputRows }
   => { | props }
   -> JsonDecoder PrimitiveJsonError { | outputRows }
-decodeRecord = JUDV.decodeRecord (failWithLeaf <<< MissingField)
+decodeRecord = JUDV.decodeRecord
 
 decodeRecord'
   :: forall rl decoderRows tuples outputRows
@@ -301,7 +301,6 @@ decodeRequiredProp
   => Row.Lacks sym oldRows
   => Proxy sym
   -> JsonDecoder PrimitiveJsonError a
-  -> JsonDecoder PrimitiveJsonError a
   -> RLRecordDecoderBuilder PrimitiveJsonError { | oldRows } { | newRows }
 decodeRequiredProp = JUDV.decodeRequiredProp
 
@@ -319,8 +318,7 @@ decodeRequiredProps
   :: forall propsRl props oldRows newRows
    . RowList.RowToList props propsRl
   => InsertRequiredPropDecoders PrimitiveJsonError propsRl { | props } { | oldRows } { | newRows }
-  => (forall a. String -> JsonDecoder PrimitiveJsonError a)
-  -> { | props }
+  => { | props }
   -> (RLRecordDecoderBuilder PrimitiveJsonError { | oldRows } { | newRows })
 decodeRequiredProps = JUDV.decodeRequiredProps
 

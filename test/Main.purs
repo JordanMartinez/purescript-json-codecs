@@ -5,91 +5,83 @@ import Prelude
 import Data.Argonaut.Core (Json)
 import Data.Array as Array
 import Data.Either (either)
-import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
-import Dodo (plainText, twoSpaces)
-import Dodo.Ansi (ansiGraphics)
+import Dodo (Doc)
+import Dodo.Ansi (GraphicsParam)
 import Effect (Effect)
 import Effect.Class.Console (log)
 import Foreign.Object (Object)
 import Foreign.Object as Object
-import Json.Decode.Class (decodeJson)
-import Json.Encode.Class (encodeJson)
-import Json.Errors.AnsiDodoError (AnsiDodoError, printAnsiDodoError)
-import Json.Errors.AnsiDodoError as ADE
-import Json.Errors.PlainDodoError (PlainDodoError, printPlainDodoError)
-import Json.Errors.PlainDodoError as PDE
-import Json.Errors.PrimitiveJsonError (PrimitiveJsonError, printPrimitiveJsonError)
-import Json.Errors.PrimitiveJsonError as PJE
-import Json.Primitive.Decode (class IsDecodeJsonError, JsonDecoder, runJsonDecoder)
-import Json.Types (Optional(..))
+import Json.Errors.AnsiDodoError (ade, printAnsiDodoError, runJsonDecoderADE)
+import Json.Errors.PlainDodoError (pde, printPlainDodoError, runJsonDecoderPDE)
+import Json.Errors.PrimitiveJsonError (PrimitiveJsonError, pje, printPrimitiveJsonError, runJsonDecoderPJE)
+import Json.Primitive.Decode (JsonDecoder, decodeBoolean, decodeNumber, decodeString)
+import Json.Unidirectional.Decode.Value (decodeArray, decodeInt, decodeObject, decodeRecord)
 import Json.Unidirectional.Encode.Value (encodeBoolean, encodeArray, encodeInt, encodeNumber, encodeObject, encodeRecord, encodeString, encodeUnitToNull)
 
 main :: Effect Unit
 main = do
-  runDecoderPJE "Decode Int to Int" exampleInt PJE.decodeInt show
-  runDecoderPJE "Decode Int to String" exampleString PJE.decodeInt show
-  runDecoderPJE "Decode Record to Int" exampleRec PJE.decodeInt show
-  runDecoderPJE "Decode Record incorrectly" exampleRec decodeRecIncorrectlyPJE show
+  runDecoderPJE "Decode Int to Int" exampleInt decodeInt
+  runDecoderPJE "Decode Int to String" exampleString decodeInt
+  runDecoderPJE "Decode Record to Int" exampleRec decodeInt
+  runDecoderPJE "Decode Record incorrectly" exampleRec decodeRecIncorrectlyPJE
   log "==="
-  runDecoderPDE "Decode Int to Int" exampleInt PDE.decodeInt show
-  runDecoderPDE "Decode Int to String" exampleString PDE.decodeInt show
-  runDecoderPDE "Decode Record to Int" exampleRec PDE.decodeInt show
-  runDecoderPDE "Decode Record incorrectly" exampleRec decodeRecIncorrectlyPDE show
+  runDecoderPDE "Decode Int to Int" exampleInt decodeInt
+  runDecoderPDE "Decode Int to String" exampleString decodeInt
+  runDecoderPDE "Decode Record to Int" exampleRec decodeInt
+  runDecoderPDE "Decode Record incorrectly" exampleRec decodeRecIncorrectlyPDE
   log "==="
-  runDecoderADE "Decode Int to Int" exampleInt ADE.decodeInt show
-  runDecoderADE "Decode Int to String" exampleString ADE.decodeInt show
-  runDecoderADE "Decode Record to Int" exampleRec ADE.decodeInt show
-  runDecoderADE "Decode Record incorrectly" exampleRec decodeRecIncorrectlyADE show
+  runDecoderADE "Decode Int to Int" exampleInt decodeInt
+  runDecoderADE "Decode Int to String" exampleString decodeInt
+  runDecoderADE "Decode Record to Int" exampleRec decodeInt
+  runDecoderADE "Decode Record incorrectly" exampleRec decodeRecIncorrectlyADE
   log "==="
-  runDecoderADE "Decode Record incorrectly" exampleRec (decodeJson :: JsonDecoder AnsiDodoError IncorrectRecordType) show
-  runDecoderADE "Decode Record incorrectly" exampleRec (decodeJson :: JsonDecoder AnsiDodoError { boolean :: Boolean, noExists :: Optional (Maybe Int) }) show
-  runDecoderADE "Roundtrip check"
-    ((encodeJson :: { noField :: Optional (Maybe Int) } -> Json) { noField: Optional Nothing })
-    (decodeJson :: JsonDecoder AnsiDodoError { noField :: Optional (Maybe Int) })
-    show
+
+-- runDecoderADE "Decode Record incorrectly" exampleRec (decodeJson :: JsonDecoder AnsiDodoError IncorrectRecordType)
+-- runDecoderADE "Decode Record incorrectly" exampleRec (decodeJson :: JsonDecoder AnsiDodoError { boolean :: Boolean, noExists :: Optional (Maybe Int) })
+-- runDecoderADE "Roundtrip check"
+--   ((encodeJson :: { noField :: Optional (Maybe Int) } -> Json) { noField: Optional Nothing })
+--   (decodeJson :: JsonDecoder AnsiDodoError { noField :: Optional (Maybe Int) })
+--  
 
 runDecoderPJE
   :: forall a
-   . String
+   . Show a
+  => String
   -> Json
   -> JsonDecoder PrimitiveJsonError a
-  -> (a -> String)
   -> Effect Unit
-runDecoderPJE = runDecoder' printPrimitiveJsonError
+runDecoderPJE msg example decoder =
+  log
+    $ append ("\n" <> msg <> ":\n")
+    $ either printPrimitiveJsonError show
+    $ runJsonDecoderPJE example decoder
 
 runDecoderPDE
   :: forall a
-   . String
+   . Show a
+  => String
   -> Json
-  -> JsonDecoder PlainDodoError a
-  -> (a -> String)
+  -> JsonDecoder (Doc Void) a
   -> Effect Unit
-runDecoderPDE = runDecoder' (printPlainDodoError plainText twoSpaces)
+runDecoderPDE msg example decoder =
+  log
+    $ append ("\n" <> msg <> ":\n")
+    $ either printPlainDodoError show
+    $ runJsonDecoderPDE example decoder
 
 runDecoderADE
   :: forall a
-   . String
+   . Show a
+  => String
   -> Json
-  -> JsonDecoder AnsiDodoError a
-  -> (a -> String)
+  -> JsonDecoder (Doc GraphicsParam) a
   -> Effect Unit
-runDecoderADE = runDecoder' (printAnsiDodoError ansiGraphics twoSpaces)
-
-runDecoder'
-  :: forall err a
-   . IsDecodeJsonError err
-  => (err -> String)
-  -> String
-  -> Json
-  -> JsonDecoder err a
-  -> (a -> String)
-  -> Effect Unit
-runDecoder' printErr msg example decoder print =
+runDecoderADE msg example decoder =
   log
     $ append ("\n" <> msg <> ":\n")
-    $ either printErr print
-    $ runJsonDecoder example decoder
+    $ either printAnsiDodoError show
+    $ runJsonDecoderADE example decoder
 
 exampleInt :: Json
 exampleInt = encodeInt 1
@@ -143,36 +135,36 @@ type IncorrectRecordType =
 
 decodeRecIncorrectlyPJE :: JsonDecoder PrimitiveJsonError _
 decodeRecIncorrectlyPJE =
-  PJE.decodeRecord
-    { boolean: PJE.decodeString
-    , number: PJE.decodeBoolean
-    , string: PJE.decodeNumber
-    , int: PJE.decodeString
-    , object: PJE.decodeInt
-    , array: PJE.decodeObject PJE.decodeString
-    , record: PJE.decodeArray PJE.decodeInt
+  decodeRecord
+    { boolean: pje decodeString
+    , number: pje decodeBoolean
+    , string: pje decodeNumber
+    , int: pje decodeString
+    , object: pje decodeInt
+    , array: pje $ decodeObject decodeString
+    , record: pje $ decodeArray decodeInt
     }
 
-decodeRecIncorrectlyPDE :: JsonDecoder PlainDodoError _
+decodeRecIncorrectlyPDE :: JsonDecoder (Doc Void) _
 decodeRecIncorrectlyPDE =
-  PDE.decodeRecord
-    { boolean: PDE.decodeString
-    , number: PDE.decodeBoolean
-    , string: PDE.decodeNumber
-    , int: PDE.decodeString
-    , object: PDE.decodeInt
-    , array: PDE.decodeObject PDE.decodeString
-    , record: PDE.decodeArray PDE.decodeInt
+  decodeRecord
+    { boolean: pde decodeString
+    , number: pde decodeBoolean
+    , string: pde decodeNumber
+    , int: pde decodeString
+    , object: pde decodeInt
+    , array: pde $ decodeObject decodeString
+    , record: pde $ decodeArray decodeInt
     }
 
-decodeRecIncorrectlyADE :: JsonDecoder AnsiDodoError _
+decodeRecIncorrectlyADE :: JsonDecoder (Doc GraphicsParam) _
 decodeRecIncorrectlyADE =
-  ADE.decodeRecord
-    { boolean: ADE.decodeString
-    , number: ADE.decodeBoolean
-    , string: ADE.decodeNumber
-    , int: ADE.decodeString
-    , object: ADE.decodeInt
-    , array: ADE.decodeObject ADE.decodeString
-    , record: ADE.decodeArray ADE.decodeInt
+  decodeRecord
+    { boolean: ade decodeString
+    , number: ade decodeBoolean
+    , string: ade decodeNumber
+    , int: ade decodeString
+    , object: ade decodeInt
+    , array: ade $ decodeObject decodeString
+    , record: ade $ decodeArray decodeInt
     }

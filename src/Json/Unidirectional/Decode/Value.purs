@@ -73,7 +73,7 @@ import Data.These (These(..))
 import Data.TraversableWithIndex (forWithIndex)
 import Data.Tuple (Tuple(..))
 import Foreign.Object (Object)
-import Json.Primitive.Decode (class IsDecodeJsonError, JsonDecoder(..), JsonOffset(..), addCtorHint, addSubtermHint, addTypeHint, alt, decodeField, decodeField', decodeString, failWithPath, onMissingField, onStructureError, onUnrefinableValue, withOffset)
+import Json.Primitive.Decode (JsonDecoder(..), JsonOffset(..), addCtorHint, addSubtermHint, addTypeHint, alt, decodeField, decodeField', decodeString, failWithMissingField, failWithStructureError, failWithUnrefinableValue, withOffset)
 import Json.Primitive.Decode (decodeBoolean, decodeNumber, decodeString, decodeNull, decodeArrayPrim, decodeIndex, decodeIndex', decodeObjectPrim, decodeField, decodeField') as Exports
 import Json.Primitive.Decode as JPD
 import Json.Primitive.Decode.Qualified as JPDQ
@@ -88,52 +88,48 @@ import Safe.Coerce (coerce)
 import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
 
-decodeVoid :: forall err. IsDecodeJsonError err => JsonDecoder err Void
-decodeVoid = addTypeHint "Void" $ failWithPath $ flip onUnrefinableValue "Decoding a value to Void is impossible"
+decodeVoid :: forall err. JsonDecoder err Void
+decodeVoid = addTypeHint "Void" $ failWithUnrefinableValue "Decoding a value to Void is impossible"
 
-decodeNullToUnit :: forall err. IsDecodeJsonError err => JsonDecoder err Unit
+decodeNullToUnit :: forall err. JsonDecoder err Unit
 decodeNullToUnit = JPD.decodeNull
 
 decodeInt
   :: forall err
-   . IsDecodeJsonError err
-  => JsonDecoder err Int
+   . JsonDecoder err Int
 decodeInt = addTypeHint "Int" JPDQ.do
   n <- JPD.decodeNumber
   case Int.fromNumber n of
     Nothing ->
-      failWithPath $ flip onUnrefinableValue $ "Could not convert Number to Int: " <> show n
+      failWithUnrefinableValue $ "Could not convert Number to Int: " <> show n
     Just i ->
       pure i
 
 decodeChar
   :: forall err
-   . IsDecodeJsonError err
-  => JsonDecoder err Char
+   . JsonDecoder err Char
 decodeChar = addTypeHint "Char" JPDQ.do
   s <- JPD.decodeString
   case charAt 0 s of
     Nothing ->
-      failWithPath $ flip onUnrefinableValue $ "Could not get char at index 0 in String: " <> s
+      failWithUnrefinableValue $ "Could not get char at index 0 in String: " <> s
     Just c ->
       pure c
 
 decodeNonEmptyString
   :: forall err
-   . IsDecodeJsonError err
-  => JsonDecoder err NonEmptyString
+   . JsonDecoder err NonEmptyString
 decodeNonEmptyString = addTypeHint "NonEmptyString" JPDQ.do
   s <- JPD.decodeString
   case NonEmptyString.fromString s of
     Nothing ->
-      failWithPath $ flip onUnrefinableValue $ "Received empty String"
+      failWithUnrefinableValue $ "Received empty String"
     Just nes ->
       pure nes
 
 decodeArray
   :: forall err a
-   . IsDecodeJsonError err
-  => JsonDecoder err a
+   . JsonDecoder err a
   -> JsonDecoder err (Array a)
 decodeArray decodeElem = JPDQ.do
   arr <- JPD.decodeArrayPrim
@@ -142,19 +138,17 @@ decodeArray decodeElem = JPDQ.do
 
 decodeNonEmptyArray
   :: forall err a
-   . IsDecodeJsonError err
-  => JsonDecoder err a
+   . JsonDecoder err a
   -> JsonDecoder err (NonEmptyArray a)
 decodeNonEmptyArray decodeElem = addTypeHint "NonEmptyArray" JPDQ.do
   arr <- decodeArray decodeElem
   case NEA.fromArray arr of
-    Nothing -> failWithPath $ flip onUnrefinableValue $ "Received empty array"
+    Nothing -> failWithUnrefinableValue $ "Received empty array"
     Just a -> pure a
 
 decodeObject
   :: forall err a
-   . IsDecodeJsonError err
-  => JsonDecoder err a
+   . JsonDecoder err a
   -> JsonDecoder err (Object a)
 decodeObject decodeElem = JPDQ.do
   obj <- JPD.decodeObjectPrim
@@ -163,8 +157,7 @@ decodeObject decodeElem = JPDQ.do
 
 decodeNullable
   :: forall err a
-   . IsDecodeJsonError err
-  => JsonDecoder err a
+   . JsonDecoder err a
   -> JsonDecoder err (Nullable a)
 decodeNullable decodeA = addTypeHint "Nullable" JPDQ.do
   alt (null <$ JPD.decodeNull) (notNull <$> decodeA)
@@ -172,15 +165,13 @@ decodeNullable decodeA = addTypeHint "Nullable" JPDQ.do
 decodeIdentity
   :: forall err a
    . Coercible (JsonDecoder err a) (JsonDecoder err (Identity a))
-  => IsDecodeJsonError err
   => JsonDecoder err a
   -> JsonDecoder err (Identity a)
 decodeIdentity = addTypeHint "Identity" <<< coerce
 
 decodeMaybeTagged
   :: forall err a
-   . IsDecodeJsonError err
-  => JsonDecoder err a
+   . JsonDecoder err a
   -> JsonDecoder err (Maybe a)
 decodeMaybeTagged decodeElem = addTypeHint "Maybe" JPDQ.do
   obj <- JPD.decodeObjectPrim
@@ -191,20 +182,18 @@ decodeMaybeTagged decodeElem = addTypeHint "Maybe" JPDQ.do
     "Nothing" ->
       pure Nothing
     unknownTag ->
-      failWithPath $ flip onStructureError $ "Tag was not 'Just' or 'Nothing': " <> unknownTag
+      failWithStructureError $ "Tag was not 'Just' or 'Nothing': " <> unknownTag
 
 decodeMaybeNullable
   :: forall err a
-   . IsDecodeJsonError err
-  => JsonDecoder err a
+   . JsonDecoder err a
   -> JsonDecoder err (Maybe a)
 decodeMaybeNullable decodeElem = addTypeHint "Maybe" JPDQ.do
   toMaybe <$> decodeNullable decodeElem
 
 decodeEither
   :: forall err a b
-   . IsDecodeJsonError err
-  => JsonDecoder err a
+   . JsonDecoder err a
   -> JsonDecoder err b
   -> JsonDecoder err (Either a b)
 decodeEither decodeLeft decodeRight = addTypeHint "Either" JPDQ.do
@@ -216,12 +205,11 @@ decodeEither decodeLeft decodeRight = addTypeHint "Either" JPDQ.do
     "Right" -> addCtorHint "Right" do
       Right <$> decodeField obj "value" decodeRight
     unknownTag ->
-      failWithPath $ flip onStructureError $ "Tag was not 'Left' or 'Right': " <> unknownTag
+      failWithStructureError $ "Tag was not 'Left' or 'Right': " <> unknownTag
 
 decodeTuple
   :: forall err a b
-   . IsDecodeJsonError err
-  => JsonDecoder err a
+   . JsonDecoder err a
   -> JsonDecoder err b
   -> JsonDecoder err (Tuple a b)
 decodeTuple decodeA decodeB = addTypeHint "Tuple" JPDQ.do
@@ -232,12 +220,11 @@ decodeTuple decodeA decodeB = addTypeHint "Tuple" JPDQ.do
         <$> (addSubtermHint 0 $ withOffset (AtIndex 0) a decodeA)
         <*> (addSubtermHint 1 $ withOffset (AtIndex 1) b decodeB)
     _ ->
-      failWithPath $ flip onStructureError $ "Expected array with 2 elements, but array had length of " <> show (Array.length arr)
+      failWithStructureError $ "Expected array with 2 elements, but array had length of " <> show (Array.length arr)
 
 decodeThese
   :: forall err a b
-   . IsDecodeJsonError err
-  => JsonDecoder err a
+   . JsonDecoder err a
   -> JsonDecoder err b
   -> JsonDecoder err (These a b)
 decodeThese decodeA decodeB = addTypeHint "These" JPDQ.do
@@ -253,12 +240,11 @@ decodeThese decodeA decodeB = addTypeHint "These" JPDQ.do
         <$> (addSubtermHint 0 $ decodeField obj "this" decodeA)
         <*> (addSubtermHint 1 $ decodeField obj "that" decodeB)
     unknownTag ->
-      failWithPath $ flip onStructureError $ "Tag was not 'This', 'That', or 'Both': " <> unknownTag
+      failWithStructureError $ "Tag was not 'This', 'That', or 'Both': " <> unknownTag
 
 decodeNonEmpty
   :: forall err f a
-   . IsDecodeJsonError err
-  => JsonDecoder err a
+   . JsonDecoder err a
   -> JsonDecoder err (f a)
   -> JsonDecoder err (NonEmpty f a)
 decodeNonEmpty decodeHead decodeTail = addTypeHint "NonEmpty" JPDQ.do
@@ -269,8 +255,7 @@ decodeNonEmpty decodeHead decodeTail = addTypeHint "NonEmpty" JPDQ.do
 
 decodeList
   :: forall err a
-   . IsDecodeJsonError err
-  => JsonDecoder err a
+   . JsonDecoder err a
   -> JsonDecoder err (List a)
 decodeList decodeElem = addTypeHint "List" JPDQ.do
   arr <- JPD.decodeArrayPrim
@@ -279,21 +264,19 @@ decodeList decodeElem = addTypeHint "List" JPDQ.do
 
 decodeNonEmptyList
   :: forall err a
-   . IsDecodeJsonError err
-  => JsonDecoder err a
+   . JsonDecoder err a
   -> JsonDecoder err (NonEmptyList a)
 decodeNonEmptyList decodeA = addTypeHint "NonEmptyList" JPDQ.do
   ls <- decodeList decodeA
   case ls of
     Nil ->
-      failWithPath $ flip onUnrefinableValue "Received empty list"
+      failWithUnrefinableValue "Received empty list"
     Cons h t ->
       pure $ NonEmptyList $ NonEmpty h t
 
 decodeMap
   :: forall err k v
-   . IsDecodeJsonError err
-  => Ord k
+   . Ord k
   => JsonDecoder err k
   -> JsonDecoder err v
   -> JsonDecoder err (Map k v)
@@ -308,8 +291,7 @@ decodeMap decodeKey decodeValue = addTypeHint "Map" JPDQ.do
 
 decodeSet
   :: forall err a
-   . IsDecodeJsonError err
-  => Ord a
+   . Ord a
   => JsonDecoder err a
   -> JsonDecoder err (Set a)
 decodeSet decodeA = addTypeHint "Set" JPDQ.do
@@ -319,34 +301,31 @@ decodeSet decodeA = addTypeHint "Set" JPDQ.do
 
 decodeNonEmptySet
   :: forall err a
-   . IsDecodeJsonError err
-  => Ord a
+   . Ord a
   => JsonDecoder err a
   -> JsonDecoder err (NonEmptySet a)
 decodeNonEmptySet decodeA = addTypeHint "NonEmptySet" JPDQ.do
   s <- decodeSet decodeA
   case NonEmptySet.fromSet s of
     Nothing ->
-      failWithPath $ flip onUnrefinableValue "Received empty set"
+      failWithUnrefinableValue "Received empty set"
     Just nes ->
       pure nes
 
 decodeCodePoint
   :: forall err
-   . IsDecodeJsonError err
-  => JsonDecoder err CodePoint
+   . JsonDecoder err CodePoint
 decodeCodePoint = addTypeHint "CodePoint" JPDQ.do
   s <- decodeString
   case codePointAt 0 s of
     Nothing ->
-      failWithPath $ flip onUnrefinableValue $ "Could not get code point from String: " <> s
+      failWithUnrefinableValue $ "Could not get code point from String: " <> s
     Just cp ->
       pure cp
 
 decodeRecord
   :: forall err propsRl props decoderRl decoderRows tuples outputRows
-   . IsDecodeJsonError err
-  => RowList.RowToList props propsRl
+   . RowList.RowToList props propsRl
   => RowToList decoderRows decoderRl
   => InsertRequiredPropDecoders err propsRl { | props } {} { | decoderRows }
   => DecodeRowList err decoderRl { | decoderRows } tuples
@@ -358,8 +337,7 @@ decodeRecord props =
 
 decodeRecord'
   :: forall err rl decoderRows outputRows tuples
-   . IsDecodeJsonError err
-  => DecodeRowList err rl { | decoderRows } tuples
+   . DecodeRowList err rl { | decoderRows } tuples
   => RebuildRecord tuples {} { | outputRows }
   => RLRecordDecoder err rl { | decoderRows }
   -> JsonDecoder err { | outputRows }
@@ -367,8 +345,7 @@ decodeRecord' propDecoders = decodeRecordPrim (decodeRowList propDecoders)
 
 decodeRecordPrim
   :: forall err outputRows tuples
-   . IsDecodeJsonError err
-  => RebuildRecord tuples {} { | outputRows }
+   . RebuildRecord tuples {} { | outputRows }
   => (Object Json -> JsonDecoder err tuples)
   -> JsonDecoder err { | outputRows }
 decodeRecordPrim decoder = addTypeHint "Record" JPDQ.do
@@ -388,19 +365,17 @@ decodeRequiredProp
    . Row.Cons sym (PropDecoder err a) oldRows newRows
   => IsSymbol sym
   => Row.Lacks sym oldRows
-  => IsDecodeJsonError err
   => Proxy sym
   -> JsonDecoder err a
   -> RLRecordDecoderBuilder err { | oldRows } { | newRows }
 decodeRequiredProp _sym decoder =
-  RLRecordDecoderBuilder (Builder.insert _sym (PropDecoder { onMissingField: failWithPath \p -> onMissingField p $ reflectSymbol _sym, decoder }))
+  RLRecordDecoderBuilder (Builder.insert _sym (PropDecoder { onMissingField: failWithMissingField $ reflectSymbol _sym, decoder }))
 
 decodeOptionalProp
   :: forall sym err a oldRows newRows
    . Row.Cons sym (PropDecoder err (Maybe a)) oldRows newRows
   => IsSymbol sym
   => Row.Lacks sym oldRows
-  => IsDecodeJsonError err
   => Proxy sym
   -> JsonDecoder err a
   -> RLRecordDecoderBuilder err { | oldRows } { | newRows }
@@ -448,7 +423,6 @@ else instance
   , Row.Lacks sym intermediateRows
   , Row.Cons sym (PropDecoder err a) intermediateRows newRows
   , IsSymbol sym
-  , IsDecodeJsonError err
   ) =>
   InsertRequiredPropDecoders
     err
@@ -465,7 +439,7 @@ else instance
       tailDecoders = unsafeCoerce newDecoders
       ((RLRecordDecoderBuilder intermediateDecoders) :: RLRecordDecoderBuilder err { | oldRows } { | intermediateRows }) =
         insertRequiredPropDecoders (RLRecordDecoder tailDecoders :: RLRecordDecoder err propsRlTail { | propsTail })
-      propDecoder = PropDecoder { onMissingField: failWithPath \p -> onMissingField p $ reflectSymbol _sym, decoder: Record.get _sym newDecoders }
+      propDecoder = PropDecoder { onMissingField: failWithMissingField $ reflectSymbol _sym, decoder: Record.get _sym newDecoders }
     RLRecordDecoderBuilder (intermediateDecoders >>> Builder.insert _sym propDecoder)
 
 --
@@ -490,7 +464,6 @@ else instance
   , Row.Lacks sym intermediateRows
   , Row.Cons sym (PropDecoder err (Maybe a)) intermediateRows newRows
   , IsSymbol sym
-  , IsDecodeJsonError err
   ) =>
   InsertOptionalPropDecoders
     err
@@ -517,9 +490,15 @@ newtype RLRecordDecoderBuilder :: Type -> Type -> Type -> Type
 newtype RLRecordDecoderBuilder err fromRec toRec =
   RLRecordDecoderBuilder (Builder fromRec toRec)
 
+instance Semigroupoid (RLRecordDecoderBuilder err) where
+  compose (RLRecordDecoderBuilder l) (RLRecordDecoderBuilder r) = RLRecordDecoderBuilder $ l <<< r
+
+instance Category (RLRecordDecoderBuilder err) where
+  identity = RLRecordDecoderBuilder identity
+
 class DecodeRowList :: Type -> RowList Type -> Type -> Type -> Constraint
 class DecodeRowList err rowList inputRec out | err rowList -> inputRec out where
-  decodeRowList :: IsDecodeJsonError err => RLRecordDecoder err rowList inputRec -> Object Json -> JsonDecoder err out
+  decodeRowList :: RLRecordDecoder err rowList inputRec -> Object Json -> JsonDecoder err out
 
 -- I think I need to revert back to using `Validation`
 -- and then define a special function that allows
@@ -559,3 +538,5 @@ else instance
   RebuildRecord (Tuple (Tuple (Proxy sym) a) tail) { | beforeRows } { | afterRows } where
   rebuildRecord (Tuple (Tuple _sym a) tail) =
     rebuildRecord tail >>> Builder.insert _sym a
+
+-- class ToRowList ::

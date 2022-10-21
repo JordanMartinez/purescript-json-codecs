@@ -139,18 +139,18 @@ fooDecoder :: JsonDecoder (Doc GraphicsParam) _
 fooDecoder =
   decodeRecord
     { a: ade $ decodeRecord
-        { foo: decodeBoolean }
-    , b: decodeEither decodeInt $ decodeArray decodeString
-    , c: decodeMaybeTagged decodeString
+        { foo: ade $ decodeBoolean }
+    , b: ade $ decodeEither decodeInt $ decodeArray decodeString
+    , c: ade $ decodeMaybeTagged decodeString
     }
 
 fooEncoder :: _ -> Json
 fooEncoder =
   encodeRecord
-    { a: encodeRecord
-        { foo: encodeBoolean }
-    , b: encodeEither encodeInt $ encodeArray encodeString
-    , c: encodeMaybeTagged encodeString
+    { a: ade $ encodeRecord
+        { foo: ade $ encodeBoolean }
+    , b: ade $ encodeEither encodeInt $ encodeArray encodeString
+    , c: ade $ encodeMaybeTagged encodeString
     }
 ```
 
@@ -171,13 +171,13 @@ barDecoder =
   decodeRecord' $ buildRecordDecoder $
     decodeRequiredProps
       { a: ade $ decodeRecord
-          { foo: decodeBoolean }
-      , b: decodeEither decodeInt $ decodeArray decodeString
-      , c: decodeMaybeTagged decodeString
+          { foo: ade $ decodeBoolean }
+      , b: ade $ decodeEither decodeInt $ decodeArray decodeString
+      , c: ade $ decodeMaybeTagged decodeString
       }
     >>> decodeOptionalProps
-      { optionalA: decodeInt
-      , optionalB: decodeString
+      { optionalA: ade decodeInt
+      , optionalB: ade decodeString
       }
 
 barEncoder :: Jsonencoder (Doc GraphicsParam) _
@@ -185,13 +185,13 @@ barEncoder =
   encodeRecord' $ buildRecordencoder $
     encodeRequiredProps
       { a: ade $ encodeRecord
-          { foo: encodeBoolean }
-      , b: encodeEither encodeInt $ encodeArray encodeString
-      , c: encodeMaybeTagged encodeString
+          { foo: ade $ encodeBoolean }
+      , b: ade $ encodeEither encodeInt $ encodeArray encodeString
+      , c: ade $ encodeMaybeTagged encodeString
       }
     >>> encodeOptionalProps
-      { optionalA: encodeInt
-      , optionalB: encodeString
+      { optionalA: ade $ encodeInt
+      , optionalB: ade $ encodeString
       }
 ```
 

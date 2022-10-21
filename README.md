@@ -35,6 +35,8 @@ Provide record syntax I enjoy using
 Make it easy to drop newtypes when using typeclass-based codecs.
   - [ ] automatic removal of utility newtypes - **WIP**
 
+See [DESIGN.md](DESIGN.md) for the reasoning behind this library's design.
+
 ## Error Messages for `test/Main.purs`
 
 ### `PrimitiveJsonError`:

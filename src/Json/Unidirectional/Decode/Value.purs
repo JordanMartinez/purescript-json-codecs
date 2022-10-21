@@ -73,7 +73,7 @@ import Data.These (These(..))
 import Data.TraversableWithIndex (forWithIndex)
 import Data.Tuple (Tuple(..))
 import Foreign.Object (Object)
-import Json.Primitive.Decode (JsonDecoder(..), JsonOffset(..), addCtorHint, addSubtermHint, addTypeHint, alt, decodeField, decodeField', decodeString, failWithMissingField, failWithStructureError, failWithUnrefinableValue, withOffset)
+import Json.Primitive.Decode (JsonDecoder(..), JsonOffset(..), addCtorHint, addSubtermHint, addTypeHint, altAccumulate, decodeField, decodeField', decodeString, failWithMissingField, failWithStructureError, failWithUnrefinableValue, withOffset)
 import Json.Primitive.Decode (decodeBoolean, decodeNumber, decodeString, decodeNull, decodeArrayPrim, decodeIndex, decodeIndex', decodeObjectPrim, decodeField, decodeField') as Exports
 import Json.Primitive.Decode as JPD
 import Json.Primitive.Decode.Qualified as JPDQ
@@ -160,7 +160,7 @@ decodeNullable
    . JsonDecoder err a
   -> JsonDecoder err (Nullable a)
 decodeNullable decodeA = addTypeHint "Nullable" JPDQ.do
-  alt (null <$ JPD.decodeNull) (notNull <$> decodeA)
+  altAccumulate (null <$ JPD.decodeNull) (notNull <$> decodeA)
 
 decodeIdentity
   :: forall err a
@@ -500,9 +500,6 @@ class DecodeRowList :: Type -> RowList Type -> Type -> Type -> Constraint
 class DecodeRowList err rowList inputRec out | err rowList -> inputRec out where
   decodeRowList :: RLRecordDecoder err rowList inputRec -> Object Json -> JsonDecoder err out
 
--- I think I need to revert back to using `Validation`
--- and then define a special function that allows
--- a `These`-like accumulation for `Alt` specifically.
 instance DecodeRowList err RowList.Nil {} Unit where
   decodeRowList _ _ = pure unit
 else instance

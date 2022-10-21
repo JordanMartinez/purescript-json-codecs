@@ -156,13 +156,22 @@ addSubtermHint = withHint <<< Subterm
 addFieldHint :: forall e a. String -> JsonDecoder e a -> JsonDecoder e a
 addFieldHint = withHint <<< Field
 
--- | Temporarily needed due to `V` not having an `Alt` instance
-alt :: forall e a. JsonDecoder e a -> JsonDecoder e a -> JsonDecoder e a
-alt (JsonDecoder (ReaderT f1)) (JsonDecoder (ReaderT f2)) = JsonDecoder $ ReaderT \input ->
+-- | Works like `alt`/`<|>`. Decodes using the first decoder and, if that fails,
+-- | decodes using the second decoder. Errors from both decoders accumulate.
+altAccumulate :: forall e a. JsonDecoder e a -> JsonDecoder e a -> JsonDecoder e a
+altAccumulate (JsonDecoder (ReaderT f1)) (JsonDecoder (ReaderT f2)) = JsonDecoder $ ReaderT \input ->
   case unwrap $ f1 input of
     Left e -> case unwrap $ f2 input of
       Left e2 -> invalid $ input.handlers.append e e2
       Right a -> V $ Right a
+    Right a -> V $ Right a
+
+-- | Same as `altAccumulate` except only the last error is kept. Helpful in cases
+-- | where one is decoding a sum type with a large number of data constructors.
+altDrop :: forall e a. JsonDecoder e a -> JsonDecoder e a -> JsonDecoder e a
+altDrop (JsonDecoder (ReaderT f1)) (JsonDecoder (ReaderT f2)) = JsonDecoder $ ReaderT \input ->
+  case unwrap $ f1 input of
+    Left _ -> f2 input
     Right a -> V $ Right a
 
 runJsonDecoder

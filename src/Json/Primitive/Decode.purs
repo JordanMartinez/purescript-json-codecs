@@ -100,6 +100,7 @@ type JsonDecoderInput e =
 newtype JsonDecoder e a = JsonDecoder (ReaderT (JsonDecoderInput e) (V e) a)
 
 derive newtype instance functorJsonDecoder :: Functor (JsonDecoder e)
+
 instance applyJsonDecoder :: Apply (JsonDecoder e) where
   apply (JsonDecoder (ReaderT ff)) (JsonDecoder (ReaderT fa)) = JsonDecoder $ ReaderT \a ->
     case fa a, ff a of
@@ -110,9 +111,6 @@ instance applyJsonDecoder :: Apply (JsonDecoder e) where
 
 instance applicativeJsonDecoder :: Applicative (JsonDecoder e) where
   pure a = JsonDecoder $ ReaderT \_ -> V $ Right a
-
--- TODO: add `Alt` instance to `V`
--- derive newtype instance altJsonDecoder :: Semigroup e => Alt (JsonDecoder e)
 
 getPathSoFar :: forall e. JsonDecoder e (Array JsonOffset)
 getPathSoFar = JsonDecoder $ ReaderT \r -> V $ Right r.pathSoFar

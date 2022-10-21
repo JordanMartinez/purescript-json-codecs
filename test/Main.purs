@@ -5,6 +5,7 @@ import Prelude
 import Data.Argonaut.Core (Json)
 import Data.Array as Array
 import Data.Either (either)
+import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Dodo (Doc)
 import Dodo.Ansi (GraphicsParam)
@@ -12,10 +13,13 @@ import Effect (Effect)
 import Effect.Class.Console (log)
 import Foreign.Object (Object)
 import Foreign.Object as Object
+import Json.Decode.Class (decodeJson)
+import Json.Encode.Class (encodeJson)
 import Json.Errors.AnsiDodoError (ade, printAnsiDodoError, runJsonDecoderADE)
 import Json.Errors.PlainDodoError (pde, printPlainDodoError, runJsonDecoderPDE)
 import Json.Errors.PrimitiveJsonError (PrimitiveJsonError, pje, printPrimitiveJsonError, runJsonDecoderPJE)
 import Json.Primitive.Decode (JsonDecoder, decodeBoolean, decodeNumber, decodeString)
+import Json.Types (Optional(..))
 import Json.Unidirectional.Decode.Value (decodeArray, decodeInt, decodeObject, decodeRecord)
 import Json.Unidirectional.Encode.Value (encodeBoolean, encodeArray, encodeInt, encodeNumber, encodeObject, encodeRecord, encodeString, encodeUnitToNull)
 
@@ -36,13 +40,11 @@ main = do
   runDecoderADE "Decode Record to Int" exampleRec decodeInt
   runDecoderADE "Decode Record incorrectly" exampleRec decodeRecIncorrectlyADE
   log "==="
-
--- runDecoderADE "Decode Record incorrectly" exampleRec (decodeJson :: JsonDecoder AnsiDodoError IncorrectRecordType)
--- runDecoderADE "Decode Record incorrectly" exampleRec (decodeJson :: JsonDecoder AnsiDodoError { boolean :: Boolean, noExists :: Optional (Maybe Int) })
--- runDecoderADE "Roundtrip check"
---   ((encodeJson :: { noField :: Optional (Maybe Int) } -> Json) { noField: Optional Nothing })
---   (decodeJson :: JsonDecoder AnsiDodoError { noField :: Optional (Maybe Int) })
---  
+  runDecoderADE "Decode Record incorrectly" exampleRec (decodeJson :: JsonDecoder (Doc GraphicsParam) IncorrectRecordType)
+  runDecoderADE "Decode Record incorrectly" exampleRec (decodeJson :: JsonDecoder (Doc GraphicsParam) { boolean :: Boolean, noExists :: Optional (Maybe Int) })
+  runDecoderADE "Roundtrip check"
+    ((encodeJson :: { noField :: Optional (Maybe Int) } -> Json) { noField: Optional Nothing })
+    (decodeJson :: JsonDecoder (Doc GraphicsParam) { noField :: Optional (Maybe Int) })
 
 runDecoderPJE
   :: forall a

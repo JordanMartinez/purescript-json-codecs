@@ -166,8 +166,8 @@ altAccumulate (JsonDecoder (ReaderT f1)) (JsonDecoder (ReaderT f2)) = JsonDecode
 
 -- | Same as `altAccumulate` except only the last error is kept. Helpful in cases
 -- | where one is decoding a sum type with a large number of data constructors.
-altDrop :: forall e a. JsonDecoder e a -> JsonDecoder e a -> JsonDecoder e a
-altDrop (JsonDecoder (ReaderT f1)) (JsonDecoder (ReaderT f2)) = JsonDecoder $ ReaderT \input ->
+altLast :: forall e a. JsonDecoder e a -> JsonDecoder e a -> JsonDecoder e a
+altLast (JsonDecoder (ReaderT f1)) (JsonDecoder (ReaderT f2)) = JsonDecoder $ ReaderT \input ->
   case unwrap $ f1 input of
     Left _ -> f2 input
     Right a -> V $ Right a

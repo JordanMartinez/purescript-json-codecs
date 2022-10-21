@@ -4,6 +4,8 @@ A JSON codec library that supports value-based and configurable typeclass-based 
 
 ## Design
 
+See [DESIGN.md](DESIGN.md) for the reasoning behind this library's design. The rest of this section covers my goals and where I'm at in that process.
+
 Address gripes with other JSON codec libraries:
 - [`simple-json`](https://pursuit.purescript.org/packages/purescript-simple-json/):
   - I don't want to have to [fork or copy the repo](https://github.com/justinwoo/purescript-simple-json#how-should-i-actually-use-this-library) to benefit from it / change various type class instances.
@@ -34,8 +36,6 @@ Provide record syntax I enjoy using
 
 Make it easy to drop newtypes when using typeclass-based codecs.
   - [ ] automatic removal of utility newtypes - **WIP**
-
-See [DESIGN.md](DESIGN.md) for the reasoning behind this library's design.
 
 ## Error Messages for `test/Main.purs`
 

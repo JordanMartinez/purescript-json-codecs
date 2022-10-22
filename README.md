@@ -23,7 +23,7 @@ Improve error messages:
 Provide a single library for
   - both versions of codecs:
     - [x] class-based
-      - [ ] configurable decoder - **WIP**
+      - [x] configurable decoder
       - [ ] configurable encoder - **WIP**
     - [x] value-based
   - both directions of codecs:
@@ -211,4 +211,50 @@ bazDecoder = decodeJson
 
 bazEncoder :: Baz -> Json
 bazEncoder = encodeJson
+```
+
+### Typeclass-based codec where some instances are implemented via runtime-configured implementations
+
+See [LocalOverrides.purs](./test/Test/Json/Unidirectional/Typeclass/LocalOverrides.purs), which as of the time of writing, outputs:
+
+```
+### Typeclass (Local Overrides) Output:
+Starting record: 
+{ stringNormal: "hello"
+, stringOverride: "+"
+, tupleNormal: (Tuple "left" "right")
+, tupleSwap: (Tuple "left" "right")
+, tupleMultiOverride: (Tuple "left" "+")
+}
+Encoded Json: 
+{
+  "tupleSwap": [
+    "left",
+    "right"
+  ],
+  "tupleNormal": [
+    "left",
+    "right"
+  ],
+  "tupleMultiOverride": [
+    "left",
+    "+"
+  ],
+  "stringOverride": "+",
+  "stringNormal": "hello"
+}
+Normal decoded value: 
+{ stringNormal: "hello"
+, stringOverride: "+"
+, tupleNormal: (Tuple "left" "right")
+, tupleSwap: (Tuple "left" "right")
+, tupleMultiOverride: (Tuple "left" "+")
+}
+Locally-overridden decoded value: 
+{ stringNormal: "hello"
+, stringOverride: "1 + 1 == 2"
+, tupleNormal: (Tuple "left" "right")
+, tupleSwap: (Tuple "right" "left")
+, tupleMultiOverride: (Tuple "1 + 1 == 2" "left")
+}
 ```

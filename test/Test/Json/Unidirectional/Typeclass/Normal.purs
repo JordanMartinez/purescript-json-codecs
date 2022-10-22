@@ -1,4 +1,4 @@
-module Test.Json.Unidirectional.TypeClass where
+module Test.Json.Unidirectional.Typeclass.Normal where
 
 import Prelude
 
@@ -18,11 +18,11 @@ import Json.Encode.Class (encodeJson)
 import Json.Errors.AnsiDodoError (printAnsiDodoError, runJsonDecoderADE)
 import Json.Primitive.Decode (JsonDecoder)
 import Json.Types (Optional(..))
-import Json.Unidirectional.Encode.Value (encodeBoolean, encodeArray, encodeInt, encodeNumber, encodeObject, encodeRecord, encodeString, encodeUnitToNull)
+import Json.Unidirectional.Encode.Value (encodeArray, encodeBoolean, encodeInt, encodeNumber, encodeObject, encodeRecord, encodeString, encodeUnitToNull)
 
 runOutput :: Effect Unit
 runOutput = do
-  log "\n### Typeclass Output:"
+  log "\n### Typeclass (Normal) Output:"
   runDecoderADE "Decode Record incorrectly" exampleRec
     (decodeJson :: JsonDecoder (Doc GraphicsParam) Unit IncorrectRecordType)
   runDecoderADE "Decode Record incorrectly (test optional field)" exampleRec

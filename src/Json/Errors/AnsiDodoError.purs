@@ -65,8 +65,14 @@ docifyHint hint path =
 printAnsiDodoError :: Doc GraphicsParam -> String
 printAnsiDodoError = D.print ansiGraphics twoSpaces
 
-runJsonDecoderADE :: forall a. Json -> JsonDecoder (Doc GraphicsParam) a -> Either (Doc GraphicsParam) a
-runJsonDecoderADE = runJsonDecoder handlersAde
+runJsonDecoderADE :: forall a. Json -> JsonDecoder (Doc GraphicsParam) Unit a -> Either (Doc GraphicsParam) a
+runJsonDecoderADE = runJsonDecoderADE' unit
 
-ade :: forall a. JsonDecoder (Doc GraphicsParam) a -> JsonDecoder (Doc GraphicsParam) a
+runJsonDecoderADE' :: forall a extra. extra -> Json -> JsonDecoder (Doc GraphicsParam) extra a -> Either (Doc GraphicsParam) a
+runJsonDecoderADE' = runJsonDecoder handlersAde
+
+ade :: forall a. JsonDecoder (Doc GraphicsParam) Unit a -> JsonDecoder (Doc GraphicsParam) Unit a
 ade = identity
+
+ade' :: forall a extra. JsonDecoder (Doc GraphicsParam) extra a -> JsonDecoder (Doc GraphicsParam) extra a
+ade' = identity

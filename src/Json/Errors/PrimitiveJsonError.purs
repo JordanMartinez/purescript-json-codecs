@@ -83,8 +83,14 @@ printPrimitiveJsonError =
   printPath p = "  at path: " <> printJsonOffsetPath p
   indentByPathLength p = power "  " $ Array.length p
 
-runJsonDecoderPJE :: forall a. Json -> JsonDecoder PrimitiveJsonError a -> Either PrimitiveJsonError a
-runJsonDecoderPJE = runJsonDecoder pjeHandlers
+runJsonDecoderPJE :: forall a. Json -> JsonDecoder PrimitiveJsonError Unit a -> Either PrimitiveJsonError a
+runJsonDecoderPJE = runJsonDecoderPJE' unit
 
-pje :: forall a. JsonDecoder PrimitiveJsonError a -> JsonDecoder PrimitiveJsonError a
+runJsonDecoderPJE' :: forall a extra. extra -> Json -> JsonDecoder PrimitiveJsonError extra a -> Either PrimitiveJsonError a
+runJsonDecoderPJE' = runJsonDecoder pjeHandlers
+
+pje :: forall a. JsonDecoder PrimitiveJsonError Unit a -> JsonDecoder PrimitiveJsonError Unit a
 pje = identity
+
+pje' :: forall a extra. JsonDecoder PrimitiveJsonError extra a -> JsonDecoder PrimitiveJsonError extra a
+pje' = identity

@@ -57,8 +57,14 @@ docifyHint hint path =
 printPlainDodoError :: Doc Void -> String
 printPlainDodoError = D.print plainText twoSpaces
 
-runJsonDecoderPDE :: forall a. Json -> JsonDecoder (Doc Void) a -> Either (Doc Void) a
-runJsonDecoderPDE = runJsonDecoder handlersPde
+runJsonDecoderPDE :: forall a. Json -> JsonDecoder (Doc Void) Unit a -> Either (Doc Void) a
+runJsonDecoderPDE = runJsonDecoderPDE' unit
 
-pde :: forall a. JsonDecoder (Doc Void) a -> JsonDecoder (Doc Void) a
+runJsonDecoderPDE' :: forall a extra. extra -> Json -> JsonDecoder (Doc Void) extra a -> Either (Doc Void) a
+runJsonDecoderPDE' = runJsonDecoder handlersPde
+
+pde :: forall a. JsonDecoder (Doc Void) Unit a -> JsonDecoder (Doc Void) Unit a
 pde = identity
+
+pde' :: forall a extra. JsonDecoder (Doc Void) extra a -> JsonDecoder (Doc Void) extra a
+pde' = identity

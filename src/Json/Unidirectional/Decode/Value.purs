@@ -86,15 +86,15 @@ import Safe.Coerce (coerce)
 import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
 
-decodeVoid :: forall err. JsonDecoder err Void
+decodeVoid :: forall err extra. JsonDecoder err extra Void
 decodeVoid = addTypeHint "Void" $ failWithUnrefinableValue "Decoding a value to Void is impossible"
 
-decodeNullToUnit :: forall err. JsonDecoder err Unit
+decodeNullToUnit :: forall err extra. JsonDecoder err extra Unit
 decodeNullToUnit = JPD.decodeNull
 
 decodeInt
-  :: forall err
-   . JsonDecoder err Int
+  :: forall err extra
+   . JsonDecoder err extra Int
 decodeInt = addTypeHint "Int" JPDQ.do
   n <- JPD.decodeNumber
   case Int.fromNumber n of
@@ -104,8 +104,8 @@ decodeInt = addTypeHint "Int" JPDQ.do
       pure i
 
 decodeChar
-  :: forall err
-   . JsonDecoder err Char
+  :: forall err extra
+   . JsonDecoder err extra Char
 decodeChar = addTypeHint "Char" JPDQ.do
   s <- JPD.decodeString
   case charAt 0 s of
@@ -115,8 +115,8 @@ decodeChar = addTypeHint "Char" JPDQ.do
       pure c
 
 decodeNonEmptyString
-  :: forall err
-   . JsonDecoder err NonEmptyString
+  :: forall err extra
+   . JsonDecoder err extra NonEmptyString
 decodeNonEmptyString = addTypeHint "NonEmptyString" JPDQ.do
   s <- JPD.decodeString
   case NonEmptyString.fromString s of
@@ -126,18 +126,18 @@ decodeNonEmptyString = addTypeHint "NonEmptyString" JPDQ.do
       pure nes
 
 decodeArray
-  :: forall err a
-   . JsonDecoder err a
-  -> JsonDecoder err (Array a)
+  :: forall err extra a
+   . JsonDecoder err extra a
+  -> JsonDecoder err extra (Array a)
 decodeArray decodeElem = JPDQ.do
   arr <- JPD.decodeArrayPrim
   forWithIndex arr \i j2 ->
     withOffset (AtIndex i) j2 decodeElem
 
 decodeNonEmptyArray
-  :: forall err a
-   . JsonDecoder err a
-  -> JsonDecoder err (NonEmptyArray a)
+  :: forall err extra a
+   . JsonDecoder err extra a
+  -> JsonDecoder err extra (NonEmptyArray a)
 decodeNonEmptyArray decodeElem = addTypeHint "NonEmptyArray" JPDQ.do
   arr <- decodeArray decodeElem
   case NEA.fromArray arr of
@@ -145,32 +145,32 @@ decodeNonEmptyArray decodeElem = addTypeHint "NonEmptyArray" JPDQ.do
     Just a -> pure a
 
 decodeObject
-  :: forall err a
-   . JsonDecoder err a
-  -> JsonDecoder err (Object a)
+  :: forall err extra a
+   . JsonDecoder err extra a
+  -> JsonDecoder err extra (Object a)
 decodeObject decodeElem = JPDQ.do
   obj <- JPD.decodeObjectPrim
   forWithIndex obj \field j2 ->
     withOffset (AtKey field) j2 decodeElem
 
 decodeNullable
-  :: forall err a
-   . JsonDecoder err a
-  -> JsonDecoder err (Nullable a)
+  :: forall err extra a
+   . JsonDecoder err extra a
+  -> JsonDecoder err extra (Nullable a)
 decodeNullable decodeA = addTypeHint "Nullable" JPDQ.do
   altAccumulate (null <$ JPD.decodeNull) (notNull <$> decodeA)
 
 decodeIdentity
-  :: forall err a
-   . Coercible (JsonDecoder err a) (JsonDecoder err (Identity a))
-  => JsonDecoder err a
-  -> JsonDecoder err (Identity a)
+  :: forall err extra a
+   . Coercible (JsonDecoder err extra a) (JsonDecoder err extra (Identity a))
+  => JsonDecoder err extra a
+  -> JsonDecoder err extra (Identity a)
 decodeIdentity = addTypeHint "Identity" <<< coerce
 
 decodeMaybeTagged
-  :: forall err a
-   . JsonDecoder err a
-  -> JsonDecoder err (Maybe a)
+  :: forall err extra a
+   . JsonDecoder err extra a
+  -> JsonDecoder err extra (Maybe a)
 decodeMaybeTagged decodeElem = addTypeHint "Maybe" JPDQ.do
   obj <- JPD.decodeObjectPrim
   tag <- decodeField obj "tag" JPD.decodeString
@@ -183,17 +183,17 @@ decodeMaybeTagged decodeElem = addTypeHint "Maybe" JPDQ.do
       failWithStructureError $ "Tag was not 'Just' or 'Nothing': " <> unknownTag
 
 decodeMaybeNullable
-  :: forall err a
-   . JsonDecoder err a
-  -> JsonDecoder err (Maybe a)
+  :: forall err extra a
+   . JsonDecoder err extra a
+  -> JsonDecoder err extra (Maybe a)
 decodeMaybeNullable decodeElem = addTypeHint "Maybe" JPDQ.do
   toMaybe <$> decodeNullable decodeElem
 
 decodeEither
-  :: forall err a b
-   . JsonDecoder err a
-  -> JsonDecoder err b
-  -> JsonDecoder err (Either a b)
+  :: forall err extra a b
+   . JsonDecoder err extra a
+  -> JsonDecoder err extra b
+  -> JsonDecoder err extra (Either a b)
 decodeEither decodeLeft decodeRight = addTypeHint "Either" JPDQ.do
   obj <- JPD.decodeObjectPrim
   tag <- decodeField obj "tag" JPD.decodeString
@@ -206,10 +206,10 @@ decodeEither decodeLeft decodeRight = addTypeHint "Either" JPDQ.do
       failWithStructureError $ "Tag was not 'Left' or 'Right': " <> unknownTag
 
 decodeTuple
-  :: forall err a b
-   . JsonDecoder err a
-  -> JsonDecoder err b
-  -> JsonDecoder err (Tuple a b)
+  :: forall err extra a b
+   . JsonDecoder err extra a
+  -> JsonDecoder err extra b
+  -> JsonDecoder err extra (Tuple a b)
 decodeTuple decodeA decodeB = addTypeHint "Tuple" JPDQ.do
   arr <- JPD.decodeArrayPrim
   case arr of
@@ -221,10 +221,10 @@ decodeTuple decodeA decodeB = addTypeHint "Tuple" JPDQ.do
       failWithStructureError $ "Expected array with 2 elements, but array had length of " <> show (Array.length arr)
 
 decodeThese
-  :: forall err a b
-   . JsonDecoder err a
-  -> JsonDecoder err b
-  -> JsonDecoder err (These a b)
+  :: forall err extra a b
+   . JsonDecoder err extra a
+  -> JsonDecoder err extra b
+  -> JsonDecoder err extra (These a b)
 decodeThese decodeA decodeB = addTypeHint "These" JPDQ.do
   obj <- JPD.decodeObjectPrim
   tag <- decodeField obj "tag" JPD.decodeString
@@ -241,10 +241,10 @@ decodeThese decodeA decodeB = addTypeHint "These" JPDQ.do
       failWithStructureError $ "Tag was not 'This', 'That', or 'Both': " <> unknownTag
 
 decodeNonEmpty
-  :: forall err f a
-   . JsonDecoder err a
-  -> JsonDecoder err (f a)
-  -> JsonDecoder err (NonEmpty f a)
+  :: forall err extra f a
+   . JsonDecoder err extra a
+  -> JsonDecoder err extra (f a)
+  -> JsonDecoder err extra (NonEmpty f a)
 decodeNonEmpty decodeHead decodeTail = addTypeHint "NonEmpty" JPDQ.do
   obj <- JPD.decodeObjectPrim
   NonEmpty
@@ -252,18 +252,18 @@ decodeNonEmpty decodeHead decodeTail = addTypeHint "NonEmpty" JPDQ.do
     <*> (addSubtermHint 0 $ decodeField obj "tail" decodeTail)
 
 decodeList
-  :: forall err a
-   . JsonDecoder err a
-  -> JsonDecoder err (List a)
+  :: forall err extra a
+   . JsonDecoder err extra a
+  -> JsonDecoder err extra (List a)
 decodeList decodeElem = addTypeHint "List" JPDQ.do
   arr <- JPD.decodeArrayPrim
   map List.fromFoldable $ forWithIndex arr \i a ->
     withOffset (AtIndex i) a decodeElem
 
 decodeNonEmptyList
-  :: forall err a
-   . JsonDecoder err a
-  -> JsonDecoder err (NonEmptyList a)
+  :: forall err extra a
+   . JsonDecoder err extra a
+  -> JsonDecoder err extra (NonEmptyList a)
 decodeNonEmptyList decodeA = addTypeHint "NonEmptyList" JPDQ.do
   ls <- decodeList decodeA
   case ls of
@@ -273,11 +273,11 @@ decodeNonEmptyList decodeA = addTypeHint "NonEmptyList" JPDQ.do
       pure $ NonEmptyList $ NonEmpty h t
 
 decodeMap
-  :: forall err k v
+  :: forall err extra k v
    . Ord k
-  => JsonDecoder err k
-  -> JsonDecoder err v
-  -> JsonDecoder err (Map k v)
+  => JsonDecoder err extra k
+  -> JsonDecoder err extra v
+  -> JsonDecoder err extra (Map k v)
 decodeMap decodeKey decodeValue = addTypeHint "Map" JPDQ.do
   arr <- JPD.decodeArrayPrim
   map Map.fromFoldable $ forWithIndex arr \i a ->
@@ -288,20 +288,20 @@ decodeMap decodeKey decodeValue = addTypeHint "Map" JPDQ.do
         <*> decodeField obj "value" decodeValue
 
 decodeSet
-  :: forall err a
+  :: forall err extra a
    . Ord a
-  => JsonDecoder err a
-  -> JsonDecoder err (Set a)
+  => JsonDecoder err extra a
+  -> JsonDecoder err extra (Set a)
 decodeSet decodeA = addTypeHint "Set" JPDQ.do
   arr <- JPD.decodeArrayPrim
   map Set.fromFoldable $ forWithIndex arr \i a ->
     withOffset (AtIndex i) a decodeA
 
 decodeNonEmptySet
-  :: forall err a
+  :: forall err extra a
    . Ord a
-  => JsonDecoder err a
-  -> JsonDecoder err (NonEmptySet a)
+  => JsonDecoder err extra a
+  -> JsonDecoder err extra (NonEmptySet a)
 decodeNonEmptySet decodeA = addTypeHint "NonEmptySet" JPDQ.do
   s <- decodeSet decodeA
   case NonEmptySet.fromSet s of
@@ -311,8 +311,8 @@ decodeNonEmptySet decodeA = addTypeHint "NonEmptySet" JPDQ.do
       pure nes
 
 decodeCodePoint
-  :: forall err
-   . JsonDecoder err CodePoint
+  :: forall err extra
+   . JsonDecoder err extra CodePoint
 decodeCodePoint = addTypeHint "CodePoint" JPDQ.do
   s <- decodeString
   case codePointAt 0 s of
@@ -322,106 +322,107 @@ decodeCodePoint = addTypeHint "CodePoint" JPDQ.do
       pure cp
 
 decodeRecord
-  :: forall err propsRl props decoderRl decoderRows outputRows
+  :: forall err extra propsRl props decoderRl decoderRows outputRows
    . RowList.RowToList props propsRl
   => RowToList decoderRows decoderRl
-  => InsertRequiredPropDecoders err propsRl { | props } {} { | decoderRows }
-  => DecodeRowList err decoderRl { | decoderRows } { | outputRows }
+  => InsertRequiredPropDecoders err extra propsRl { | props } {} { | decoderRows }
+  => DecodeRowList err extra decoderRl { | decoderRows } { | outputRows }
   => { | props }
-  -> JsonDecoder err { | outputRows }
+  -> JsonDecoder err extra { | outputRows }
 decodeRecord props =
   decodeRecord' (buildRecordDecoder $ decodeRequiredProps props)
 
 decodeRecord'
-  :: forall err rl decoderRows outputRows
-   . DecodeRowList err rl { | decoderRows } { | outputRows }
-  => RLRecordDecoder err rl { | decoderRows }
-  -> JsonDecoder err { | outputRows }
+  :: forall err extra rl decoderRows outputRows
+   . DecodeRowList err extra rl { | decoderRows } { | outputRows }
+  => RLRecordDecoder err extra rl { | decoderRows }
+  -> JsonDecoder err extra { | outputRows }
 decodeRecord' propDecoders = decodeRecordPrim (decodeRowList propDecoders)
 
 decodeRecordPrim
-  :: forall err outputRows
-   . (Object Json -> JsonDecoder err { | outputRows })
-  -> JsonDecoder err { | outputRows }
+  :: forall err extra outputRows
+   . (Object Json -> JsonDecoder err extra { | outputRows })
+  -> JsonDecoder err extra { | outputRows }
 decodeRecordPrim decoder = addTypeHint "Record" JPDQ.do
   obj <- JPD.decodeObjectPrim
   decoder obj
 
 buildRecordDecoder
-  :: forall err rl decoderRows
+  :: forall err extra rl decoderRows
    . RowToList decoderRows rl
-  => RLRecordDecoderBuilder err {} { | decoderRows }
-  -> RLRecordDecoder err rl { | decoderRows }
+  => RLRecordDecoderBuilder err extra {} { | decoderRows }
+  -> RLRecordDecoder err extra rl { | decoderRows }
 buildRecordDecoder (RLRecordDecoderBuilder builder) =
   RLRecordDecoder $ buildFromScratch builder
 
 decodeRequiredProp
-  :: forall sym err a oldRows newRows
-   . Row.Cons sym (PropDecoder err a) oldRows newRows
+  :: forall sym err extra a oldRows newRows
+   . Row.Cons sym (PropDecoder err extra a) oldRows newRows
   => IsSymbol sym
   => Row.Lacks sym oldRows
   => Proxy sym
-  -> JsonDecoder err a
-  -> RLRecordDecoderBuilder err { | oldRows } { | newRows }
+  -> JsonDecoder err extra a
+  -> RLRecordDecoderBuilder err extra { | oldRows } { | newRows }
 decodeRequiredProp _sym decoder =
   RLRecordDecoderBuilder (Builder.insert _sym (PropDecoder { onMissingField: failWithMissingField $ reflectSymbol _sym, decoder }))
 
 decodeOptionalProp
-  :: forall sym err a oldRows newRows
-   . Row.Cons sym (PropDecoder err (Maybe a)) oldRows newRows
+  :: forall sym err extra a oldRows newRows
+   . Row.Cons sym (PropDecoder err extra (Maybe a)) oldRows newRows
   => IsSymbol sym
   => Row.Lacks sym oldRows
   => Proxy sym
-  -> JsonDecoder err a
-  -> RLRecordDecoderBuilder err { | oldRows } { | newRows }
+  -> JsonDecoder err extra a
+  -> RLRecordDecoderBuilder err extra { | oldRows } { | newRows }
 decodeOptionalProp _sym decoder =
   RLRecordDecoderBuilder (Builder.insert _sym (PropDecoder { onMissingField: pure Nothing, decoder: Just <$> decoder }))
 
 decodeRequiredProps
-  :: forall err propsRl props oldRows newRows
+  :: forall err extra propsRl props oldRows newRows
    . RowList.RowToList props propsRl
-  => InsertRequiredPropDecoders err propsRl { | props } { | oldRows } { | newRows }
+  => InsertRequiredPropDecoders err extra propsRl { | props } { | oldRows } { | newRows }
   => { | props }
-  -> (RLRecordDecoderBuilder err { | oldRows } { | newRows })
+  -> (RLRecordDecoderBuilder err extra { | oldRows } { | newRows })
 decodeRequiredProps props =
-  insertRequiredPropDecoders (RLRecordDecoder props :: RLRecordDecoder err propsRl { | props })
+  insertRequiredPropDecoders (RLRecordDecoder props :: RLRecordDecoder err extra propsRl { | props })
 
 decodeOptionalProps
-  :: forall err propsRl props oldRows newRows
+  :: forall err extra propsRl props oldRows newRows
    . RowList.RowToList props propsRl
-  => InsertOptionalPropDecoders err propsRl { | props } { | oldRows } { | newRows }
+  => InsertOptionalPropDecoders err extra propsRl { | props } { | oldRows } { | newRows }
   => { | props }
-  -> (RLRecordDecoderBuilder err { | oldRows } { | newRows })
+  -> (RLRecordDecoderBuilder err extra { | oldRows } { | newRows })
 decodeOptionalProps props =
-  insertOptionalPropDecoders (RLRecordDecoder props :: RLRecordDecoder err propsRl { | props })
+  insertOptionalPropDecoders (RLRecordDecoder props :: RLRecordDecoder err extra propsRl { | props })
 
-newtype PropDecoder err a = PropDecoder
-  { onMissingField :: JsonDecoder err a
-  , decoder :: JsonDecoder err a
+newtype PropDecoder err extra a = PropDecoder
+  { onMissingField :: JsonDecoder err extra a
+  , decoder :: JsonDecoder err extra a
   }
 
-class InsertRequiredPropDecoders :: Type -> RowList Type -> Type -> Type -> Type -> Constraint
+class InsertRequiredPropDecoders :: Type -> Type -> RowList Type -> Type -> Type -> Type -> Constraint
 class
-  InsertRequiredPropDecoders err propsRl propsRec oldRec newRec
-  | err propsRl -> propsRec oldRec newRec
+  InsertRequiredPropDecoders err extra propsRl propsRec oldRec newRec
+  | err extra propsRl -> propsRec oldRec newRec
   where
   insertRequiredPropDecoders
-    :: RLRecordDecoder err propsRl propsRec
-    -> RLRecordDecoderBuilder err oldRec newRec
+    :: RLRecordDecoder err extra propsRl propsRec
+    -> RLRecordDecoderBuilder err extra oldRec newRec
 
-instance InsertRequiredPropDecoders err RowList.Nil {} { | oldRows } { | oldRows } where
+instance InsertRequiredPropDecoders err extra RowList.Nil {} { | oldRows } { | oldRows } where
   insertRequiredPropDecoders _ = RLRecordDecoderBuilder identity
 
 else instance
-  ( Row.Cons sym (JsonDecoder err a) propsTail props
-  , InsertRequiredPropDecoders err propsRlTail { | propsTail } { | oldRows } { | intermediateRows }
+  ( Row.Cons sym (JsonDecoder err extra a) propsTail props
+  , InsertRequiredPropDecoders err extra propsRlTail { | propsTail } { | oldRows } { | intermediateRows }
   , Row.Lacks sym intermediateRows
-  , Row.Cons sym (PropDecoder err a) intermediateRows newRows
+  , Row.Cons sym (PropDecoder err extra a) intermediateRows newRows
   , IsSymbol sym
   ) =>
   InsertRequiredPropDecoders
     err
-    (RowList.Cons sym (JsonDecoder err a) propsRlTail)
+    extra
+    (RowList.Cons sym (JsonDecoder err extra a) propsRlTail)
     { | props }
     { | oldRows }
     { | newRows }
@@ -432,37 +433,39 @@ else instance
 
       tailDecoders :: { | propsTail }
       tailDecoders = unsafeCoerce newDecoders
-      ((RLRecordDecoderBuilder intermediateDecoders) :: RLRecordDecoderBuilder err { | oldRows } { | intermediateRows }) =
-        insertRequiredPropDecoders (RLRecordDecoder tailDecoders :: RLRecordDecoder err propsRlTail { | propsTail })
+      ((RLRecordDecoderBuilder intermediateDecoders) :: RLRecordDecoderBuilder err extra { | oldRows } { | intermediateRows }) =
+        insertRequiredPropDecoders (RLRecordDecoder tailDecoders :: RLRecordDecoder err extra propsRlTail { | propsTail })
       propDecoder = PropDecoder { onMissingField: failWithMissingField $ reflectSymbol _sym, decoder: Record.get _sym newDecoders }
     RLRecordDecoderBuilder (intermediateDecoders >>> Builder.insert _sym propDecoder)
 
 --
 class InsertOptionalPropDecoders
   :: Type
+  -> Type
   -> RowList Type
   -> Type
   -> Type
   -> Type
   -> Constraint
 class
-  InsertOptionalPropDecoders err propsRl propsRec oldRec newRec
-  | err propsRl -> propsRec oldRec newRec where
-  insertOptionalPropDecoders :: RLRecordDecoder err propsRl propsRec -> RLRecordDecoderBuilder err oldRec newRec
+  InsertOptionalPropDecoders err extra propsRl propsRec oldRec newRec
+  | err extra propsRl -> propsRec oldRec newRec where
+  insertOptionalPropDecoders :: RLRecordDecoder err extra propsRl propsRec -> RLRecordDecoderBuilder err extra oldRec newRec
 
-instance InsertOptionalPropDecoders err RowList.Nil {} { | oldRows } { | oldRows } where
+instance InsertOptionalPropDecoders err extra RowList.Nil {} { | oldRows } { | oldRows } where
   insertOptionalPropDecoders _ = RLRecordDecoderBuilder identity
 
 else instance
-  ( Row.Cons sym (JsonDecoder err a) propsTail props
-  , InsertOptionalPropDecoders err propsRlTail { | propsTail } { | oldRows } { | intermediateRows }
+  ( Row.Cons sym (JsonDecoder err extra a) propsTail props
+  , InsertOptionalPropDecoders err extra propsRlTail { | propsTail } { | oldRows } { | intermediateRows }
   , Row.Lacks sym intermediateRows
-  , Row.Cons sym (PropDecoder err (Maybe a)) intermediateRows newRows
+  , Row.Cons sym (PropDecoder err extra (Maybe a)) intermediateRows newRows
   , IsSymbol sym
   ) =>
   InsertOptionalPropDecoders
     err
-    (RowList.Cons sym (JsonDecoder err a) propsRlTail)
+    extra
+    (RowList.Cons sym (JsonDecoder err extra a) propsRlTail)
     { | props }
     { | oldRows }
     { | newRows }
@@ -473,41 +476,41 @@ else instance
 
       tailDecoders :: { | propsTail }
       tailDecoders = unsafeCoerce newDecoders
-      ((RLRecordDecoderBuilder intermediateDecoders) :: RLRecordDecoderBuilder err { | oldRows } { | intermediateRows }) =
-        insertOptionalPropDecoders (RLRecordDecoder tailDecoders :: RLRecordDecoder err propsRlTail { | propsTail })
+      ((RLRecordDecoderBuilder intermediateDecoders) :: RLRecordDecoderBuilder err extra { | oldRows } { | intermediateRows }) =
+        insertOptionalPropDecoders (RLRecordDecoder tailDecoders :: RLRecordDecoder err extra propsRlTail { | propsTail })
       propDecoder = PropDecoder { onMissingField: pure Nothing, decoder: Just <$> Record.get _sym newDecoders }
     RLRecordDecoderBuilder (intermediateDecoders >>> Builder.insert _sym propDecoder)
 
-newtype RLRecordDecoder :: Type -> RowList Type -> Type -> Type
-newtype RLRecordDecoder err rowlist rec = RLRecordDecoder rec
+newtype RLRecordDecoder :: Type -> Type -> RowList Type -> Type -> Type
+newtype RLRecordDecoder err extra rowlist rec = RLRecordDecoder rec
 
-newtype RLRecordDecoderBuilder :: Type -> Type -> Type -> Type
-newtype RLRecordDecoderBuilder err fromRec toRec =
+newtype RLRecordDecoderBuilder :: Type -> Type -> Type -> Type -> Type
+newtype RLRecordDecoderBuilder err extra fromRec toRec =
   RLRecordDecoderBuilder (Builder fromRec toRec)
 
-instance Semigroupoid (RLRecordDecoderBuilder err) where
+instance Semigroupoid (RLRecordDecoderBuilder err extra) where
   compose (RLRecordDecoderBuilder l) (RLRecordDecoderBuilder r) = RLRecordDecoderBuilder $ l <<< r
 
-instance Category (RLRecordDecoderBuilder err) where
+instance Category (RLRecordDecoderBuilder err extra) where
   identity = RLRecordDecoderBuilder identity
 
 -- | Decodes an `Object Json` into a `Record rows` and works whether fields are required or optional.
-class DecodeRowList :: Type -> RowList Type -> Type -> Type -> Constraint
-class DecodeRowList err rowList inputRec out | err rowList -> inputRec out where
-  decodeRowList :: RLRecordDecoder err rowList inputRec -> Object Json -> JsonDecoder err out
+class DecodeRowList :: Type -> Type -> RowList Type -> Type -> Type -> Constraint
+class DecodeRowList err extra rowList inputRec out | err rowList -> inputRec out where
+  decodeRowList :: RLRecordDecoder err extra rowList inputRec -> Object Json -> JsonDecoder err extra out
 
-instance DecodeRowList err RowList.Nil {} {} where
+instance DecodeRowList err extra RowList.Nil {} {} where
   decodeRowList _ _ = pure {}
 else instance
-  ( Row.Cons sym (PropDecoder err a) tail inputRows
-  , DecodeRowList err tailList { | tail } { | intermediateRows }
+  ( Row.Cons sym (PropDecoder err extra a) tail inputRows
+  , DecodeRowList err extra tailList { | tail } { | intermediateRows }
   , Row.Lacks sym intermediateRows
-  , Row.Cons sym (a) intermediateRows outRows
+  , Row.Cons sym a intermediateRows outRows
   , IsSymbol sym
   ) =>
-  DecodeRowList err (RowList.Cons sym (PropDecoder err a) tailList) { | inputRows } { | outRows } where
+  DecodeRowList err extra (RowList.Cons sym (PropDecoder err extra a) tailList) { | inputRows } { | outRows } where
   decodeRowList (RLRecordDecoder fieldDecoders) obj = ado
-    tailRecord <- decodeRowList (RLRecordDecoder fieldDecodersTail :: RLRecordDecoder err tailList { | tail }) obj
+    tailRecord <- decodeRowList (RLRecordDecoder fieldDecodersTail :: RLRecordDecoder err extra tailList { | tail }) obj
     value <- decodeField' obj keyStr field.onMissingField field.decoder
     in Record.insert _sym value tailRecord
     where
@@ -517,4 +520,4 @@ else instance
     fieldDecodersTail :: { | tail }
     fieldDecodersTail = unsafeCoerce fieldDecoders
 
-    (PropDecoder field :: PropDecoder err a) = Record.get _sym fieldDecoders
+    (PropDecoder field :: PropDecoder err extra a) = Record.get _sym fieldDecoders

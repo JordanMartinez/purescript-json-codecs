@@ -40,18 +40,18 @@ main = do
   runDecoderADE "Decode Record to Int" exampleRec decodeInt
   runDecoderADE "Decode Record incorrectly" exampleRec decodeRecIncorrectlyADE
   log "==="
-  runDecoderADE "Decode Record incorrectly" exampleRec (decodeJson :: JsonDecoder (Doc GraphicsParam) IncorrectRecordType)
-  runDecoderADE "Decode Record incorrectly" exampleRec (decodeJson :: JsonDecoder (Doc GraphicsParam) { boolean :: Boolean, noExists :: Optional (Maybe Int) })
+  runDecoderADE "Decode Record incorrectly" exampleRec (decodeJson :: JsonDecoder (Doc GraphicsParam) Unit IncorrectRecordType)
+  runDecoderADE "Decode Record incorrectly" exampleRec (decodeJson :: JsonDecoder (Doc GraphicsParam) Unit { boolean :: Boolean, noExists :: Optional (Maybe Int) })
   runDecoderADE "Roundtrip check"
     ((encodeJson :: { noField :: Optional (Maybe Int) } -> Json) { noField: Optional Nothing })
-    (decodeJson :: JsonDecoder (Doc GraphicsParam) { noField :: Optional (Maybe Int) })
+    (decodeJson :: JsonDecoder (Doc GraphicsParam) Unit { noField :: Optional (Maybe Int) })
 
 runDecoderPJE
   :: forall a
    . Show a
   => String
   -> Json
-  -> JsonDecoder PrimitiveJsonError a
+  -> JsonDecoder PrimitiveJsonError Unit a
   -> Effect Unit
 runDecoderPJE msg example decoder =
   log
@@ -64,7 +64,7 @@ runDecoderPDE
    . Show a
   => String
   -> Json
-  -> JsonDecoder (Doc Void) a
+  -> JsonDecoder (Doc Void) Unit a
   -> Effect Unit
 runDecoderPDE msg example decoder =
   log
@@ -77,7 +77,7 @@ runDecoderADE
    . Show a
   => String
   -> Json
-  -> JsonDecoder (Doc GraphicsParam) a
+  -> JsonDecoder (Doc GraphicsParam) Unit a
   -> Effect Unit
 runDecoderADE msg example decoder =
   log
@@ -135,7 +135,7 @@ type IncorrectRecordType =
   , record :: Array Int
   }
 
-decodeRecIncorrectlyPJE :: JsonDecoder PrimitiveJsonError _
+decodeRecIncorrectlyPJE :: JsonDecoder PrimitiveJsonError Unit _
 decodeRecIncorrectlyPJE =
   decodeRecord
     { boolean: pje decodeString
@@ -147,7 +147,7 @@ decodeRecIncorrectlyPJE =
     , record: pje $ decodeArray decodeInt
     }
 
-decodeRecIncorrectlyPDE :: JsonDecoder (Doc Void) _
+decodeRecIncorrectlyPDE :: JsonDecoder (Doc Void) Unit _
 decodeRecIncorrectlyPDE =
   decodeRecord
     { boolean: pde decodeString
@@ -159,7 +159,7 @@ decodeRecIncorrectlyPDE =
     , record: pde $ decodeArray decodeInt
     }
 
-decodeRecIncorrectlyADE :: JsonDecoder (Doc GraphicsParam) _
+decodeRecIncorrectlyADE :: JsonDecoder (Doc GraphicsParam) Unit _
 decodeRecIncorrectlyADE =
   decodeRecord
     { boolean: ade decodeString

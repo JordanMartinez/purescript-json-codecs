@@ -10,9 +10,8 @@ import Data.Tuple (Tuple(..), swap)
 import Effect (Effect)
 import Effect.Class.Console (log)
 import Json.Encode.Class (ExistentialEncoder0, ExistentialEncoder2, encodeJson, encodeJson', mkExistentialEncoder0, mkExistentialEncoder2)
-import Json.Primitive.Encode (encodeString)
 import Json.Types (K0(..), K2(..))
-import Json.Unidirectional.Encode.Value (encodeTuple)
+import Json.Unidirectional.Encode.Value (encodeString, encodeTuple)
 import Safe.Coerce (coerce)
 
 runOutput :: Effect Unit

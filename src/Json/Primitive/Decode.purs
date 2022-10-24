@@ -2,13 +2,12 @@ module Json.Primitive.Decode where
 
 import Prelude
 
-import Data.Argonaut.Core (Json, caseJson)
+import Data.Argonaut.Core (Json)
 import Data.Array (foldMap)
 import Data.Array as Array
 import Data.Bifunctor (lmap)
 import Data.Either (Either(..))
 import Data.Function.Uncurried (Fn4, mkFn4, runFn4)
-import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, un, unwrap)
 import Data.String (Pattern(..), contains)
 import Data.Validation.Semigroup (V(..), invalid)
@@ -205,93 +204,3 @@ runJsonDecoder
   -> Either e a
 runJsonDecoder handlers extra json (JsonDecoder fn) =
   un V $ runFn4 fn json [] handlers extra
-
-decodeNull :: forall e extra. JsonDecoder e extra Unit
-decodeNull = JsonDecoder $ mkFn4 \json pathSoFar handlers _ ->
-  caseJson
-    (V <<< Right)
-    (invalid <<< handlers.onTypeMismatch pathSoFar ExpectedNull <<< ActualBoolean)
-    (invalid <<< handlers.onTypeMismatch pathSoFar ExpectedNull <<< ActualNumber)
-    (invalid <<< handlers.onTypeMismatch pathSoFar ExpectedNull <<< ActualString)
-    (invalid <<< handlers.onTypeMismatch pathSoFar ExpectedNull <<< ActualArray)
-    (invalid <<< handlers.onTypeMismatch pathSoFar ExpectedNull <<< ActualObject)
-    json
-
-decodeBoolean :: forall e extra. JsonDecoder e extra Boolean
-decodeBoolean = JsonDecoder $ mkFn4 \json pathSoFar handlers _ ->
-  caseJson
-    (const $ invalid $ handlers.onTypeMismatch pathSoFar ExpectedBoolean ActualNull)
-    (V <<< Right)
-    (invalid <<< handlers.onTypeMismatch pathSoFar ExpectedBoolean <<< ActualNumber)
-    (invalid <<< handlers.onTypeMismatch pathSoFar ExpectedBoolean <<< ActualString)
-    (invalid <<< handlers.onTypeMismatch pathSoFar ExpectedBoolean <<< ActualArray)
-    (invalid <<< handlers.onTypeMismatch pathSoFar ExpectedBoolean <<< ActualObject)
-    json
-
-decodeNumber :: forall e extra. JsonDecoder e extra Number
-decodeNumber = JsonDecoder $ mkFn4 \json pathSoFar handlers _ ->
-  caseJson
-    (const $ invalid $ handlers.onTypeMismatch pathSoFar ExpectedNumber ActualNull)
-    (invalid <<< handlers.onTypeMismatch pathSoFar ExpectedNumber <<< ActualBoolean)
-    (V <<< Right)
-    (invalid <<< handlers.onTypeMismatch pathSoFar ExpectedNumber <<< ActualString)
-    (invalid <<< handlers.onTypeMismatch pathSoFar ExpectedNumber <<< ActualArray)
-    (invalid <<< handlers.onTypeMismatch pathSoFar ExpectedNumber <<< ActualObject)
-    json
-
-decodeString :: forall e extra. JsonDecoder e extra String
-decodeString = JsonDecoder $ mkFn4 \json pathSoFar handlers _ ->
-  caseJson
-    (const $ invalid $ handlers.onTypeMismatch pathSoFar ExpectedString ActualNull)
-    (invalid <<< handlers.onTypeMismatch pathSoFar ExpectedString <<< ActualBoolean)
-    (invalid <<< handlers.onTypeMismatch pathSoFar ExpectedString <<< ActualNumber)
-    (V <<< Right)
-    (invalid <<< handlers.onTypeMismatch pathSoFar ExpectedString <<< ActualArray)
-    (invalid <<< handlers.onTypeMismatch pathSoFar ExpectedString <<< ActualObject)
-    json
-
-decodeArrayPrim :: forall e extra. JsonDecoder e extra (Array Json)
-decodeArrayPrim = JsonDecoder $ mkFn4 \json pathSoFar handlers _ ->
-  caseJson
-    (const $ invalid $ handlers.onTypeMismatch pathSoFar ExpectedArray ActualNull)
-    (invalid <<< handlers.onTypeMismatch pathSoFar ExpectedArray <<< ActualBoolean)
-    (invalid <<< handlers.onTypeMismatch pathSoFar ExpectedArray <<< ActualNumber)
-    (invalid <<< handlers.onTypeMismatch pathSoFar ExpectedArray <<< ActualString)
-    (V <<< Right)
-    (invalid <<< handlers.onTypeMismatch pathSoFar ExpectedArray <<< ActualObject)
-    json
-
-decodeIndex :: forall e extra a. Array Json -> Int -> JsonDecoder e extra a -> JsonDecoder e extra a
-decodeIndex arr idx = decodeIndex' arr idx do
-  JsonDecoder $ mkFn4 \_ pathSoFar handlers _ ->
-    invalid $ handlers.onMissingIndex pathSoFar idx
-
-decodeIndex' :: forall e extra a. Array Json -> Int -> JsonDecoder e extra a -> JsonDecoder e extra a -> JsonDecoder e extra a
-decodeIndex' arr idx onMissingIndex decodeElem = case Array.index arr idx of
-  Nothing ->
-    onMissingIndex
-  Just a ->
-    withOffset (AtIndex idx) a decodeElem
-
-decodeObjectPrim :: forall e extra. JsonDecoder e extra (Object Json)
-decodeObjectPrim = JsonDecoder $ mkFn4 \json pathSoFar handlers _ ->
-  caseJson
-    (const $ invalid $ handlers.onTypeMismatch pathSoFar ExpectedObject ActualNull)
-    (invalid <<< handlers.onTypeMismatch pathSoFar ExpectedObject <<< ActualBoolean)
-    (invalid <<< handlers.onTypeMismatch pathSoFar ExpectedObject <<< ActualNumber)
-    (invalid <<< handlers.onTypeMismatch pathSoFar ExpectedObject <<< ActualString)
-    (invalid <<< handlers.onTypeMismatch pathSoFar ExpectedObject <<< ActualArray)
-    (V <<< Right)
-    json
-
-decodeField :: forall e extra a. Object Json -> String -> JsonDecoder e extra a -> JsonDecoder e extra a
-decodeField obj field = decodeField' obj field do
-  JsonDecoder $ mkFn4 \_ pathSoFar handlers _ ->
-    invalid $ handlers.onMissingField pathSoFar field
-
-decodeField' :: forall e extra a. Object Json -> String -> JsonDecoder e extra a -> JsonDecoder e extra a -> JsonDecoder e extra a
-decodeField' obj field onMissingField decodeElem = case Object.lookup field obj of
-  Nothing ->
-    onMissingField
-  Just a ->
-    withOffset (AtKey field) a decodeElem

@@ -1,12 +1,18 @@
 module Json.Unidirectional.Encode.Value
   ( encodeVoid
+  , encodeNull
   , encodeUnitToNull
+  , encodeBoolean
+  , encodeNumber
   , encodeInt
   , encodeChar
+  , encodeString
   , encodeNonEmptyString
   , encodeArray
+  , encodeArrayPrim
   , encodeNonEmptyArray
   , encodeObject
+  , encodeObjectPrim
   , encodeNullable
   , encodeIdentity
   , encodeMaybeTagged
@@ -36,12 +42,11 @@ module Json.Unidirectional.Encode.Value
   , insertOptionalPropEncoders
   , class EncodeRowList
   , encodeRowList
-  , module JPE
   ) where
 
 import Prelude
 
-import Data.Argonaut.Core (Json)
+import Data.Argonaut.Core (Json, fromArray, fromBoolean, fromNumber, fromObject, fromString, jsonNull)
 import Data.Array as Array
 import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Array.NonEmpty as NEA
@@ -60,27 +65,37 @@ import Data.Set (Set)
 import Data.Set.NonEmpty (NonEmptySet, toSet)
 import Data.String (CodePoint)
 import Data.String as SCP
+import Data.String.CodeUnits as SCU
 import Data.String.NonEmpty.Internal (NonEmptyString(..))
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.These (These, these)
 import Data.Tuple (Tuple(..))
 import Foreign.Object (Object)
 import Foreign.Object as Object
-import Json.Primitive.Encode (encodeArrayPrim, encodeNull, encodeNumber, encodeObjectPrim, encodeString)
-import Json.Primitive.Encode (encodeArrayPrim, encodeBoolean, encodeNull, encodeNumber, encodeObjectPrim, encodeString) as JPE
 import Prim.Row as Row
 import Prim.RowList as RowList
 import Record as Record
 import Record.Builder (Builder)
 import Record.Builder as Builder
 import Type.Proxy (Proxy(..))
-import Data.String.CodeUnits as SCU
 
 encodeVoid :: Void -> Json
 encodeVoid = absurd
 
+encodeNull :: Json
+encodeNull = jsonNull
+
 encodeUnitToNull :: Unit -> Json
 encodeUnitToNull = const encodeNull
+
+encodeBoolean :: Boolean -> Json
+encodeBoolean = fromBoolean
+
+encodeNumber :: Number -> Json
+encodeNumber = fromNumber
+
+encodeString :: String -> Json
+encodeString = fromString
 
 encodeInt :: Int -> Json
 encodeInt = toNumber >>> encodeNumber
@@ -94,11 +109,17 @@ encodeNonEmptyString (NonEmptyString s) = encodeString s
 encodeArray :: forall a. (a -> Json) -> Array a -> Json
 encodeArray encodeA = map encodeA >>> encodeArrayPrim
 
+encodeArrayPrim :: Array Json -> Json
+encodeArrayPrim = fromArray
+
 encodeNonEmptyArray :: forall a. (a -> Json) -> NonEmptyArray a -> Json
 encodeNonEmptyArray encodeA = NEA.toArray >>> encodeArray encodeA
 
 encodeObject :: forall a. (a -> Json) -> Object a -> Json
 encodeObject encodeA = map encodeA >>> encodeObjectPrim
+
+encodeObjectPrim :: Object Json -> Json
+encodeObjectPrim = fromObject
 
 encodeNullable :: forall a. (a -> Json) -> Nullable a -> Json
 encodeNullable encodeA = toMaybe >>> encodeMaybeNullable encodeA

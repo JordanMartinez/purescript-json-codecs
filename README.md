@@ -32,7 +32,7 @@ Provide a single library for
   - [ ] for migrating JSON using old/outdated codecs easily - **WIP**
 
 Provide record syntax I enjoy using
-  - See [the test folder's `Main.purs` for an example](./test/Main.purs).
+  - See examples below
 
 Make it easy to drop newtypes when using typeclass-based codecs.
   - [ ] automatic removal of utility newtypes - **WIP**

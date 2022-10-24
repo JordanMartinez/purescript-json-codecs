@@ -1,4 +1,4 @@
-module Test.Json.Unidirectional.Typeclass.LocalOverrides where
+module Test.Json.Unidirectional.Typeclass.LocalOverrides.Decoding where
 
 import Prelude
 
@@ -9,7 +9,7 @@ import Data.Newtype (class Newtype)
 import Data.Tuple (Tuple(..), swap)
 import Effect (Effect)
 import Effect.Class.Console (log)
-import Json.Decode.Class (Existential0, Existential2, decodeJson, mkExistential0, mkExistential2)
+import Json.Decode.Class (ExistentialDecoder0, ExistentialDecoder2, decodeJson, mkExistentialDecoder0, mkExistentialDecoder2)
 import Json.Encode.Class (encodeJson)
 import Json.Errors.AnsiDodoError (printAnsiDodoError, runJsonDecoderADE')
 import Json.Primitive.Decode (decodeString)
@@ -19,7 +19,7 @@ import Safe.Coerce (coerce)
 
 runOutput :: Effect Unit
 runOutput = do
-  log "\n### Typeclass (Local Overrides) Output:"
+  log "\n### Typeclass - Local Overrides - Decoding Output:"
   log "Starting record: "
   log $ prettyPrintRecord recordValue
   let jsonValue = encodeJson recordValue
@@ -32,7 +32,7 @@ runOutput = do
   log "Locally-overridden decoded value: "
   log
     $ either printAnsiDodoError (prettyPrintRecord <<< toExampleRecordType)
-    $ runJsonDecoderADE' localOverrides jsonValue decodeJson
+    $ runJsonDecoderADE' localDecodeOverrides jsonValue decodeJson
   log "==="
 
 type ExampleRecordType =
@@ -62,17 +62,17 @@ prettyPrintRecord r = Array.intercalate "\n"
   , "}"
   ]
 
-newtype LocalOverrides = LocalOverrides
-  { wrapInMathExpr :: Existential0 String
-  , swapDecoders :: Existential2 Tuple
+newtype LocalDecodeOverrides = LocalDecodeOverrides
+  { wrapInMathExpr :: ExistentialDecoder0 String
+  , swapDecoders :: ExistentialDecoder2 Tuple
   }
 
-derive instance Newtype LocalOverrides _
+derive instance Newtype LocalDecodeOverrides _
 
-localOverrides :: LocalOverrides
-localOverrides = LocalOverrides
-  { wrapInMathExpr: mkExistential0 $ map (\plus -> "1 " <> plus <> " 1 == 2") decodeString
-  , swapDecoders: mkExistential2 \decodeA decodeB -> swap <$> decodeTuple decodeA decodeB
+localDecodeOverrides :: LocalDecodeOverrides
+localDecodeOverrides = LocalDecodeOverrides
+  { wrapInMathExpr: mkExistentialDecoder0 $ map (\plus -> "1 " <> plus <> " 1 == 2") decodeString
+  , swapDecoders: mkExistentialDecoder2 \decodeA decodeB -> swap <$> decodeTuple decodeA decodeB
   }
 
 -- unwrap the newtypes that indicate which local override to use when decoding that type

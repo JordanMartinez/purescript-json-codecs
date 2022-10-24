@@ -8,7 +8,8 @@ import Test.Json.Unidirectional.AnsiDodoError as ADE
 import Test.Json.Unidirectional.PlainDodoError as PDE
 import Test.Json.Unidirectional.PrimitiveJsonError as PJE
 import Test.Json.Unidirectional.Typeclass.Normal as TypeclassNormal
-import Test.Json.Unidirectional.Typeclass.LocalOverrides as TypeclassLocalOverrides
+import Test.Json.Unidirectional.Typeclass.LocalOverrides.Decoding as TypeclassLocalOverridesDecoding
+import Test.Json.Unidirectional.Typeclass.LocalOverrides.Encoding as TypeclassLocalOverridesEncoding
 
 main :: Effect Unit
 main = sequence_
@@ -16,5 +17,6 @@ main = sequence_
   , PDE.runOutput
   , ADE.runOutput
   , TypeclassNormal.runOutput
-  , TypeclassLocalOverrides.runOutput
+  , TypeclassLocalOverridesDecoding.runOutput
+  , TypeclassLocalOverridesEncoding.runOutput
   ]

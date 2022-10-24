@@ -24,7 +24,7 @@ Provide a single library for
   - both versions of codecs:
     - [x] class-based
       - [x] configurable decoder
-      - [ ] configurable encoder - **WIP**
+      - [x] configurable encoder
     - [x] value-based
   - both directions of codecs:
     - [x] unidirectional (one can implement only encode/decode, and they can be different)
@@ -212,7 +212,7 @@ bazEncoder = encodeJson
 
 ### Typeclass-based codec where some instances are implemented via runtime-configured implementations
 
-See [LocalOverrides.purs](./test/Test/Json/Unidirectional/Typeclass/LocalOverrides.purs), which as of the time of writing, outputs:
+See [Decoding.purs](./test/Test/Json/Unidirectional/Typeclass/LocalOverrides/Decoding.purs.purs), which as of the time of writing, outputs:
 
 ```
 ### Typeclass (Local Overrides) Output:

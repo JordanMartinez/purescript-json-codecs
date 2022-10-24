@@ -1,14 +1,14 @@
 module Json.Decode.Class
   ( class DecodeJson
   , decodeJson
-  , Existential0
-  , mkExistential0
-  , Existential1
-  , mkExistential1
-  , Existential2
-  , mkExistential2
-  , Existential3
-  , mkExistential3
+  , ExistentialDecoder0
+  , mkExistentialDecoder0
+  , ExistentialDecoder1
+  , mkExistentialDecoder1
+  , ExistentialDecoder2
+  , mkExistentialDecoder2
+  , ExistentialDecoder3
+  , mkExistentialDecoder3
   , RowListObject
   , class BuildPropDecoders
   , buildPropDecoders
@@ -126,14 +126,14 @@ instance (Ord a, DecodeJson err extra a) => DecodeJson err extra (NonEmptySet a)
 instance DecodeJson err extra CodePoint where
   decodeJson = decodeCodePoint
 
--- | Build a value via `mkExistential0`.
-foreign import data Existential0 :: Type -> Type
+-- | Build a value via `mkExistentialDecoder0`.
+foreign import data ExistentialDecoder0 :: Type -> Type
 
-mkExistential0 :: forall err extra a. JsonDecoder err extra a -> Existential0 a
-mkExistential0 = unsafeCoerce
+mkExistentialDecoder0 :: forall err extra a. JsonDecoder err extra a -> ExistentialDecoder0 a
+mkExistentialDecoder0 = unsafeCoerce
 
-unExistential0 :: forall err extra a. Existential0 a -> JsonDecoder err extra a
-unExistential0 = unsafeCoerce
+unExistentialDecoder0 :: forall err extra a. ExistentialDecoder0 a -> JsonDecoder err extra a
+unExistentialDecoder0 = unsafeCoerce
 
 -- | Local overrides for types with kind `Type`. Implementation for types annotated with the `K0` type 
 -- | are provided via the `extra` label in `JsonDecoderInput`. Value for `extra` must be a
@@ -141,7 +141,7 @@ unExistential0 = unsafeCoerce
 -- | that contains the local override (i.e. `JsonDecoder err extra a`).
 instance
   ( Newtype extra { | rows }
-  , Row.Cons sym (Existential0 a) tail rows
+  , Row.Cons sym (ExistentialDecoder0 a) tail rows
   , IsSymbol sym
   ) =>
   DecodeJson err extra (K0 sym a) where
@@ -149,21 +149,21 @@ instance
     let
       localOverrides :: { | rows }
       localOverrides = unwrap r.extra
-      (JsonDecoder (ReaderT f)) = unExistential0 $ Record.get (Proxy :: Proxy sym) localOverrides
+      (JsonDecoder (ReaderT f)) = unExistentialDecoder0 $ Record.get (Proxy :: Proxy sym) localOverrides
 
       reAddNewtype :: V err a -> V err (K0 sym a)
       reAddNewtype = coerce
     reAddNewtype $ f input
 
--- | Build a value via `mkExistential1`.
-foreign import data Existential1 :: (Type -> Type) -> Type
+-- | Build a value via `mkExistentialDecoder1`.
+foreign import data ExistentialDecoder1 :: (Type -> Type) -> Type
 
-mkExistential1 :: forall err extra f a. (JsonDecoder err extra a -> JsonDecoder err extra (f a)) -> Existential1 f
-mkExistential1 = unsafeCoerce
+mkExistentialDecoder1 :: forall err extra f a. (JsonDecoder err extra a -> JsonDecoder err extra (f a)) -> ExistentialDecoder1 f
+mkExistentialDecoder1 = unsafeCoerce
 
 -- Note: this is intentionaly not exported as only this module should consume this.
-unExistential1 :: forall err extra f a. Existential1 f -> (JsonDecoder err extra a -> JsonDecoder err extra (f a))
-unExistential1 = unsafeCoerce
+unExistentialDecoder1 :: forall err extra f a. ExistentialDecoder1 f -> (JsonDecoder err extra a -> JsonDecoder err extra (f a))
+unExistentialDecoder1 = unsafeCoerce
 
 -- | Local overrides for types with kind `Type`. Implementation for types annotated with the `K1` type 
 -- | are provided via the `extra` label in `JsonDecoderInput`. Value for `extra` must be a
@@ -173,7 +173,7 @@ unExistential1 = unsafeCoerce
 -- | the implementation for `f`, not `a` as well.
 instance
   ( Newtype extra { | rows }
-  , Row.Cons sym (Existential1 f) tail rows
+  , Row.Cons sym (ExistentialDecoder1 f) tail rows
   , DecodeJson err extra a
   , IsSymbol sym
   ) =>
@@ -184,7 +184,7 @@ instance
       localOverrides = unwrap r.extra
 
       buildDecoder :: JsonDecoder err extra a -> JsonDecoder err extra (f a)
-      buildDecoder = unExistential1 $ Record.get (Proxy :: Proxy sym) localOverrides
+      buildDecoder = unExistentialDecoder1 $ Record.get (Proxy :: Proxy sym) localOverrides
 
       (JsonDecoder (ReaderT f)) = buildDecoder decodeJson
 
@@ -192,15 +192,15 @@ instance
       reAddNewtype = coerce
     reAddNewtype $ f input
 
--- | Build a value via `mkExistential2`.
-foreign import data Existential2 :: (Type -> Type -> Type) -> Type
+-- | Build a value via `mkExistentialDecoder2`.
+foreign import data ExistentialDecoder2 :: (Type -> Type -> Type) -> Type
 
-mkExistential2 :: forall err extra f a b. (JsonDecoder err extra a -> JsonDecoder err extra b -> JsonDecoder err extra (f a b)) -> Existential2 f
-mkExistential2 = unsafeCoerce
+mkExistentialDecoder2 :: forall err extra f a b. (JsonDecoder err extra a -> JsonDecoder err extra b -> JsonDecoder err extra (f a b)) -> ExistentialDecoder2 f
+mkExistentialDecoder2 = unsafeCoerce
 
 -- Note: this is intentionaly not exported as only this module should consume this.
-unExistential2 :: forall err extra f a b. Existential2 f -> (JsonDecoder err extra a -> JsonDecoder err extra b -> JsonDecoder err extra (f a b))
-unExistential2 = unsafeCoerce
+unExistentialDecoder2 :: forall err extra f a b. ExistentialDecoder2 f -> (JsonDecoder err extra a -> JsonDecoder err extra b -> JsonDecoder err extra (f a b))
+unExistentialDecoder2 = unsafeCoerce
 
 -- | Local overrides for types with kind `Type`. Implementation for types annotated with the `K2` type 
 -- | are provided via the `extra` label in `JsonDecoderInput`. Value for `extra` must be a
@@ -210,7 +210,7 @@ unExistential2 = unsafeCoerce
 -- | the implementation for `f`, not `a` and `b` as well.
 instance
   ( Newtype extra { | rows }
-  , Row.Cons sym (Existential2 f) tail rows
+  , Row.Cons sym (ExistentialDecoder2 f) tail rows
   , DecodeJson err extra a
   , DecodeJson err extra b
   , IsSymbol sym
@@ -222,7 +222,7 @@ instance
       localOverrides = unwrap r.extra
 
       buildDecoder :: JsonDecoder err extra a -> JsonDecoder err extra b -> JsonDecoder err extra (f a b)
-      buildDecoder = unExistential2 $ Record.get (Proxy :: Proxy sym) localOverrides
+      buildDecoder = unExistentialDecoder2 $ Record.get (Proxy :: Proxy sym) localOverrides
 
       (JsonDecoder (ReaderT f)) = buildDecoder decodeJson decodeJson
 
@@ -230,15 +230,15 @@ instance
       reAddNewtype = coerce
     reAddNewtype $ f input
 
--- | Build a value via `mkExistential3`.
-foreign import data Existential3 :: (Type -> Type -> Type -> Type) -> Type
+-- | Build a value via `mkExistentialDecoder3`.
+foreign import data ExistentialDecoder3 :: (Type -> Type -> Type -> Type) -> Type
 
-mkExistential3 :: forall err extra f a b c. (JsonDecoder err extra a -> JsonDecoder err extra b -> JsonDecoder err extra c -> JsonDecoder err extra (f a b c)) -> Existential3 f
-mkExistential3 = unsafeCoerce
+mkExistentialDecoder3 :: forall err extra f a b c. (JsonDecoder err extra a -> JsonDecoder err extra b -> JsonDecoder err extra c -> JsonDecoder err extra (f a b c)) -> ExistentialDecoder3 f
+mkExistentialDecoder3 = unsafeCoerce
 
 -- Note: this is intentionaly not exported as only this module should consume this.
-unExistential3 :: forall err extra f a b c. Existential3 f -> (JsonDecoder err extra a -> JsonDecoder err extra b -> JsonDecoder err extra c -> JsonDecoder err extra (f a b c))
-unExistential3 = unsafeCoerce
+unExistentialDecoder3 :: forall err extra f a b c. ExistentialDecoder3 f -> (JsonDecoder err extra a -> JsonDecoder err extra b -> JsonDecoder err extra c -> JsonDecoder err extra (f a b c))
+unExistentialDecoder3 = unsafeCoerce
 
 -- | Local overrides for types with kind `Type`. Implementation for types annotated with the `K3` type 
 -- | are provided via the `extra` label in `JsonDecoderInput`. Value for `extra` must be a
@@ -248,7 +248,7 @@ unExistential3 = unsafeCoerce
 -- | the implementation for `f`, not `a`, `b`, and `c` as well.
 instance
   ( Newtype extra { | rows }
-  , Row.Cons sym (Existential3 f) tail rows
+  , Row.Cons sym (ExistentialDecoder3 f) tail rows
   , DecodeJson err extra a
   , DecodeJson err extra b
   , DecodeJson err extra c
@@ -261,7 +261,7 @@ instance
       localOverrides = unwrap r.extra
 
       buildDecoder :: JsonDecoder err extra a -> JsonDecoder err extra b -> JsonDecoder err extra c -> JsonDecoder err extra (f a b c)
-      buildDecoder = unExistential3 $ Record.get (Proxy :: Proxy sym) localOverrides
+      buildDecoder = unExistentialDecoder3 $ Record.get (Proxy :: Proxy sym) localOverrides
 
       (JsonDecoder (ReaderT f)) = buildDecoder decodeJson decodeJson decodeJson
 

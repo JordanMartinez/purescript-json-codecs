@@ -11,7 +11,7 @@ import Effect (Effect)
 import Effect.Class.Console (log)
 import Foreign.Object as Object
 import Json.Errors.PlainDodoError (pde, printPlainDodoError, runJsonDecoderPDE)
-import Json.Primitive.Decode (JsonDecoder)
+import Json.JsonDecoder (JsonDecoder)
 import Json.Unidirectional.Decode.Value (decodeBoolean, decodeNumber, decodeString, decodeArray, decodeInt, decodeObject, decodeRecord)
 import Json.Unidirectional.Encode.Value (encodeBoolean, encodeArray, encodeInt, encodeNumber, encodeObject, encodeRecord, encodeString, encodeUnitToNull)
 

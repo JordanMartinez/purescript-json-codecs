@@ -1,4 +1,4 @@
-module Json.Primitive.Decode where
+module Json.JsonDecoder where
 
 import Prelude
 

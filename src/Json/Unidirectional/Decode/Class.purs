@@ -16,10 +16,10 @@ module Json.Decode.Class
 
 import Prelude
 
-import Control.Monad.Reader (ReaderT(..))
 import Data.Argonaut.Core (Json)
 import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Either (Either)
+import Data.Function.Uncurried (mkFn4, runFn4)
 import Data.Identity (Identity)
 import Data.List (List)
 import Data.List.Types (NonEmptyList)
@@ -37,7 +37,7 @@ import Data.These (These)
 import Data.Tuple (Tuple)
 import Data.Validation.Semigroup (V)
 import Foreign.Object (Object)
-import Json.Primitive.Decode (JsonDecoder(..), JsonDecoderInput(..), decodeField', failWithMissingField)
+import Json.Primitive.Decode (JsonDecoder(..), decodeField', failWithMissingField)
 import Json.Types (K0(..), K1(..), K2(..), K3(..), Optional(..))
 import Json.Unidirectional.Decode.Value (decodeArray, decodeBoolean, decodeChar, decodeCodePoint, decodeEither, decodeIdentity, decodeInt, decodeList, decodeMap, decodeMaybeTagged, decodeNonEmpty, decodeNonEmptyArray, decodeNonEmptyList, decodeNonEmptySet, decodeNonEmptyString, decodeNullToUnit, decodeNullable, decodeNumber, decodeObject, decodeRecordPrim, decodeSet, decodeString, decodeThese, decodeTuple, decodeVoid)
 import Prim.Coerce (class Coercible)
@@ -145,15 +145,15 @@ instance
   , IsSymbol sym
   ) =>
   DecodeJson err extra (K0 sym a) where
-  decodeJson = JsonDecoder $ ReaderT \input@(JsonDecoderInput r) -> do
+  decodeJson = JsonDecoder $ mkFn4 \json pathSoFar handlers extra -> do
     let
       localOverrides :: { | rows }
-      localOverrides = unwrap r.extra
-      (JsonDecoder (ReaderT f)) = unExistentialDecoder0 $ Record.get (Proxy :: Proxy sym) localOverrides
+      localOverrides = unwrap extra
+      (JsonDecoder f) = unExistentialDecoder0 $ Record.get (Proxy :: Proxy sym) localOverrides
 
       reAddNewtype :: V err a -> V err (K0 sym a)
       reAddNewtype = coerce
-    reAddNewtype $ f input
+    reAddNewtype $ runFn4 f json pathSoFar handlers extra
 
 -- | Build a value via `mkExistentialDecoder1`.
 foreign import data ExistentialDecoder1 :: (Type -> Type) -> Type
@@ -178,19 +178,19 @@ instance
   , IsSymbol sym
   ) =>
   DecodeJson err extra (K1 sym (f a)) where
-  decodeJson = JsonDecoder $ ReaderT \input@(JsonDecoderInput r) -> do
+  decodeJson = JsonDecoder $ mkFn4 \json pathSoFar handlers extra -> do
     let
       localOverrides :: { | rows }
-      localOverrides = unwrap r.extra
+      localOverrides = unwrap extra
 
       buildDecoder :: JsonDecoder err extra a -> JsonDecoder err extra (f a)
       buildDecoder = unExistentialDecoder1 $ Record.get (Proxy :: Proxy sym) localOverrides
 
-      (JsonDecoder (ReaderT f)) = buildDecoder decodeJson
+      (JsonDecoder f) = buildDecoder decodeJson
 
       reAddNewtype :: V err (f a) -> V err (K1 sym (f a))
       reAddNewtype = coerce
-    reAddNewtype $ f input
+    reAddNewtype $ runFn4 f json pathSoFar handlers extra
 
 -- | Build a value via `mkExistentialDecoder2`.
 foreign import data ExistentialDecoder2 :: (Type -> Type -> Type) -> Type
@@ -216,19 +216,19 @@ instance
   , IsSymbol sym
   ) =>
   DecodeJson err extra (K2 sym (f a b)) where
-  decodeJson = JsonDecoder $ ReaderT \input@(JsonDecoderInput r) -> do
+  decodeJson = JsonDecoder $ mkFn4 \json pathSoFar handlers extra -> do
     let
       localOverrides :: { | rows }
-      localOverrides = unwrap r.extra
+      localOverrides = unwrap extra
 
       buildDecoder :: JsonDecoder err extra a -> JsonDecoder err extra b -> JsonDecoder err extra (f a b)
       buildDecoder = unExistentialDecoder2 $ Record.get (Proxy :: Proxy sym) localOverrides
 
-      (JsonDecoder (ReaderT f)) = buildDecoder decodeJson decodeJson
+      (JsonDecoder f) = buildDecoder decodeJson decodeJson
 
       reAddNewtype :: V err (f a b) -> V err (K2 sym (f a b))
       reAddNewtype = coerce
-    reAddNewtype $ f input
+    reAddNewtype $ runFn4 f json pathSoFar handlers extra
 
 -- | Build a value via `mkExistentialDecoder3`.
 foreign import data ExistentialDecoder3 :: (Type -> Type -> Type -> Type) -> Type
@@ -255,19 +255,19 @@ instance
   , IsSymbol sym
   ) =>
   DecodeJson err extra (K3 sym (f a b c)) where
-  decodeJson = JsonDecoder $ ReaderT \input@(JsonDecoderInput r) -> do
+  decodeJson = JsonDecoder $ mkFn4 \json pathSoFar handlers extra -> do
     let
       localOverrides :: { | rows }
-      localOverrides = unwrap r.extra
+      localOverrides = unwrap extra
 
       buildDecoder :: JsonDecoder err extra a -> JsonDecoder err extra b -> JsonDecoder err extra c -> JsonDecoder err extra (f a b c)
       buildDecoder = unExistentialDecoder3 $ Record.get (Proxy :: Proxy sym) localOverrides
 
-      (JsonDecoder (ReaderT f)) = buildDecoder decodeJson decodeJson decodeJson
+      (JsonDecoder f) = buildDecoder decodeJson decodeJson decodeJson
 
       reAddNewtype :: V err (f a b c) -> V err (K3 sym (f a b c))
       reAddNewtype = coerce
-    reAddNewtype $ f input
+    reAddNewtype $ runFn4 f json pathSoFar handlers extra
 
 newtype RowListObject :: Type -> Type -> RowList.RowList Type -> Type -> Type
 newtype RowListObject err extra rl a = RowListObject (Object a)

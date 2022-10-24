@@ -2,14 +2,14 @@ module Json.Primitive.Decode where
 
 import Prelude
 
-import Control.Monad.Reader (ReaderT(..), runReaderT)
 import Data.Argonaut.Core (Json, caseJson)
 import Data.Array (foldMap)
 import Data.Array as Array
 import Data.Bifunctor (lmap)
 import Data.Either (Either(..))
+import Data.Function.Uncurried (Fn4, mkFn4, runFn4)
 import Data.Maybe (Maybe(..))
-import Data.Newtype (class Newtype, over, un, unwrap)
+import Data.Newtype (class Newtype, un, unwrap)
 import Data.String (Pattern(..), contains)
 import Data.Validation.Semigroup (V(..), invalid)
 import Foreign.Object (Object)
@@ -105,52 +105,66 @@ newtype JsonDecoderInput e extra = JsonDecoderInput
   , extra :: extra
   }
 
+-- | Overview of values:
+-- | - Json - the JSON value currently being decoded at this point
+-- | - Array JsonOffset - the position within the larger JSON that the current JSON is located
+-- | - JsonErrorHandlers e - runtime-configured way to handling errors
+-- | - extra - top-down custom data one may need for writing a decoder. This is where
+-- |           local overrides for typeclass instances can be provided.
+-- |           If this value isn't needed, you should set this to `Unit`.
+-- | - V e a - an Either-like monad that accumulates errors using the `append` function in the handlers arg.
+type JsonDecoderFn e extra a = Fn4 Json (Array JsonOffset) (JsonErrorHandlers e) extra (V e a)
+
 derive instance Newtype (JsonDecoderInput e extra) _
 
-newtype JsonDecoder e extra a = JsonDecoder (ReaderT (JsonDecoderInput e extra) (V e) a)
+newtype JsonDecoder e extra a = JsonDecoder (JsonDecoderFn e extra a)
 
-derive newtype instance functorJsonDecoder :: Functor (JsonDecoder e extra)
+instance functorJsonDecoder :: Functor (JsonDecoder e extra) where
+  map f (JsonDecoder fn) = JsonDecoder $ mkFn4 \json pathSoFar handlers extra ->
+    map f $ runFn4 fn json pathSoFar handlers extra
 
 instance applyJsonDecoder :: Apply (JsonDecoder e extra) where
-  apply (JsonDecoder (ReaderT ff)) (JsonDecoder (ReaderT fa)) = JsonDecoder $ ReaderT \input@(JsonDecoderInput a) ->
-    case fa input, ff input of
-      V (Left e1), V (Left e2) -> V (Left $ a.handlers.append e1 e2)
+  apply (JsonDecoder ff) (JsonDecoder fa) = JsonDecoder $ mkFn4 \json pathSoFar handlers extra ->
+    case runFn4 ff json pathSoFar handlers extra, runFn4 fa json pathSoFar handlers extra of
+      V (Left e1), V (Left e2) -> V (Left $ handlers.append e1 e2)
       V (Left e1), _ -> V (Left e1)
       _, V (Left e2) -> V (Left e2)
-      V (Right a'), V (Right f') -> V (Right (f' a'))
+      V (Right f'), V (Right a') -> V (Right (f' a'))
 
 instance applicativeJsonDecoder :: Applicative (JsonDecoder e extra) where
-  pure a = JsonDecoder $ ReaderT \_ -> V $ Right a
+  pure a = JsonDecoder $ mkFn4 \_ _ _ _ -> V $ Right a
 
 getPathSoFar :: forall e extra. JsonDecoder e extra (Array JsonOffset)
-getPathSoFar = JsonDecoder $ ReaderT \(JsonDecoderInput r) -> V $ Right r.pathSoFar
+getPathSoFar = JsonDecoder $ mkFn4 \_ pathSoFar _ _ -> V $ Right pathSoFar
 
 withOffset :: forall e extra a. JsonOffset -> Json -> JsonDecoder e extra a -> JsonDecoder e extra a
-withOffset offset json (JsonDecoder (ReaderT f)) = JsonDecoder $ ReaderT $ f <<< over JsonDecoderInput \r -> r { json = json, pathSoFar = Array.snoc r.pathSoFar offset }
+withOffset offset json (JsonDecoder f) = JsonDecoder $
+  mkFn4 \_ pathSoFar handlers extra ->
+    runFn4 f json (Array.snoc pathSoFar offset) handlers extra
 
 onError :: forall e extra a. (Array JsonOffset -> e -> e) -> JsonDecoder e extra a -> JsonDecoder e extra a
-onError mapErrs (JsonDecoder (ReaderT f)) = JsonDecoder $ ReaderT \input@(JsonDecoderInput { pathSoFar }) ->
-  lmap (mapErrs pathSoFar) $ f input
+onError mapErrs (JsonDecoder f) = JsonDecoder $ mkFn4 \json pathSoFar handlers extra ->
+  lmap (mapErrs pathSoFar) $ runFn4 f json pathSoFar handlers extra
 
 failWithMissingField :: forall e extra a. String -> JsonDecoder e extra a
-failWithMissingField str = JsonDecoder $ ReaderT \(JsonDecoderInput input) ->
-  invalid $ input.handlers.onMissingField input.pathSoFar str
+failWithMissingField str = JsonDecoder $ mkFn4 \_ pathSoFar handlers _ ->
+  invalid $ handlers.onMissingField pathSoFar str
 
 failWithMissingIndex :: forall e extra a. Int -> JsonDecoder e extra a
-failWithMissingIndex idx = JsonDecoder $ ReaderT \(JsonDecoderInput input) ->
-  invalid $ input.handlers.onMissingIndex input.pathSoFar idx
+failWithMissingIndex idx = JsonDecoder $ mkFn4 \_ pathSoFar handlers _ ->
+  invalid $ handlers.onMissingIndex pathSoFar idx
 
 failWithUnrefinableValue :: forall e extra a. String -> JsonDecoder e extra a
-failWithUnrefinableValue msg = JsonDecoder $ ReaderT \(JsonDecoderInput input) ->
-  invalid $ input.handlers.onUnrefinableValue input.pathSoFar msg
+failWithUnrefinableValue msg = JsonDecoder $ mkFn4 \_ pathSoFar handlers _ ->
+  invalid $ handlers.onUnrefinableValue pathSoFar msg
 
 failWithStructureError :: forall e extra a. String -> JsonDecoder e extra a
-failWithStructureError msg = JsonDecoder $ ReaderT \(JsonDecoderInput input) ->
-  invalid $ input.handlers.onStructureError input.pathSoFar msg
+failWithStructureError msg = JsonDecoder $ mkFn4 \_ pathSoFar handlers _ ->
+  invalid $ handlers.onStructureError pathSoFar msg
 
 addHint :: forall e extra a. TypeHint -> JsonDecoder e extra a -> JsonDecoder e extra a
-addHint hint (JsonDecoder (ReaderT f)) = JsonDecoder $ ReaderT \input@(JsonDecoderInput r) ->
-  lmap (r.handlers.addHint r.pathSoFar hint) $ f input
+addHint hint (JsonDecoder f) = JsonDecoder $ mkFn4 \json pathSoFar handlers extra ->
+  lmap (handlers.addHint pathSoFar hint) $ runFn4 f json pathSoFar handlers extra
 
 addTypeHint :: forall e extra a. String -> JsonDecoder e extra a -> JsonDecoder e extra a
 addTypeHint = addHint <<< TyName
@@ -167,19 +181,19 @@ addFieldHint = addHint <<< Field
 -- | Works like `alt`/`<|>`. Decodes using the first decoder and, if that fails,
 -- | decodes using the second decoder. Errors from both decoders accumulate.
 altAccumulate :: forall e extra a. JsonDecoder e extra a -> JsonDecoder e extra a -> JsonDecoder e extra a
-altAccumulate (JsonDecoder (ReaderT f1)) (JsonDecoder (ReaderT f2)) = JsonDecoder $ ReaderT \input@(JsonDecoderInput r) ->
-  case unwrap $ f1 input of
-    Left e -> case unwrap $ f2 input of
-      Left e2 -> invalid $ r.handlers.append e e2
+altAccumulate (JsonDecoder f1) (JsonDecoder f2) = JsonDecoder $ mkFn4 \json pathSoFar handlers extra ->
+  case unwrap $ runFn4 f1 json pathSoFar handlers extra of
+    Left e -> case unwrap $ runFn4 f2 json pathSoFar handlers extra of
+      Left e2 -> invalid $ handlers.append e e2
       Right a -> V $ Right a
     Right a -> V $ Right a
 
 -- | Same as `altAccumulate` except only the last error is kept. Helpful in cases
 -- | where one is decoding a sum type with a large number of data constructors.
 altLast :: forall e extra a. JsonDecoder e extra a -> JsonDecoder e extra a -> JsonDecoder e extra a
-altLast (JsonDecoder (ReaderT f1)) (JsonDecoder (ReaderT f2)) = JsonDecoder $ ReaderT \input ->
-  case unwrap $ f1 input of
-    Left _ -> f2 input
+altLast (JsonDecoder f1) (JsonDecoder f2) = JsonDecoder $ mkFn4 \json pathSoFar handlers extra ->
+  case unwrap $ runFn4 f1 json pathSoFar handlers extra of
+    Left _ -> runFn4 f2 json pathSoFar handlers extra
     Right a -> V $ Right a
 
 runJsonDecoder
@@ -189,11 +203,11 @@ runJsonDecoder
   -> Json
   -> JsonDecoder e extra a
   -> Either e a
-runJsonDecoder handlers extra json (JsonDecoder reader) =
-  un V $ runReaderT reader $ JsonDecoderInput { handlers, json, pathSoFar: [], extra }
+runJsonDecoder handlers extra json (JsonDecoder fn) =
+  un V $ runFn4 fn json [] handlers extra
 
 decodeNull :: forall e extra. JsonDecoder e extra Unit
-decodeNull = JsonDecoder $ ReaderT \(JsonDecoderInput { json, pathSoFar, handlers }) ->
+decodeNull = JsonDecoder $ mkFn4 \json pathSoFar handlers _ ->
   caseJson
     (V <<< Right)
     (invalid <<< handlers.onTypeMismatch pathSoFar ExpectedNull <<< ActualBoolean)
@@ -204,7 +218,7 @@ decodeNull = JsonDecoder $ ReaderT \(JsonDecoderInput { json, pathSoFar, handler
     json
 
 decodeBoolean :: forall e extra. JsonDecoder e extra Boolean
-decodeBoolean = JsonDecoder $ ReaderT \(JsonDecoderInput { json, pathSoFar, handlers }) ->
+decodeBoolean = JsonDecoder $ mkFn4 \json pathSoFar handlers _ ->
   caseJson
     (const $ invalid $ handlers.onTypeMismatch pathSoFar ExpectedBoolean ActualNull)
     (V <<< Right)
@@ -215,7 +229,7 @@ decodeBoolean = JsonDecoder $ ReaderT \(JsonDecoderInput { json, pathSoFar, hand
     json
 
 decodeNumber :: forall e extra. JsonDecoder e extra Number
-decodeNumber = JsonDecoder $ ReaderT \(JsonDecoderInput { json, pathSoFar, handlers }) ->
+decodeNumber = JsonDecoder $ mkFn4 \json pathSoFar handlers _ ->
   caseJson
     (const $ invalid $ handlers.onTypeMismatch pathSoFar ExpectedNumber ActualNull)
     (invalid <<< handlers.onTypeMismatch pathSoFar ExpectedNumber <<< ActualBoolean)
@@ -226,7 +240,7 @@ decodeNumber = JsonDecoder $ ReaderT \(JsonDecoderInput { json, pathSoFar, handl
     json
 
 decodeString :: forall e extra. JsonDecoder e extra String
-decodeString = JsonDecoder $ ReaderT \(JsonDecoderInput { json, pathSoFar, handlers }) ->
+decodeString = JsonDecoder $ mkFn4 \json pathSoFar handlers _ ->
   caseJson
     (const $ invalid $ handlers.onTypeMismatch pathSoFar ExpectedString ActualNull)
     (invalid <<< handlers.onTypeMismatch pathSoFar ExpectedString <<< ActualBoolean)
@@ -237,7 +251,7 @@ decodeString = JsonDecoder $ ReaderT \(JsonDecoderInput { json, pathSoFar, handl
     json
 
 decodeArrayPrim :: forall e extra. JsonDecoder e extra (Array Json)
-decodeArrayPrim = JsonDecoder $ ReaderT \(JsonDecoderInput { json, pathSoFar, handlers }) ->
+decodeArrayPrim = JsonDecoder $ mkFn4 \json pathSoFar handlers _ ->
   caseJson
     (const $ invalid $ handlers.onTypeMismatch pathSoFar ExpectedArray ActualNull)
     (invalid <<< handlers.onTypeMismatch pathSoFar ExpectedArray <<< ActualBoolean)
@@ -249,7 +263,7 @@ decodeArrayPrim = JsonDecoder $ ReaderT \(JsonDecoderInput { json, pathSoFar, ha
 
 decodeIndex :: forall e extra a. Array Json -> Int -> JsonDecoder e extra a -> JsonDecoder e extra a
 decodeIndex arr idx = decodeIndex' arr idx do
-  JsonDecoder $ ReaderT \(JsonDecoderInput { pathSoFar, handlers }) ->
+  JsonDecoder $ mkFn4 \_ pathSoFar handlers _ ->
     invalid $ handlers.onMissingIndex pathSoFar idx
 
 decodeIndex' :: forall e extra a. Array Json -> Int -> JsonDecoder e extra a -> JsonDecoder e extra a -> JsonDecoder e extra a
@@ -260,7 +274,7 @@ decodeIndex' arr idx onMissingIndex decodeElem = case Array.index arr idx of
     withOffset (AtIndex idx) a decodeElem
 
 decodeObjectPrim :: forall e extra. JsonDecoder e extra (Object Json)
-decodeObjectPrim = JsonDecoder $ ReaderT \(JsonDecoderInput { json, pathSoFar, handlers }) ->
+decodeObjectPrim = JsonDecoder $ mkFn4 \json pathSoFar handlers _ ->
   caseJson
     (const $ invalid $ handlers.onTypeMismatch pathSoFar ExpectedObject ActualNull)
     (invalid <<< handlers.onTypeMismatch pathSoFar ExpectedObject <<< ActualBoolean)
@@ -272,7 +286,7 @@ decodeObjectPrim = JsonDecoder $ ReaderT \(JsonDecoderInput { json, pathSoFar, h
 
 decodeField :: forall e extra a. Object Json -> String -> JsonDecoder e extra a -> JsonDecoder e extra a
 decodeField obj field = decodeField' obj field do
-  JsonDecoder $ ReaderT \(JsonDecoderInput { pathSoFar, handlers }) ->
+  JsonDecoder $ mkFn4 \_ pathSoFar handlers _ ->
     invalid $ handlers.onMissingField pathSoFar field
 
 decodeField' :: forall e extra a. Object Json -> String -> JsonDecoder e extra a -> JsonDecoder e extra a -> JsonDecoder e extra a

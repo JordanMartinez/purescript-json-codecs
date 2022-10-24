@@ -85,7 +85,7 @@ import Data.Validation.Semigroup (V(..), invalid)
 import Foreign.Object (Object)
 import Foreign.Object as Object
 import Json.JsonDecoder (ActualJsonType(..), ExpectedJsonType(..), JsonDecoder(..), JsonOffset(..), addCtorHint, addSubtermHint, addTypeHint, altAccumulate, failWithMissingField, failWithStructureError, failWithUnrefinableValue, withOffset)
-import Json.JsonDecoder.Qualified as JPDQ
+import Json.JsonDecoder.Qualified as JD
 import Prim.Coerce (class Coercible)
 import Prim.Row as Row
 import Prim.RowList (class RowToList, RowList)
@@ -199,7 +199,7 @@ decodeUnitFromAny = pure unit
 decodeInt
   :: forall err extra
    . JsonDecoder err extra Int
-decodeInt = addTypeHint "Int" JPDQ.do
+decodeInt = addTypeHint "Int" JD.do
   n <- decodeNumber
   case Int.fromNumber n of
     Nothing ->
@@ -210,7 +210,7 @@ decodeInt = addTypeHint "Int" JPDQ.do
 decodeChar
   :: forall err extra
    . JsonDecoder err extra Char
-decodeChar = addTypeHint "Char" JPDQ.do
+decodeChar = addTypeHint "Char" JD.do
   s <- decodeString
   case charAt 0 s of
     Nothing ->
@@ -221,7 +221,7 @@ decodeChar = addTypeHint "Char" JPDQ.do
 decodeNonEmptyString
   :: forall err extra
    . JsonDecoder err extra NonEmptyString
-decodeNonEmptyString = addTypeHint "NonEmptyString" JPDQ.do
+decodeNonEmptyString = addTypeHint "NonEmptyString" JD.do
   s <- decodeString
   case NonEmptyString.fromString s of
     Nothing ->
@@ -233,7 +233,7 @@ decodeArray
   :: forall err extra a
    . JsonDecoder err extra a
   -> JsonDecoder err extra (Array a)
-decodeArray decodeElem = JPDQ.do
+decodeArray decodeElem = JD.do
   arr <- decodeArrayPrim
   forWithIndex arr \i j2 ->
     withOffset (AtIndex i) j2 decodeElem
@@ -242,7 +242,7 @@ decodeNonEmptyArray
   :: forall err extra a
    . JsonDecoder err extra a
   -> JsonDecoder err extra (NonEmptyArray a)
-decodeNonEmptyArray decodeElem = addTypeHint "NonEmptyArray" JPDQ.do
+decodeNonEmptyArray decodeElem = addTypeHint "NonEmptyArray" JD.do
   arr <- decodeArray decodeElem
   case NEA.fromArray arr of
     Nothing -> failWithUnrefinableValue $ "Received empty array"
@@ -252,7 +252,7 @@ decodeObject
   :: forall err extra a
    . JsonDecoder err extra a
   -> JsonDecoder err extra (Object a)
-decodeObject decodeElem = JPDQ.do
+decodeObject decodeElem = JD.do
   obj <- decodeObjectPrim
   forWithIndex obj \field j2 ->
     withOffset (AtKey field) j2 decodeElem
@@ -261,7 +261,7 @@ decodeNullable
   :: forall err extra a
    . JsonDecoder err extra a
   -> JsonDecoder err extra (Nullable a)
-decodeNullable decodeA = addTypeHint "Nullable" JPDQ.do
+decodeNullable decodeA = addTypeHint "Nullable" JD.do
   altAccumulate (null <$ decodeNull) (notNull <$> decodeA)
 
 decodeIdentity
@@ -275,7 +275,7 @@ decodeMaybeTagged
   :: forall err extra a
    . JsonDecoder err extra a
   -> JsonDecoder err extra (Maybe a)
-decodeMaybeTagged decodeElem = addTypeHint "Maybe" JPDQ.do
+decodeMaybeTagged decodeElem = addTypeHint "Maybe" JD.do
   obj <- decodeObjectPrim
   tag <- decodeField obj "tag" decodeString
   case tag of
@@ -290,7 +290,7 @@ decodeMaybeNullable
   :: forall err extra a
    . JsonDecoder err extra a
   -> JsonDecoder err extra (Maybe a)
-decodeMaybeNullable decodeElem = addTypeHint "Maybe" JPDQ.do
+decodeMaybeNullable decodeElem = addTypeHint "Maybe" JD.do
   toMaybe <$> decodeNullable decodeElem
 
 decodeEither
@@ -298,7 +298,7 @@ decodeEither
    . JsonDecoder err extra a
   -> JsonDecoder err extra b
   -> JsonDecoder err extra (Either a b)
-decodeEither decodeLeft decodeRight = addTypeHint "Either" JPDQ.do
+decodeEither decodeLeft decodeRight = addTypeHint "Either" JD.do
   obj <- decodeObjectPrim
   tag <- decodeField obj "tag" decodeString
   case tag of
@@ -314,7 +314,7 @@ decodeTuple
    . JsonDecoder err extra a
   -> JsonDecoder err extra b
   -> JsonDecoder err extra (Tuple a b)
-decodeTuple decodeA decodeB = addTypeHint "Tuple" JPDQ.do
+decodeTuple decodeA decodeB = addTypeHint "Tuple" JD.do
   arr <- decodeArrayPrim
   case arr of
     [ a, b ] -> do
@@ -329,7 +329,7 @@ decodeThese
    . JsonDecoder err extra a
   -> JsonDecoder err extra b
   -> JsonDecoder err extra (These a b)
-decodeThese decodeA decodeB = addTypeHint "These" JPDQ.do
+decodeThese decodeA decodeB = addTypeHint "These" JD.do
   obj <- decodeObjectPrim
   tag <- decodeField obj "tag" decodeString
   case tag of
@@ -349,7 +349,7 @@ decodeNonEmpty
    . JsonDecoder err extra a
   -> JsonDecoder err extra (f a)
   -> JsonDecoder err extra (NonEmpty f a)
-decodeNonEmpty decodeHead decodeTail = addTypeHint "NonEmpty" JPDQ.do
+decodeNonEmpty decodeHead decodeTail = addTypeHint "NonEmpty" JD.do
   obj <- decodeObjectPrim
   NonEmpty
     <$> (addSubtermHint 0 $ decodeField obj "head" decodeHead)
@@ -359,7 +359,7 @@ decodeList
   :: forall err extra a
    . JsonDecoder err extra a
   -> JsonDecoder err extra (List a)
-decodeList decodeElem = addTypeHint "List" JPDQ.do
+decodeList decodeElem = addTypeHint "List" JD.do
   arr <- decodeArrayPrim
   map List.fromFoldable $ forWithIndex arr \i a ->
     withOffset (AtIndex i) a decodeElem
@@ -368,7 +368,7 @@ decodeNonEmptyList
   :: forall err extra a
    . JsonDecoder err extra a
   -> JsonDecoder err extra (NonEmptyList a)
-decodeNonEmptyList decodeA = addTypeHint "NonEmptyList" JPDQ.do
+decodeNonEmptyList decodeA = addTypeHint "NonEmptyList" JD.do
   ls <- decodeList decodeA
   case ls of
     Nil ->
@@ -382,10 +382,10 @@ decodeMap
   => JsonDecoder err extra k
   -> JsonDecoder err extra v
   -> JsonDecoder err extra (Map k v)
-decodeMap decodeKey decodeValue = addTypeHint "Map" JPDQ.do
+decodeMap decodeKey decodeValue = addTypeHint "Map" JD.do
   arr <- decodeArrayPrim
   map Map.fromFoldable $ forWithIndex arr \i a ->
-    withOffset (AtIndex i) a JPDQ.do
+    withOffset (AtIndex i) a JD.do
       obj <- decodeObjectPrim
       Tuple
         <$> decodeField obj "key" decodeKey
@@ -396,7 +396,7 @@ decodeSet
    . Ord a
   => JsonDecoder err extra a
   -> JsonDecoder err extra (Set a)
-decodeSet decodeA = addTypeHint "Set" JPDQ.do
+decodeSet decodeA = addTypeHint "Set" JD.do
   arr <- decodeArrayPrim
   map Set.fromFoldable $ forWithIndex arr \i a ->
     withOffset (AtIndex i) a decodeA
@@ -406,7 +406,7 @@ decodeNonEmptySet
    . Ord a
   => JsonDecoder err extra a
   -> JsonDecoder err extra (NonEmptySet a)
-decodeNonEmptySet decodeA = addTypeHint "NonEmptySet" JPDQ.do
+decodeNonEmptySet decodeA = addTypeHint "NonEmptySet" JD.do
   s <- decodeSet decodeA
   case NonEmptySet.fromSet s of
     Nothing ->
@@ -417,7 +417,7 @@ decodeNonEmptySet decodeA = addTypeHint "NonEmptySet" JPDQ.do
 decodeCodePoint
   :: forall err extra
    . JsonDecoder err extra CodePoint
-decodeCodePoint = addTypeHint "CodePoint" JPDQ.do
+decodeCodePoint = addTypeHint "CodePoint" JD.do
   s <- decodeString
   case codePointAt 0 s of
     Nothing ->
@@ -447,7 +447,7 @@ decodeRecordPrim
   :: forall err extra outputRows
    . (Object Json -> JsonDecoder err extra { | outputRows })
   -> JsonDecoder err extra { | outputRows }
-decodeRecordPrim decoder = addTypeHint "Record" JPDQ.do
+decodeRecordPrim decoder = addTypeHint "Record" JD.do
   obj <- decodeObjectPrim
   decoder obj
 

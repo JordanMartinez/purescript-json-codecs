@@ -10,6 +10,7 @@
   , "either"
   , "foldable-traversable"
   , "foreign-object"
+  , "functions"
   , "identity"
   , "integers"
   , "lists"

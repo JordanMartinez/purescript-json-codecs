@@ -1,8 +1,8 @@
 module Json.Encode.Class
-  ( EncodeJsonInput
-  , class EncodeJson
+  ( class EncodeJson
   , encodeJson
   , encodeJson'
+  , encodeJsonFn
   , ExistentialEncoder0
   , mkExistentialEncoder0
   , ExistentialEncoder1
@@ -21,6 +21,7 @@ import Prelude
 import Data.Argonaut.Core (Json)
 import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Either (Either)
+import Data.Function.Uncurried (Fn2, mkFn2, runFn2)
 import Data.Identity (Identity)
 import Data.List (List)
 import Data.List.Types (NonEmptyList)
@@ -49,96 +50,94 @@ import Safe.Coerce (coerce)
 import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
 
-type EncodeJsonInput extra a =
-  { value :: a
-  , extra :: extra
-  }
-
 class EncodeJson extra a where
-  encodeJson' :: EncodeJsonInput extra a -> Json
+  encodeJsonFn :: Fn2 extra a Json
 
 encodeJson :: forall a. EncodeJson Unit a => a -> Json
-encodeJson = encodeJson' <<< { extra: unit, value: _ }
+encodeJson = encodeJson' unit
+
+encodeJson' :: forall extra a. EncodeJson extra a => extra -> a -> Json
+encodeJson' = runFn2 encodeJsonFn
 
 instance EncodeJson extra Void where
-  encodeJson' = encodeVoid <<< _.value
+  encodeJsonFn = mkFn2 \_ -> encodeVoid
 
 instance EncodeJson extra Unit where
-  encodeJson' = encodeUnitToNull <<< _.value
+  encodeJsonFn = mkFn2 \_ -> encodeUnitToNull
 
 instance EncodeJson extra Boolean where
-  encodeJson' = encodeBoolean <<< _.value
+  encodeJsonFn = mkFn2 \_ -> encodeBoolean
 
 instance EncodeJson extra Int where
-  encodeJson' = encodeInt <<< _.value
+  encodeJsonFn = mkFn2 \_ -> encodeInt
 
 instance EncodeJson extra Char where
-  encodeJson' = encodeChar <<< _.value
+  encodeJsonFn = mkFn2 \_ -> encodeChar
 
 instance EncodeJson extra Number where
-  encodeJson' = encodeNumber <<< _.value
+  encodeJsonFn = mkFn2 \_ -> encodeNumber
 
 instance EncodeJson extra String where
-  encodeJson' = encodeString <<< _.value
+  encodeJsonFn = mkFn2 \_ -> encodeString
 
 instance EncodeJson extra NonEmptyString where
-  encodeJson' = encodeNonEmptyString <<< _.value
+  encodeJsonFn = mkFn2 \_ -> encodeNonEmptyString
 
 instance EncodeJson extra a => EncodeJson extra (Array a) where
-  encodeJson' { value, extra } = encodeArray (encodeJson' <<< { extra, value: _ }) value
+  encodeJsonFn = mkFn2 \extra -> encodeArray (runFn2 encodeJsonFn extra)
 
 instance EncodeJson extra a => EncodeJson extra (NonEmptyArray a) where
-  encodeJson' { value, extra } = encodeNonEmptyArray (encodeJson' <<< { extra, value: _ }) value
+  encodeJsonFn = mkFn2 \extra -> encodeNonEmptyArray (runFn2 encodeJsonFn extra)
 
 instance EncodeJson extra a => EncodeJson extra (Object a) where
-  encodeJson' { value, extra } = encodeObject (encodeJson' <<< { extra, value: _ }) value
+  encodeJsonFn = mkFn2 \extra -> encodeObject (runFn2 encodeJsonFn extra)
 
 instance EncodeJson extra a => EncodeJson extra (Nullable a) where
-  encodeJson' { value, extra } = encodeNullable (encodeJson' <<< { extra, value: _ }) value
+  encodeJsonFn = mkFn2 \extra -> encodeNullable (runFn2 encodeJsonFn extra)
 
 instance (Coercible a (Identity a), EncodeJson extra a) => EncodeJson extra (Identity a) where
-  encodeJson' { value, extra } = encodeIdentity (encodeJson' <<< { extra, value: _ }) value
+  encodeJsonFn = mkFn2 \extra -> encodeIdentity (runFn2 encodeJsonFn extra)
 
 instance EncodeJson extra a => EncodeJson extra (Maybe a) where
-  encodeJson' { value, extra } = encodeMaybeTagged (encodeJson' <<< { extra, value: _ }) value
+  encodeJsonFn = mkFn2 \extra -> encodeMaybeTagged (runFn2 encodeJsonFn extra)
 
 instance (EncodeJson extra l, EncodeJson extra r) => EncodeJson extra (Either l r) where
-  encodeJson' { value, extra } = encodeEither (encodeJson' <<< { extra, value: _ }) (encodeJson' <<< { extra, value: _ }) value
+  encodeJsonFn = mkFn2 \extra -> encodeEither (runFn2 encodeJsonFn extra) (runFn2 encodeJsonFn extra)
 
 instance (EncodeJson extra l, EncodeJson extra r) => EncodeJson extra (Tuple l r) where
-  encodeJson' { value, extra } = encodeTuple (encodeJson' <<< { extra, value: _ }) (encodeJson' <<< { extra, value: _ }) value
+  encodeJsonFn = mkFn2 \extra -> encodeTuple (runFn2 encodeJsonFn extra) (runFn2 encodeJsonFn extra)
 
 instance (EncodeJson extra l, EncodeJson extra r) => EncodeJson extra (These l r) where
-  encodeJson' { value, extra } = encodeThese (encodeJson' <<< { extra, value: _ }) (encodeJson' <<< { extra, value: _ }) value
+  encodeJsonFn = mkFn2 \extra -> encodeThese (runFn2 encodeJsonFn extra) (runFn2 encodeJsonFn extra)
 
 instance (EncodeJson extra a, EncodeJson extra (f a)) => EncodeJson extra (NonEmpty f a) where
-  encodeJson' { value, extra } = encodeNonEmpty (encodeJson' <<< { extra, value: _ }) (encodeJson' <<< { extra, value: _ }) value
+  encodeJsonFn = mkFn2 \extra -> encodeNonEmpty (runFn2 encodeJsonFn extra) (runFn2 encodeJsonFn extra)
 
 instance EncodeJson extra a => EncodeJson extra (List a) where
-  encodeJson' { value, extra } = encodeList (encodeJson' <<< { extra, value: _ }) value
+  encodeJsonFn = mkFn2 \extra -> encodeList (runFn2 encodeJsonFn extra)
 
 instance EncodeJson extra a => EncodeJson extra (NonEmptyList a) where
-  encodeJson' { value, extra } = encodeNonEmptyList (encodeJson' <<< { extra, value: _ }) value
+  encodeJsonFn = mkFn2 \extra -> encodeNonEmptyList (runFn2 encodeJsonFn extra)
 
 instance (Ord k, EncodeJson extra k, EncodeJson extra v) => EncodeJson extra (Map k v) where
-  encodeJson' { value, extra } = encodeMap (encodeJson' <<< { extra, value: _ }) (encodeJson' <<< { extra, value: _ }) value
+  encodeJsonFn = mkFn2 \extra -> encodeMap (runFn2 encodeJsonFn extra) (runFn2 encodeJsonFn extra)
 
 instance (Ord a, EncodeJson extra a) => EncodeJson extra (Set a) where
-  encodeJson' { value, extra } = encodeSet (encodeJson' <<< { extra, value: _ }) value
+  encodeJsonFn = mkFn2 \extra -> encodeSet (runFn2 encodeJsonFn extra)
 
 instance (Ord a, EncodeJson extra a) => EncodeJson extra (NonEmptySet a) where
-  encodeJson' { value, extra } = encodeNonEmptySet (encodeJson' <<< { extra, value: _ }) value
+  encodeJsonFn = mkFn2 \extra -> encodeNonEmptySet (runFn2 encodeJsonFn extra)
 
 instance EncodeJson extra CodePoint where
-  encodeJson' = encodeCodePoint <<< _.value
+  encodeJsonFn = mkFn2 \_ -> encodeCodePoint
 
 -- | Build a value via `mkExistentialEncoder0`.
 foreign import data ExistentialEncoder0 :: Type -> Type
 
-mkExistentialEncoder0 :: forall extra a. (EncodeJsonInput extra a -> Json) -> ExistentialEncoder0 a
+mkExistentialEncoder0 :: forall extra a. (Fn2 extra a Json) -> ExistentialEncoder0 a
 mkExistentialEncoder0 = unsafeCoerce
 
-unExistentialEncoder0 :: forall extra a. ExistentialEncoder0 a -> (EncodeJsonInput extra a -> Json)
+unExistentialEncoder0 :: forall extra a. ExistentialEncoder0 a -> (Fn2 extra a Json)
 unExistentialEncoder0 = unsafeCoerce
 
 instance
@@ -147,27 +146,27 @@ instance
   , IsSymbol sym
   ) =>
   EncodeJson extra (K0 sym a) where
-  encodeJson' input = do
+  encodeJsonFn = mkFn2 \extra k0a -> do
     let
       localOverrides :: { | rows }
-      localOverrides = unwrap input.extra
+      localOverrides = unwrap extra
 
-      f :: EncodeJsonInput extra a -> Json
+      f :: Fn2 extra a Json
       f = unExistentialEncoder0 $ Record.get (Proxy :: Proxy sym) localOverrides
 
-      inputWithoutNewtype :: EncodeJsonInput extra a
-      inputWithoutNewtype = coerce input
+      a :: a
+      a = coerce k0a
 
-    f inputWithoutNewtype
+    runFn2 f extra a
 
 -- | Build a value via `mkExistentialEncoder1`.
 foreign import data ExistentialEncoder1 :: (Type -> Type) -> Type
 
-mkExistentialEncoder1 :: forall extra f a. (EncodeJsonInput extra a -> Json) -> (EncodeJsonInput extra (f a) -> Json) -> ExistentialEncoder1 f
+mkExistentialEncoder1 :: forall extra f a. (Fn2 extra a Json) -> (Fn2 extra (f a) Json) -> ExistentialEncoder1 f
 mkExistentialEncoder1 = unsafeCoerce
 
 -- Note: this is intentionaly not exported as only this module should consume this.
-unExistentialEncoder1 :: forall extra f a. ExistentialEncoder1 f -> ((EncodeJsonInput extra a -> Json) -> (EncodeJsonInput extra (f a) -> Json))
+unExistentialEncoder1 :: forall extra f a. ExistentialEncoder1 f -> ((Fn2 extra a Json) -> (Fn2 extra (f a) Json))
 unExistentialEncoder1 = unsafeCoerce
 
 instance
@@ -177,29 +176,29 @@ instance
   , IsSymbol sym
   ) =>
   EncodeJson extra (K1 sym (f a)) where
-  encodeJson' input = do
+  encodeJsonFn = mkFn2 \extra k1fa -> do
     let
       localOverrides :: { | rows }
-      localOverrides = unwrap input.extra
+      localOverrides = unwrap extra
 
-      buildEncoder :: (EncodeJsonInput extra a -> Json) -> (EncodeJsonInput extra (f a) -> Json)
+      buildEncoder :: (Fn2 extra a Json) -> (Fn2 extra (f a) Json)
       buildEncoder = unExistentialEncoder1 $ Record.get (Proxy :: Proxy sym) localOverrides
 
-      f = buildEncoder encodeJson'
+      f = buildEncoder encodeJsonFn
 
-      inputWithoutNewtype :: EncodeJsonInput extra (f a)
-      inputWithoutNewtype = coerce input
+      fa :: f a
+      fa = coerce k1fa
 
-    f inputWithoutNewtype
+    runFn2 f extra fa
 
 -- | Build a value via `mkExistentialEncoder2`.
 foreign import data ExistentialEncoder2 :: (Type -> Type -> Type) -> Type
 
-mkExistentialEncoder2 :: forall extra f a b. ((EncodeJsonInput extra a -> Json) -> (EncodeJsonInput extra b -> Json) -> (EncodeJsonInput extra (f a b) -> Json)) -> ExistentialEncoder2 f
+mkExistentialEncoder2 :: forall extra f a b. ((Fn2 extra a Json) -> (Fn2 extra b Json) -> (Fn2 extra (f a b) Json)) -> ExistentialEncoder2 f
 mkExistentialEncoder2 = unsafeCoerce
 
 -- Note: this is intentionaly not exported as only this module should consume this.
-unExistentialEncoder2 :: forall extra f a b. ExistentialEncoder2 f -> ((EncodeJsonInput extra a -> Json) -> (EncodeJsonInput extra b -> Json) -> (EncodeJsonInput extra (f a b) -> Json))
+unExistentialEncoder2 :: forall extra f a b. ExistentialEncoder2 f -> ((Fn2 extra a Json) -> (Fn2 extra b Json) -> (Fn2 extra (f a b) Json))
 unExistentialEncoder2 = unsafeCoerce
 
 instance
@@ -210,29 +209,29 @@ instance
   , IsSymbol sym
   ) =>
   EncodeJson extra (K2 sym (f a b)) where
-  encodeJson' input = do
+  encodeJsonFn = mkFn2 \extra k2fab -> do
     let
       localOverrides :: { | rows }
-      localOverrides = unwrap input.extra
+      localOverrides = unwrap extra
 
-      buildEncoder :: (EncodeJsonInput extra a -> Json) -> (EncodeJsonInput extra b -> Json) -> (EncodeJsonInput extra (f a b) -> Json)
+      buildEncoder :: (Fn2 extra a Json) -> (Fn2 extra b Json) -> (Fn2 extra (f a b) Json)
       buildEncoder = unExistentialEncoder2 $ Record.get (Proxy :: Proxy sym) localOverrides
 
-      f = buildEncoder encodeJson' encodeJson'
+      f = buildEncoder encodeJsonFn encodeJsonFn
 
-      inputWithoutNewtype :: EncodeJsonInput extra (f a b)
-      inputWithoutNewtype = coerce input
+      fab :: f a b
+      fab = coerce k2fab
 
-    f inputWithoutNewtype
+    runFn2 f extra fab
 
 -- | Build a value via `mkExistentialEncoder3`.
 foreign import data ExistentialEncoder3 :: (Type -> Type -> Type -> Type) -> Type
 
-mkExistentialEncoder3 :: forall extra f a b c. ((EncodeJsonInput extra a -> Json) -> (EncodeJsonInput extra b -> Json) -> (EncodeJsonInput extra c -> Json) -> (EncodeJsonInput extra (f a b c) -> Json)) -> ExistentialEncoder3 f
+mkExistentialEncoder3 :: forall extra f a b c. ((Fn2 extra a Json) -> (Fn2 extra b Json) -> (Fn2 extra c Json) -> (Fn2 extra (f a b c) Json)) -> ExistentialEncoder3 f
 mkExistentialEncoder3 = unsafeCoerce
 
 -- Note: this is intentionaly not exported as only this module should consume this.
-unExistentialEncoder3 :: forall extra f a b c. ExistentialEncoder3 f -> ((EncodeJsonInput extra a -> Json) -> (EncodeJsonInput extra b -> Json) -> (EncodeJsonInput extra c -> Json) -> (EncodeJsonInput extra (f a b c) -> Json))
+unExistentialEncoder3 :: forall extra f a b c. ExistentialEncoder3 f -> ((Fn2 extra a Json) -> (Fn2 extra b Json) -> (Fn2 extra c Json) -> (Fn2 extra (f a b c) Json))
 unExistentialEncoder3 = unsafeCoerce
 
 -- | Local overrides for types with kind `Type`. Implementation for types annotated with the `K3` type 
@@ -250,72 +249,75 @@ instance
   , IsSymbol sym
   ) =>
   EncodeJson extra (K3 sym (f a b c)) where
-  encodeJson' input = do
+  encodeJsonFn = mkFn2 \extra k3fabc -> do
     let
       localOverrides :: { | rows }
-      localOverrides = unwrap input.extra
+      localOverrides = unwrap extra
 
-      buildEncoder :: (EncodeJsonInput extra a -> Json) -> (EncodeJsonInput extra b -> Json) -> (EncodeJsonInput extra c -> Json) -> (EncodeJsonInput extra (f a b c) -> Json)
+      buildEncoder :: (Fn2 extra a Json) -> (Fn2 extra b Json) -> (Fn2 extra c Json) -> (Fn2 extra (f a b c) Json)
       buildEncoder = unExistentialEncoder3 $ Record.get (Proxy :: Proxy sym) localOverrides
 
-      f = buildEncoder encodeJson' encodeJson' encodeJson'
+      f = buildEncoder encodeJsonFn encodeJsonFn encodeJsonFn
 
-      inputWithoutNewtype :: EncodeJsonInput extra (f a b c)
-      inputWithoutNewtype = coerce input
+      fabc :: f a b c
+      fabc = coerce k3fabc
 
-    f inputWithoutNewtype
+    runFn2 f extra fabc
 
 instance
   ( RowToList.RowToList rows rl
-  , EncodeRecordInput rl (EncodeJsonInput extra { | rows })
+  , EncodeRecordInput rl extra { | rows }
   ) =>
   EncodeJson extra { | rows } where
-  encodeJson' input = encodeObjectPrim $ encodeRecordInput (RowListRecord input :: RowListRecord rl (EncodeJsonInput extra { | rows }))
+  encodeJsonFn = mkFn2 \extra input ->
+    encodeObjectPrim $ runFn2 encodeRecordInput (RowListRecord input :: RowListRecord rl { | rows }) extra
 
 newtype RowListRecord :: RowList.RowList Type -> Type -> Type
 newtype RowListRecord rl rec = RowListRecord rec
 
-class EncodeRecordInput :: RowList.RowList Type -> Type -> Constraint
-class EncodeRecordInput rl rec | rl -> rec where
-  encodeRecordInput :: RowListRecord rl rec -> Object Json
+class EncodeRecordInput :: RowList.RowList Type -> Type -> Type -> Constraint
+class EncodeRecordInput rl extra rec | rl -> extra rec where
+  encodeRecordInput :: Fn2 (RowListRecord rl rec) extra (Object Json)
 
-instance EncodeRecordInput RowList.Nil (EncodeJsonInput extra {}) where
-  encodeRecordInput _ = Object.empty
+instance EncodeRecordInput RowList.Nil extra {} where
+  encodeRecordInput = mkFn2 \_ _ -> Object.empty
 else instance
   ( EncodeJson extra a
-  , EncodeRecordInput tailList (EncodeJsonInput extra { | tailRows })
+  , EncodeRecordInput tailList extra { | tailRows }
   , Row.Cons sym (Optional (Maybe a)) tailRows outRows
   , IsSymbol sym
   ) =>
-  EncodeRecordInput (RowList.Cons sym (Optional (Maybe a)) tailList) (EncodeJsonInput extra { | outRows }) where
-  encodeRecordInput (RowListRecord input) =
-    encodeValue $ encodeRecordInput (RowListRecord tail :: RowListRecord tailList (EncodeJsonInput extra { | tailRows }))
-    where
-    encodeValue = case value of
-      Nothing -> identity
-      Just a -> Object.insert keyStr (encodeJson' { extra: input.extra, value: a })
-    _sym = Proxy :: Proxy sym
-    keyStr = reflectSymbol _sym
+  EncodeRecordInput (RowList.Cons sym (Optional (Maybe a)) tailList) extra { | outRows } where
+  encodeRecordInput = mkFn2 \(RowListRecord input) extra -> do
+    let
+      _sym = Proxy :: Proxy sym
+      keyStr = reflectSymbol _sym
 
-    tail :: EncodeJsonInput extra { | tailRows }
-    tail = unsafeCoerce input
+      tail :: { | tailRows }
+      tail = unsafeCoerce input
 
-    value = unwrap $ Record.get _sym input.value
+      value = unwrap $ Record.get _sym input
+
+      encodeValue = case value of
+        Nothing -> identity
+        Just a -> Object.insert keyStr (runFn2 encodeJsonFn extra a)
+
+    encodeValue $ runFn2 encodeRecordInput (RowListRecord tail :: RowListRecord tailList { | tailRows }) extra
 else instance
   ( EncodeJson extra a
-  , EncodeRecordInput tailList (EncodeJsonInput extra { | tailRows })
+  , EncodeRecordInput tailList extra { | tailRows }
   , Row.Cons sym a tailRows outRows
   , IsSymbol sym
   ) =>
-  EncodeRecordInput (RowList.Cons sym a tailList) (EncodeJsonInput extra { | outRows }) where
-  encodeRecordInput (RowListRecord input) =
-    Object.insert keyStr (encodeJson' { extra: input.extra, value }) $ encodeRecordInput (RowListRecord tail :: RowListRecord tailList (EncodeJsonInput extra { | tailRows }))
-    where
-    _sym = Proxy :: Proxy sym
-    keyStr = reflectSymbol _sym
+  EncodeRecordInput (RowList.Cons sym a tailList) extra { | outRows } where
+  encodeRecordInput = mkFn2 \(RowListRecord input) extra -> do
+    let
+      _sym = Proxy :: Proxy sym
+      keyStr = reflectSymbol _sym
 
-    tail :: EncodeJsonInput extra { | tailRows }
-    tail = unsafeCoerce input
+      tail :: { | tailRows }
+      tail = unsafeCoerce input
 
-    value :: a
-    value = Record.get _sym input.value
+      value :: a
+      value = Record.get _sym input
+    Object.insert keyStr (runFn2 encodeJsonFn extra value) $ runFn2 encodeRecordInput (RowListRecord tail :: RowListRecord tailList { | tailRows }) extra

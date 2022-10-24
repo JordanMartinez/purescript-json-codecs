@@ -4,6 +4,7 @@ import Prelude
 
 import Data.Argonaut.Core (stringifyWithIndent)
 import Data.Array as Array
+import Data.Function.Uncurried (mkFn2, runFn2)
 import Data.Newtype (class Newtype)
 import Data.Tuple (Tuple(..), swap)
 import Effect (Effect)
@@ -23,7 +24,7 @@ runOutput = do
   log "Normal encoded Json: "
   log $ stringifyWithIndent 2 jsonValue
   log "Locally-overridden encoded Json: "
-  log $ stringifyWithIndent 2 $ encodeJson' { extra: localEncodeOverrides, value: fromExampleRecordType recordValue }
+  log $ stringifyWithIndent 2 $ encodeJson' localEncodeOverrides $ fromExampleRecordType recordValue
   log "==="
 
 type ExampleRecordType =
@@ -62,9 +63,10 @@ derive instance Newtype LocalEncodeOverrides _
 
 localEncodeOverrides :: LocalEncodeOverrides
 localEncodeOverrides = LocalEncodeOverrides
-  { wrapInMathExpr: mkExistentialEncoder0 \{ value: plus } -> encodeString $ "1 " <> plus <> " 1 == 2"
-  , swapDecoders: mkExistentialEncoder2 \encodeA encodeB input ->
-      encodeTuple (\value -> encodeB { extra: input.extra, value }) (\value -> encodeA { extra: input.extra, value }) $ swap input.value
+  { wrapInMathExpr: mkExistentialEncoder0 $ mkFn2 \_ plus -> encodeString $ "1 " <> plus <> " 1 == 2"
+  , swapDecoders: mkExistentialEncoder2 $ \encodeA encodeB ->
+      mkFn2 \extra input -> do
+        encodeTuple (runFn2 encodeB extra) (runFn2 encodeA extra) $ swap input
   }
 
 -- wrap the newtypes that indicate which local override to use when decoding that type

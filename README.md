@@ -34,9 +34,6 @@ Provide a single library for
 Provide record syntax I enjoy using
   - See examples below
 
-Make it easy to drop newtypes when using typeclass-based codecs.
-  - [ ] automatic removal of utility newtypes - **WIP**
-
 ## Error Messages for `test/Main.purs`
 
 ### `PrimitiveJsonError`:

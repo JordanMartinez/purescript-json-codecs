@@ -102,6 +102,8 @@ type JsonDecoderFn e extra a = Fn4 Json (Array JsonOffset) (JsonErrorHandlers e)
 
 newtype JsonDecoder e extra a = JsonDecoder (JsonDecoderFn e extra a)
 
+derive instance Newtype (JsonDecoder e extra a) _
+
 instance functorJsonDecoder :: Functor (JsonDecoder e extra) where
   map f (JsonDecoder fn) = JsonDecoder $ mkFn4 \json pathSoFar handlers extra ->
     map f $ runFn4 fn json pathSoFar handlers extra

@@ -123,8 +123,8 @@ instance applicativeJsonDecoder :: Applicative (JsonDecoder e extra) where
 getPathSoFar :: forall e extra. JsonDecoder e extra (Array JsonOffset)
 getPathSoFar = JsonDecoder $ mkFn4 \_ pathSoFar _ _ -> V $ Right pathSoFar
 
-withOffset :: forall e extra a. JsonOffset -> Json -> JsonDecoder e extra a -> JsonDecoder e extra a
-withOffset offset json (JsonDecoder f) = JsonDecoder $
+addOffset :: forall e extra a. JsonOffset -> Json -> JsonDecoder e extra a -> JsonDecoder e extra a
+addOffset offset json (JsonDecoder f) = JsonDecoder $
   mkFn4 \_ pathSoFar handlers extra ->
     runFn4 f json (if handlers.includeJsonOffset then Array.snoc pathSoFar offset else pathSoFar) handlers extra
 

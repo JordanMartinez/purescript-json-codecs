@@ -84,7 +84,7 @@ import Data.Tuple (Tuple(..))
 import Data.Validation.Semigroup (V(..), invalid)
 import Foreign.Object (Object)
 import Foreign.Object as Object
-import Json.JsonDecoder (ActualJsonType(..), ExpectedJsonType(..), JsonDecoder(..), JsonOffset(..), addCtorHint, addSubtermHint, addTypeHint, altAccumulate, failWithMissingField, failWithStructureError, failWithUnrefinableValue, withOffset)
+import Json.JsonDecoder (ActualJsonType(..), ExpectedJsonType(..), JsonDecoder(..), JsonOffset(..), addCtorHint, addSubtermHint, addTypeHint, altAccumulate, failWithMissingField, failWithStructureError, failWithUnrefinableValue, addOffset)
 import Json.JsonDecoder.Qualified as JD
 import Prim.Coerce (class Coercible)
 import Prim.Row as Row
@@ -162,7 +162,7 @@ decodeIndex' arr idx onMissingIndex decodeElem = case Array.index arr idx of
   Nothing ->
     onMissingIndex
   Just a ->
-    withOffset (AtIndex idx) a decodeElem
+    addOffset (AtIndex idx) a decodeElem
 
 decodeObjectPrim :: forall e extra. JsonDecoder e extra (Object Json)
 decodeObjectPrim = JsonDecoder $ mkFn4 \json pathSoFar handlers _ ->
@@ -185,7 +185,7 @@ decodeField' obj field onMissingField decodeElem = case Object.lookup field obj 
   Nothing ->
     onMissingField
   Just a ->
-    withOffset (AtKey field) a decodeElem
+    addOffset (AtKey field) a decodeElem
 
 decodeVoid :: forall err extra. JsonDecoder err extra Void
 decodeVoid = addTypeHint "Void" $ failWithUnrefinableValue "Decoding a value to Void is impossible"
@@ -236,7 +236,7 @@ decodeArray
 decodeArray decodeElem = JD.do
   arr <- decodeArrayPrim
   forWithIndex arr \i j2 ->
-    withOffset (AtIndex i) j2 decodeElem
+    addOffset (AtIndex i) j2 decodeElem
 
 decodeNonEmptyArray
   :: forall err extra a
@@ -255,7 +255,7 @@ decodeObject
 decodeObject decodeElem = JD.do
   obj <- decodeObjectPrim
   forWithIndex obj \field j2 ->
-    withOffset (AtKey field) j2 decodeElem
+    addOffset (AtKey field) j2 decodeElem
 
 decodeNullable
   :: forall err extra a
@@ -319,8 +319,8 @@ decodeTuple decodeA decodeB = addTypeHint "Tuple" JD.do
   case arr of
     [ a, b ] -> do
       Tuple
-        <$> (addSubtermHint 0 $ withOffset (AtIndex 0) a decodeA)
-        <*> (addSubtermHint 1 $ withOffset (AtIndex 1) b decodeB)
+        <$> (addSubtermHint 0 $ addOffset (AtIndex 0) a decodeA)
+        <*> (addSubtermHint 1 $ addOffset (AtIndex 1) b decodeB)
     _ ->
       failWithStructureError $ "Expected array with 2 elements, but array had length of " <> show (Array.length arr)
 
@@ -362,7 +362,7 @@ decodeList
 decodeList decodeElem = addTypeHint "List" JD.do
   arr <- decodeArrayPrim
   map List.fromFoldable $ forWithIndex arr \i a ->
-    withOffset (AtIndex i) a decodeElem
+    addOffset (AtIndex i) a decodeElem
 
 decodeNonEmptyList
   :: forall err extra a
@@ -385,7 +385,7 @@ decodeMap
 decodeMap decodeKey decodeValue = addTypeHint "Map" JD.do
   arr <- decodeArrayPrim
   map Map.fromFoldable $ forWithIndex arr \i a ->
-    withOffset (AtIndex i) a JD.do
+    addOffset (AtIndex i) a JD.do
       obj <- decodeObjectPrim
       Tuple
         <$> decodeField obj "key" decodeKey
@@ -399,7 +399,7 @@ decodeSet
 decodeSet decodeA = addTypeHint "Set" JD.do
   arr <- decodeArrayPrim
   map Set.fromFoldable $ forWithIndex arr \i a ->
-    withOffset (AtIndex i) a decodeA
+    addOffset (AtIndex i) a decodeA
 
 decodeNonEmptySet
   :: forall err extra a

@@ -87,6 +87,7 @@ type JsonErrorHandlers e =
   , onMissingIndex :: Array JsonOffset -> Int -> e
   , onUnrefinableValue :: Array JsonOffset -> String -> e
   , onStructureError :: Array JsonOffset -> String -> e
+  , includeJsonOffset :: Boolean
   , addHint :: Array JsonOffset -> TypeHint -> e -> e
   }
 
@@ -125,7 +126,7 @@ getPathSoFar = JsonDecoder $ mkFn4 \_ pathSoFar _ _ -> V $ Right pathSoFar
 withOffset :: forall e extra a. JsonOffset -> Json -> JsonDecoder e extra a -> JsonDecoder e extra a
 withOffset offset json (JsonDecoder f) = JsonDecoder $
   mkFn4 \_ pathSoFar handlers extra ->
-    runFn4 f json (Array.snoc pathSoFar offset) handlers extra
+    runFn4 f json (if handlers.includeJsonOffset then Array.snoc pathSoFar offset else pathSoFar) handlers extra
 
 onError :: forall e extra a. (Array JsonOffset -> e -> e) -> JsonDecoder e extra a -> JsonDecoder e extra a
 onError mapErrs (JsonDecoder f) = JsonDecoder $ mkFn4 \json pathSoFar handlers extra ->

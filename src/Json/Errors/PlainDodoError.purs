@@ -37,6 +37,7 @@ handlersPde =
         [ D.text msg
         , docifyPath path
         ]
+  , includeJsonOffset: true
   , addHint: \path hint err ->
       D.lines
         [ docifyHint hint path

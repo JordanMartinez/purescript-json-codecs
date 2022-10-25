@@ -15,6 +15,7 @@ handlersNone =
   , onMissingIndex: \_ _ -> unit
   , onUnrefinableValue: \_ _ -> unit
   , onStructureError: \_ _ -> unit
+  , includeJsonOffset: false
   , addHint: \_ _ _ -> unit
   }
 

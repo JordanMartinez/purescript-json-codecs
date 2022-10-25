@@ -91,20 +91,6 @@ type JsonErrorHandlers e =
   }
 
 -- | Overview of values:
--- | - json - the JSON value currently being decoded at this point
--- | - pathSoFar - the position within the larger JSON that the current JSON is located
--- | - handlers - runtime-configured way to handling errors
--- | - extra - top-down custom data one may need for writing a decoder. This is where
--- |           local overrides for typeclass instances can be provided.
--- |           If this value isn't needed, you should set this to `Unit`.
-newtype JsonDecoderInput e extra = JsonDecoderInput
-  { json :: Json
-  , pathSoFar :: Array JsonOffset
-  , handlers :: JsonErrorHandlers e
-  , extra :: extra
-  }
-
--- | Overview of values:
 -- | - Json - the JSON value currently being decoded at this point
 -- | - Array JsonOffset - the position within the larger JSON that the current JSON is located
 -- | - JsonErrorHandlers e - runtime-configured way to handling errors
@@ -113,8 +99,6 @@ newtype JsonDecoderInput e extra = JsonDecoderInput
 -- |           If this value isn't needed, you should set this to `Unit`.
 -- | - V e a - an Either-like monad that accumulates errors using the `append` function in the handlers arg.
 type JsonDecoderFn e extra a = Fn4 Json (Array JsonOffset) (JsonErrorHandlers e) extra (V e a)
-
-derive instance Newtype (JsonDecoderInput e extra) _
 
 newtype JsonDecoder e extra a = JsonDecoder (JsonDecoderFn e extra a)
 

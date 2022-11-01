@@ -19,6 +19,7 @@
   , "nullable"
   , "ordered-collections"
   , "prelude"
+  , "profunctor"
   , "record"
   , "safe-coerce"
   , "strings"

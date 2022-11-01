@@ -1,3 +1,9 @@
+-- | Note: this module is the same as `purescript-codec@v5.0.0`
+-- | with the following changes:
+-- | - `Star` was moved to `Codec`
+-- | - `Codec`'s `ReaderT` and `Star` types were renamed to `DecoderFn` and `EncoderFn`,
+-- |   respectively, due to using uncurried `Fn*` types underneath
+-- | - The decoding monad was hard-coded to `V e`
 module Codec.Codec where
 
 import Prelude

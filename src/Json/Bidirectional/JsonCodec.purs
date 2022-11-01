@@ -3,7 +3,7 @@ module Json.Bidirectional.JsonCodec where
 import Prelude
 
 import Codec.Decoder (DecoderFn(..))
-import Codec.Encoder (StarFn2(..))
+import Codec.Encoder (EncoderFn(..))
 import Control.Alternative (class Alt, class Alternative, class Plus, empty, (<|>))
 import Control.Monad.Writer (Writer, execWriter, runWriter, writer)
 import Data.Either (Either)
@@ -76,9 +76,9 @@ infixl 5 lcmap as ~
 -- |  (Fn2 encExtra d -> Writer b d)
 -- | ```
 type Codec decPath decHandlers decE decExtra encExtra a b c d =
-  GCodec (DecoderFn a decPath decHandlers decE decExtra) (StarFn2 encExtra (Writer b)) c d
+  GCodec (DecoderFn a decPath decHandlers decE decExtra) (EncoderFn encExtra (Writer b)) c d
 
-codec ∷ ∀ decPath decHandlers decE decExtra encExtra a b c d. DecoderFn a decPath decHandlers decE decExtra d → StarFn2 encExtra (Writer b) c d → Codec decPath decHandlers decE decExtra encExtra a b c d
+codec ∷ ∀ decPath decHandlers decE decExtra encExtra a b c d. DecoderFn a decPath decHandlers decE decExtra d → EncoderFn encExtra (Writer b) c d → Codec decPath decHandlers decE decExtra encExtra a b c d
 codec dec enc = GCodec dec enc
 
 decode
@@ -99,19 +99,19 @@ encode
   → encExtra
   -> c
   → b
-encode gcodec extra a = execWriter $ runFn2 (un StarFn2 (encoder gcodec)) extra a
+encode gcodec extra a = execWriter $ runFn2 (un EncoderFn (encoder gcodec)) extra a
 
 mapCodec
   ∷ ∀ decPath decHandlers decE decExtra encExtra a b c d
   . (DecoderFn a decPath decHandlers decE decExtra b)
-  → StarFn2 encExtra (Writer b) b a
+  → EncoderFn encExtra (Writer b) b a
   → Codec decPath decHandlers decE decExtra encExtra c d a a
   → Codec decPath decHandlers decE decExtra encExtra c d b b
-mapCodec (DecoderFn f) (StarFn2 g) (GCodec (DecoderFn decf) (StarFn2 encf)) = GCodec dec enc
+mapCodec (DecoderFn f) (EncoderFn g) (GCodec (DecoderFn decf) (EncoderFn encf)) = GCodec dec enc
   where
   dec = DecoderFn $ mkFn5 \from path appendFn handlers extra -> do
     andThen (runFn5 decf from path appendFn handlers extra) (\a -> runFn5 f a path appendFn handlers extra)
-  enc = StarFn2 $ mkFn2 \extra a →
+  enc = EncoderFn $ mkFn2 \extra a →
     let
       (Tuple _ x) = runWriter $ runFn2 encf extra (fst $ runWriter $ runFn2 g extra a)
     in
@@ -122,7 +122,7 @@ composeCodec
   . Codec decPath decHandlers decE decExtra encExtra d c e f
   → Codec decPath decHandlers decE decExtra encExtra a b c d
   → Codec decPath decHandlers decE decExtra encExtra a b e f
-composeCodec (GCodec (DecoderFn decf) (StarFn2 encf)) (GCodec (DecoderFn decg) (StarFn2 encg)) =
+composeCodec (GCodec (DecoderFn decf) (EncoderFn encf)) (GCodec (DecoderFn decg) (EncoderFn encg)) =
   GCodec
     ( DecoderFn $ mkFn5 \from path appendFn handlers extra →
         andThen (runFn5 decg from path appendFn handlers extra)
@@ -130,7 +130,7 @@ composeCodec (GCodec (DecoderFn decf) (StarFn2 encf)) (GCodec (DecoderFn decg) (
               runFn5 decf a path appendFn handlers extra
           )
     )
-    ( StarFn2 $ mkFn2 \extra c →
+    ( EncoderFn $ mkFn2 \extra c →
         let
           (Tuple w x) = runWriter $ runFn2 encf extra c
         in

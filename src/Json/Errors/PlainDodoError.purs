@@ -7,12 +7,11 @@ import Data.Either (Either)
 import Dodo (Doc, plainText, twoSpaces)
 import Dodo as D
 import Json.Errors.PrimitiveJsonError (printMissingField, printMissingIndex, printTypeMismatchErr)
-import Json.JsonDecoder (JsonDecoder, JsonErrorHandlers, JsonOffset, TypeHint, printJsonOffsetPath, printTypeHint, runJsonDecoder)
+import Json.JsonDecoder (JsonDecoder, JsonErrorHandlers(..), JsonOffset, TypeHint, printJsonOffsetPath, printTypeHint, runJsonDecoder)
 
 handlersPde :: JsonErrorHandlers (Doc Void)
-handlersPde =
-  { append: \l r -> l <> D.break <> D.break <> r
-  , onTypeMismatch: \path exp act ->
+handlersPde = JsonErrorHandlers
+  { onTypeMismatch: \path exp act ->
       D.lines
         [ D.text $ printTypeMismatchErr exp act
         , docifyPath path
@@ -62,7 +61,7 @@ runJsonDecoderPDE :: forall a. Json -> JsonDecoder (Doc Void) Unit a -> Either (
 runJsonDecoderPDE = runJsonDecoderPDE' unit
 
 runJsonDecoderPDE' :: forall a extra. extra -> Json -> JsonDecoder (Doc Void) extra a -> Either (Doc Void) a
-runJsonDecoderPDE' = runJsonDecoder handlersPde
+runJsonDecoderPDE' = runJsonDecoder handlersPde (\l r -> l <> D.break <> D.break <> r)
 
 pde :: forall a. JsonDecoder (Doc Void) Unit a -> JsonDecoder (Doc Void) Unit a
 pde = identity

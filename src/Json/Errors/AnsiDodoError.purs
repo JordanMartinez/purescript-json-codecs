@@ -8,12 +8,11 @@ import Dodo (Doc, twoSpaces)
 import Dodo as D
 import Dodo.Ansi (Color(..), GraphicsParam, ansiGraphics, foreground)
 import Json.Errors.PrimitiveJsonError (printMissingField, printMissingIndex, printTypeMismatchErr)
-import Json.JsonDecoder (JsonDecoder, JsonErrorHandlers, JsonOffset, TypeHint(..), printJsonOffsetPath, runJsonDecoder)
+import Json.JsonDecoder (JsonDecoder, JsonErrorHandlers(..), JsonOffset, TypeHint(..), printJsonOffsetPath, runJsonDecoder)
 
 handlersAde :: JsonErrorHandlers (Doc GraphicsParam)
-handlersAde =
-  { append: \l r -> l <> D.break <> D.break <> r
-  , onTypeMismatch: \path exp act ->
+handlersAde = JsonErrorHandlers
+  { onTypeMismatch: \path exp act ->
       D.lines
         [ foreground BrightRed $ D.text $ printTypeMismatchErr exp act
         , docifyPath path
@@ -70,7 +69,7 @@ runJsonDecoderADE :: forall a. Json -> JsonDecoder (Doc GraphicsParam) Unit a ->
 runJsonDecoderADE = runJsonDecoderADE' unit
 
 runJsonDecoderADE' :: forall a extra. extra -> Json -> JsonDecoder (Doc GraphicsParam) extra a -> Either (Doc GraphicsParam) a
-runJsonDecoderADE' = runJsonDecoder handlersAde
+runJsonDecoderADE' = runJsonDecoder handlersAde (\l r -> l <> D.break <> D.break <> r)
 
 ade :: forall a. JsonDecoder (Doc GraphicsParam) Unit a -> JsonDecoder (Doc GraphicsParam) Unit a
 ade = identity

@@ -2,13 +2,14 @@ module Json.JsonDecoder where
 
 import Prelude
 
+import Codec.Decoder (DecoderFn(..))
 import Data.Argonaut.Core (Json)
 import Data.Array (foldMap)
 import Data.Array as Array
 import Data.Bifunctor (lmap)
 import Data.Either (Either(..))
-import Data.Function.Uncurried (Fn4, mkFn4, runFn4)
-import Data.Newtype (class Newtype, un, unwrap)
+import Data.Function.Uncurried (mkFn5, runFn5)
+import Data.Newtype (un, unwrap)
 import Data.String (Pattern(..), contains)
 import Data.Validation.Semigroup (V(..), invalid)
 import Foreign.Object (Object)
@@ -80,9 +81,8 @@ printTypeHint = case _ of
   Subterm i -> "while decoding the subterm at index, " <> show i
   Field f -> "while decoding the value under the label, " <> f
 
-type JsonErrorHandlers e =
-  { append :: e -> e -> e
-  , onTypeMismatch :: Array JsonOffset -> ExpectedJsonType -> ActualJsonType -> e
+newtype JsonErrorHandlers e = JsonErrorHandlers
+  { onTypeMismatch :: Array JsonOffset -> ExpectedJsonType -> ActualJsonType -> e
   , onMissingField :: Array JsonOffset -> String -> e
   , onMissingIndex :: Array JsonOffset -> Int -> e
   , onUnrefinableValue :: Array JsonOffset -> String -> e
@@ -99,58 +99,36 @@ type JsonErrorHandlers e =
 -- |           local overrides for typeclass instances can be provided.
 -- |           If this value isn't needed, you should set this to `Unit`.
 -- | - V e a - an Either-like monad that accumulates errors using the `append` function in the handlers arg.
-type JsonDecoderFn e extra a = Fn4 Json (Array JsonOffset) (JsonErrorHandlers e) extra (V e a)
-
-newtype JsonDecoder e extra a = JsonDecoder (JsonDecoderFn e extra a)
-
-derive instance Newtype (JsonDecoder e extra a) _
-
-instance functorJsonDecoder :: Functor (JsonDecoder e extra) where
-  map f (JsonDecoder fn) = JsonDecoder $ mkFn4 \json pathSoFar handlers extra ->
-    map f $ runFn4 fn json pathSoFar handlers extra
-
-instance applyJsonDecoder :: Apply (JsonDecoder e extra) where
-  apply (JsonDecoder ff) (JsonDecoder fa) = JsonDecoder $ mkFn4 \json pathSoFar handlers extra ->
-    case runFn4 ff json pathSoFar handlers extra, runFn4 fa json pathSoFar handlers extra of
-      V (Left e1), V (Left e2) -> V (Left $ handlers.append e1 e2)
-      V (Left e1), _ -> V (Left e1)
-      _, V (Left e2) -> V (Left e2)
-      V (Right f'), V (Right a') -> V (Right (f' a'))
-
-instance applicativeJsonDecoder :: Applicative (JsonDecoder e extra) where
-  pure a = JsonDecoder $ mkFn4 \_ _ _ _ -> V $ Right a
-
-getPathSoFar :: forall e extra. JsonDecoder e extra (Array JsonOffset)
-getPathSoFar = JsonDecoder $ mkFn4 \_ pathSoFar _ _ -> V $ Right pathSoFar
+type JsonDecoder e extra a = DecoderFn Json (Array JsonOffset) (JsonErrorHandlers e) e extra a
 
 addOffset :: forall e extra a. JsonOffset -> Json -> JsonDecoder e extra a -> JsonDecoder e extra a
-addOffset offset json (JsonDecoder f) = JsonDecoder $
-  mkFn4 \_ pathSoFar handlers extra ->
-    runFn4 f json (if handlers.includeJsonOffset then Array.snoc pathSoFar offset else pathSoFar) handlers extra
+addOffset offset json (DecoderFn f) = DecoderFn $
+  mkFn5 \_ path appendFn handlers@(JsonErrorHandlers h) extra ->
+    runFn5 f json (if h.includeJsonOffset then Array.snoc path offset else path) appendFn handlers extra
 
 onError :: forall e extra a. (Array JsonOffset -> e -> e) -> JsonDecoder e extra a -> JsonDecoder e extra a
-onError mapErrs (JsonDecoder f) = JsonDecoder $ mkFn4 \json pathSoFar handlers extra ->
-  lmap (mapErrs pathSoFar) $ runFn4 f json pathSoFar handlers extra
+onError mapErrs (DecoderFn f) = DecoderFn $ mkFn5 \json path appendFn handlers extra ->
+  lmap (mapErrs path) $ runFn5 f json path appendFn handlers extra
 
 failWithMissingField :: forall e extra a. String -> JsonDecoder e extra a
-failWithMissingField str = JsonDecoder $ mkFn4 \_ pathSoFar handlers _ ->
-  invalid $ handlers.onMissingField pathSoFar str
+failWithMissingField str = DecoderFn $ mkFn5 \_ path _ (JsonErrorHandlers h) _ ->
+  invalid $ h.onMissingField path str
 
 failWithMissingIndex :: forall e extra a. Int -> JsonDecoder e extra a
-failWithMissingIndex idx = JsonDecoder $ mkFn4 \_ pathSoFar handlers _ ->
-  invalid $ handlers.onMissingIndex pathSoFar idx
+failWithMissingIndex idx = DecoderFn $ mkFn5 \_ path _ (JsonErrorHandlers h) _ ->
+  invalid $ h.onMissingIndex path idx
 
 failWithUnrefinableValue :: forall e extra a. String -> JsonDecoder e extra a
-failWithUnrefinableValue msg = JsonDecoder $ mkFn4 \_ pathSoFar handlers _ ->
-  invalid $ handlers.onUnrefinableValue pathSoFar msg
+failWithUnrefinableValue msg = DecoderFn $ mkFn5 \_ path _ (JsonErrorHandlers h) _ ->
+  invalid $ h.onUnrefinableValue path msg
 
 failWithStructureError :: forall e extra a. String -> JsonDecoder e extra a
-failWithStructureError msg = JsonDecoder $ mkFn4 \_ pathSoFar handlers _ ->
-  invalid $ handlers.onStructureError pathSoFar msg
+failWithStructureError msg = DecoderFn $ mkFn5 \_ path _ (JsonErrorHandlers h) _ ->
+  invalid $ h.onStructureError path msg
 
 addHint :: forall e extra a. TypeHint -> JsonDecoder e extra a -> JsonDecoder e extra a
-addHint hint (JsonDecoder f) = JsonDecoder $ mkFn4 \json pathSoFar handlers extra ->
-  lmap (handlers.addHint pathSoFar hint) $ runFn4 f json pathSoFar handlers extra
+addHint hint (DecoderFn f) = DecoderFn $ mkFn5 \json path appendFn handlers@(JsonErrorHandlers h) extra ->
+  lmap (h.addHint path hint) $ runFn5 f json path appendFn handlers extra
 
 addTypeHint :: forall e extra a. String -> JsonDecoder e extra a -> JsonDecoder e extra a
 addTypeHint = addHint <<< TyName
@@ -167,27 +145,28 @@ addFieldHint = addHint <<< Field
 -- | Works like `alt`/`<|>`. Decodes using the first decoder and, if that fails,
 -- | decodes using the second decoder. Errors from both decoders accumulate.
 altAccumulate :: forall e extra a. JsonDecoder e extra a -> JsonDecoder e extra a -> JsonDecoder e extra a
-altAccumulate (JsonDecoder f1) (JsonDecoder f2) = JsonDecoder $ mkFn4 \json pathSoFar handlers extra ->
-  case unwrap $ runFn4 f1 json pathSoFar handlers extra of
-    Left e -> case unwrap $ runFn4 f2 json pathSoFar handlers extra of
-      Left e2 -> invalid $ handlers.append e e2
+altAccumulate (DecoderFn f1) (DecoderFn f2) = DecoderFn $ mkFn5 \json path appendFn handlers extra ->
+  case unwrap $ runFn5 f1 json path appendFn handlers extra of
+    Left e -> case unwrap $ runFn5 f2 json path appendFn handlers extra of
+      Left e2 -> invalid $ appendFn e e2
       Right a -> V $ Right a
     Right a -> V $ Right a
 
 -- | Same as `altAccumulate` except only the last error is kept. Helpful in cases
 -- | where one is decoding a sum type with a large number of data constructors.
 altLast :: forall e extra a. JsonDecoder e extra a -> JsonDecoder e extra a -> JsonDecoder e extra a
-altLast (JsonDecoder f1) (JsonDecoder f2) = JsonDecoder $ mkFn4 \json pathSoFar handlers extra ->
-  case unwrap $ runFn4 f1 json pathSoFar handlers extra of
-    Left _ -> runFn4 f2 json pathSoFar handlers extra
+altLast (DecoderFn f1) (DecoderFn f2) = DecoderFn $ mkFn5 \json path appendFn handlers extra ->
+  case unwrap $ runFn5 f1 json path appendFn handlers extra of
+    Left _ -> runFn5 f2 json path appendFn handlers extra
     Right a -> V $ Right a
 
 runJsonDecoder
   :: forall e extra a
    . JsonErrorHandlers e
+  -> (e -> e -> e)
   -> extra
   -> Json
   -> JsonDecoder e extra a
   -> Either e a
-runJsonDecoder handlers extra json (JsonDecoder fn) =
-  un V $ runFn4 fn json [] handlers extra
+runJsonDecoder handlers appendFn extra json (DecoderFn fn) =
+  un V $ runFn5 fn json [] appendFn handlers extra

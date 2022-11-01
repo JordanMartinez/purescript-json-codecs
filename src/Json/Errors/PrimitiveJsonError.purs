@@ -11,7 +11,7 @@ import Data.Monoid (power)
 import Data.Newtype (class Newtype, over, unwrap)
 import Data.These (These(..))
 import Json.Errors.Tree (TreeError(..))
-import Json.JsonDecoder (ActualJsonType, ExpectedJsonType, JsonDecoder, JsonErrorHandlers, JsonOffset, TypeHint, printActualJsonType, printExpectedJsonType, printJsonOffsetPath, printTypeHint, runJsonDecoder)
+import Json.JsonDecoder (ActualJsonType, ExpectedJsonType, JsonDecoder, JsonErrorHandlers(..), JsonOffset, TypeHint, printActualJsonType, printExpectedJsonType, printJsonOffsetPath, printTypeHint, runJsonDecoder)
 
 data JsonLeafError
   = TypeMismatch ExpectedJsonType ActualJsonType
@@ -50,9 +50,8 @@ derive instance Newtype PrimitiveJsonError _
 derive newtype instance Semigroup PrimitiveJsonError
 
 pjeHandlers :: JsonErrorHandlers PrimitiveJsonError
-pjeHandlers =
-  { append: (<>)
-  , onTypeMismatch: \path exp -> PrimitiveJsonError <<< TreeError <<< Right <<< { path, error: _ } <<< TypeMismatch exp
+pjeHandlers = JsonErrorHandlers
+  { onTypeMismatch: \path exp -> PrimitiveJsonError <<< TreeError <<< Right <<< { path, error: _ } <<< TypeMismatch exp
   , onMissingField: \path -> PrimitiveJsonError <<< TreeError <<< Right <<< { path, error: _ } <<< MissingField
   , onMissingIndex: \path -> PrimitiveJsonError <<< TreeError <<< Right <<< { path, error: _ } <<< MissingIndex
   , onUnrefinableValue: \path -> PrimitiveJsonError <<< TreeError <<< Right <<< { path, error: _ } <<< UnrefinableValue
@@ -88,7 +87,7 @@ runJsonDecoderPJE :: forall a. Json -> JsonDecoder PrimitiveJsonError Unit a -> 
 runJsonDecoderPJE = runJsonDecoderPJE' unit
 
 runJsonDecoderPJE' :: forall a extra. extra -> Json -> JsonDecoder PrimitiveJsonError extra a -> Either PrimitiveJsonError a
-runJsonDecoderPJE' = runJsonDecoder pjeHandlers
+runJsonDecoderPJE' = runJsonDecoder pjeHandlers (<>)
 
 pje :: forall a. JsonDecoder PrimitiveJsonError Unit a -> JsonDecoder PrimitiveJsonError Unit a
 pje = identity

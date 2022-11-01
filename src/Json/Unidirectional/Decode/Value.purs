@@ -59,7 +59,7 @@ import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Array.NonEmpty as NEA
 import Data.Either (Either(..))
 import Data.Function.Uncurried (mkFn4)
-import Data.Identity (Identity)
+import Data.Identity (Identity(..))
 import Data.Int as Int
 import Data.List (List(..))
 import Data.List as List
@@ -86,7 +86,6 @@ import Foreign.Object (Object)
 import Foreign.Object as Object
 import Json.JsonDecoder (ActualJsonType(..), ExpectedJsonType(..), JsonDecoder(..), JsonOffset(..), addCtorHint, addSubtermHint, addTypeHint, altAccumulate, failWithMissingField, failWithStructureError, failWithUnrefinableValue, addOffset)
 import Json.JsonDecoder.Qualified as JD
-import Prim.Coerce (class Coercible)
 import Prim.Row as Row
 import Prim.RowList (class RowToList, RowList)
 import Prim.RowList as RowList
@@ -266,8 +265,7 @@ decodeNullable decodeA = addTypeHint "Nullable" JD.do
 
 decodeIdentity
   :: forall err extra a
-   . Coercible (JsonDecoder err extra a) (JsonDecoder err extra (Identity a))
-  => JsonDecoder err extra a
+   . JsonDecoder err extra a
   -> JsonDecoder err extra (Identity a)
 decodeIdentity = addTypeHint "Identity" <<< coerce
 

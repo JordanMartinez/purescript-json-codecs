@@ -40,7 +40,6 @@ import Foreign.Object (Object)
 import Json.JsonDecoder (JsonDecoder(..), failWithMissingField)
 import Json.Types (K0(..), K1(..), K2(..), K3(..), Optional(..))
 import Json.Unidirectional.Decode.Value (decodeArray, decodeBoolean, decodeChar, decodeCodePoint, decodeEither, decodeField', decodeIdentity, decodeInt, decodeList, decodeMap, decodeMaybeTagged, decodeNonEmpty, decodeNonEmptyArray, decodeNonEmptyList, decodeNonEmptySet, decodeNonEmptyString, decodeNullable, decodeNumber, decodeObject, decodeRecordPrim, decodeSet, decodeString, decodeThese, decodeTuple, decodeUnitFromNull, decodeVoid)
-import Prim.Coerce (class Coercible)
 import Prim.Row as Row
 import Prim.RowList as RowList
 import Prim.RowList as RowToList
@@ -90,7 +89,7 @@ instance (DecodeJson err extra a) => DecodeJson err extra (Object a) where
 instance (DecodeJson err extra a) => DecodeJson err extra (Nullable a) where
   decodeJson = decodeNullable decodeJson
 
-instance (Coercible (JsonDecoder err extra a) (JsonDecoder err extra (Identity a)), DecodeJson err extra a) => DecodeJson err extra (Identity a) where
+instance (DecodeJson err extra a) => DecodeJson err extra (Identity a) where
   decodeJson = decodeIdentity decodeJson
 
 instance (DecodeJson err extra a) => DecodeJson err extra (Maybe a) where

@@ -1,4 +1,4 @@
-module Json.Types where
+module Json.Newtypes where
 
 import Prelude
 

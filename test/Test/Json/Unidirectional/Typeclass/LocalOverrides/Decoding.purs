@@ -12,7 +12,7 @@ import Effect.Class.Console (log)
 import Json.Decode.Class (ExistentialDecoder0, ExistentialDecoder2, decodeJson, mkExistentialDecoder0, mkExistentialDecoder2)
 import Json.Encode.Class (encodeJson)
 import Json.Errors.AnsiDodoError (printAnsiDodoError, runJsonDecoderADE')
-import Json.Types (K0(..), K2(..))
+import Json.Newtypes (K0(..), K2(..))
 import Json.Unidirectional.Decode.Value (decodeString, decodeTuple)
 import Safe.Coerce (coerce)
 

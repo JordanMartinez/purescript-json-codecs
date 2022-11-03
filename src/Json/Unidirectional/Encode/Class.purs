@@ -39,7 +39,7 @@ import Data.These (These)
 import Data.Tuple (Tuple)
 import Foreign.Object (Object)
 import Foreign.Object as Object
-import Json.Types (K0(..), K1(..), K2(..), K3(..), Optional)
+import Json.Newtypes (K0(..), K1(..), K2(..), K3(..), Optional)
 import Json.Unidirectional.Encode.Value (encodeArray, encodeBoolean, encodeChar, encodeCodePoint, encodeEither, encodeIdentity, encodeInt, encodeList, encodeMap, encodeMaybeTagged, encodeNonEmpty, encodeNonEmptyArray, encodeNonEmptyList, encodeNonEmptySet, encodeNonEmptyString, encodeNullable, encodeNumber, encodeObject, encodeObjectPrim, encodeSet, encodeString, encodeThese, encodeTuple, encodeUnitToNull, encodeVoid)
 import Prim.Coerce (class Coercible)
 import Prim.Row as Row

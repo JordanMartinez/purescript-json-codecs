@@ -17,7 +17,7 @@ import Json.Decode.Class (decodeJson)
 import Json.Encode.Class (encodeJson)
 import Json.Errors.AnsiDodoError (printAnsiDodoError, runJsonDecoderADE)
 import Json.JsonDecoder (JsonDecoder)
-import Json.Types (Optional(..))
+import Json.Newtypes (Optional(..))
 import Json.Unidirectional.Encode.Value (encodeArray, encodeBoolean, encodeInt, encodeNumber, encodeObject, encodeRecord, encodeString, encodeUnitToNull)
 
 runOutput :: Effect Unit

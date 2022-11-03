@@ -11,17 +11,21 @@ import Data.Validation.Semigroup (V(..), invalid)
 -- | ```
 -- | forall e
 -- |   . Semigroup e
--- |  => ReaderT
--- |       { path :: path
--- |       , handlers :: handlers
--- |       , extra :: extra
--- |       , from :: from
--- |       }
--- |       (V e)
--- |       to
+-- |  => { path :: path         -- current 'path' in `from` value (e.g. Json)
+-- |     , handlers :: handlers -- handlers for building custom error
+-- |     , extra :: extra       -- a slot for any extra goodies (e.g. "local" type class instances)
+-- |     }
+-- |  -> from                   -- value being decoded
+-- |  -> V e to                 -- monad that 
+-- |                            --  1. fails with accumulated error using `<>`, or
+-- |                            --  2. succeeds with `to` value
 -- | ```
--- | but where each of the record's labels has been spread into "slots" in an uncurried function
--- | and the `Semigroup`'s  `append`/`<>` has been inlined
+-- | but where 
+-- | - the `from -> V e to` function has been converted to an uncurried function: `Fn1 from (V e to)`
+-- | - each of the record's labels has been spread into "slots" in an uncurried function
+-- |    `Fn1 from (V e to)` -> `Fn4 path handler extra from (V e to)`
+-- | - and the `Semigroup`'s `append`/`<>` has been inlined to reduce type class dictionary overhead
+-- |    `Fn4 path handler extra from (V e to)` -> `Fn5 path appendFn handler extra from (V e to)`
 newtype DecoderFn path handlers e extra from to = DecoderFn (Fn5 path (e -> e -> e) handlers extra from (V e to))
 
 derive instance Newtype (DecoderFn path handlers e extra from to) _

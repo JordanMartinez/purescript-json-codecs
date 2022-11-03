@@ -98,7 +98,7 @@ import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
 
 decodeNull :: forall e extra. JsonDecoder e extra Unit
-decodeNull = DecoderFn $ mkFn5 \json pathSoFar _ (JsonErrorHandlers h) _ ->
+decodeNull = DecoderFn $ mkFn5 \pathSoFar _ (JsonErrorHandlers h) _ json ->
   caseJson
     (V <<< Right)
     (invalid <<< h.onTypeMismatch pathSoFar ExpectedNull <<< ActualBoolean)
@@ -109,7 +109,7 @@ decodeNull = DecoderFn $ mkFn5 \json pathSoFar _ (JsonErrorHandlers h) _ ->
     json
 
 decodeBoolean :: forall e extra. JsonDecoder e extra Boolean
-decodeBoolean = DecoderFn $ mkFn5 \json pathSoFar _ (JsonErrorHandlers h) _ ->
+decodeBoolean = DecoderFn $ mkFn5 \pathSoFar _ (JsonErrorHandlers h) _ json ->
   caseJson
     (const $ invalid $ h.onTypeMismatch pathSoFar ExpectedBoolean ActualNull)
     (V <<< Right)
@@ -120,7 +120,7 @@ decodeBoolean = DecoderFn $ mkFn5 \json pathSoFar _ (JsonErrorHandlers h) _ ->
     json
 
 decodeNumber :: forall e extra. JsonDecoder e extra Number
-decodeNumber = DecoderFn $ mkFn5 \json pathSoFar _ (JsonErrorHandlers h) _ ->
+decodeNumber = DecoderFn $ mkFn5 \pathSoFar _ (JsonErrorHandlers h) _ json ->
   caseJson
     (const $ invalid $ h.onTypeMismatch pathSoFar ExpectedNumber ActualNull)
     (invalid <<< h.onTypeMismatch pathSoFar ExpectedNumber <<< ActualBoolean)
@@ -131,7 +131,7 @@ decodeNumber = DecoderFn $ mkFn5 \json pathSoFar _ (JsonErrorHandlers h) _ ->
     json
 
 decodeString :: forall e extra. JsonDecoder e extra String
-decodeString = DecoderFn $ mkFn5 \json pathSoFar _ (JsonErrorHandlers h) _ ->
+decodeString = DecoderFn $ mkFn5 \pathSoFar _ (JsonErrorHandlers h) _ json ->
   caseJson
     (const $ invalid $ h.onTypeMismatch pathSoFar ExpectedString ActualNull)
     (invalid <<< h.onTypeMismatch pathSoFar ExpectedString <<< ActualBoolean)
@@ -142,7 +142,7 @@ decodeString = DecoderFn $ mkFn5 \json pathSoFar _ (JsonErrorHandlers h) _ ->
     json
 
 decodeArrayPrim :: forall e extra. JsonDecoder e extra (Array Json)
-decodeArrayPrim = DecoderFn $ mkFn5 \json pathSoFar _ (JsonErrorHandlers h) _ ->
+decodeArrayPrim = DecoderFn $ mkFn5 \pathSoFar _ (JsonErrorHandlers h) _ json ->
   caseJson
     (const $ invalid $ h.onTypeMismatch pathSoFar ExpectedArray ActualNull)
     (invalid <<< h.onTypeMismatch pathSoFar ExpectedArray <<< ActualBoolean)
@@ -154,7 +154,7 @@ decodeArrayPrim = DecoderFn $ mkFn5 \json pathSoFar _ (JsonErrorHandlers h) _ ->
 
 decodeIndex :: forall e extra a. Array Json -> Int -> JsonDecoder e extra a -> JsonDecoder e extra a
 decodeIndex arr idx = decodeIndex' arr idx do
-  DecoderFn $ mkFn5 \_ pathSoFar _ (JsonErrorHandlers h) _ ->
+  DecoderFn $ mkFn5 \pathSoFar _ (JsonErrorHandlers h) _ _ ->
     invalid $ h.onMissingIndex pathSoFar idx
 
 decodeIndex' :: forall e extra a. Array Json -> Int -> JsonDecoder e extra a -> JsonDecoder e extra a -> JsonDecoder e extra a
@@ -165,7 +165,7 @@ decodeIndex' arr idx onMissingIndex decodeElem = case Array.index arr idx of
     addOffset (AtIndex idx) a decodeElem
 
 decodeObjectPrim :: forall e extra. JsonDecoder e extra (Object Json)
-decodeObjectPrim = DecoderFn $ mkFn5 \json pathSoFar _ (JsonErrorHandlers h) _ ->
+decodeObjectPrim = DecoderFn $ mkFn5 \pathSoFar _ (JsonErrorHandlers h) _ json ->
   caseJson
     (const $ invalid $ h.onTypeMismatch pathSoFar ExpectedObject ActualNull)
     (invalid <<< h.onTypeMismatch pathSoFar ExpectedObject <<< ActualBoolean)
@@ -177,7 +177,7 @@ decodeObjectPrim = DecoderFn $ mkFn5 \json pathSoFar _ (JsonErrorHandlers h) _ -
 
 decodeField :: forall e extra a. Object Json -> String -> JsonDecoder e extra a -> JsonDecoder e extra a
 decodeField obj field = decodeField' obj field do
-  DecoderFn $ mkFn5 \_ pathSoFar _ (JsonErrorHandlers h) _ ->
+  DecoderFn $ mkFn5 \pathSoFar _ (JsonErrorHandlers h) _ _ ->
     invalid $ h.onMissingField pathSoFar field
 
 decodeField' :: forall e extra a. Object Json -> String -> JsonDecoder e extra a -> JsonDecoder e extra a -> JsonDecoder e extra a

@@ -7,7 +7,8 @@ import Data.Either (Either)
 import Dodo (Doc, plainText, twoSpaces)
 import Dodo as D
 import Json.Errors.PrimitiveJsonError (printMissingField, printMissingIndex, printTypeMismatchErr)
-import Json.JsonDecoder (JsonDecoder, JsonErrorHandlers(..), JsonOffset, TypeHint, printJsonOffsetPath, printTypeHint, runJsonDecoder)
+import Json.JsonDecoder (JsonDecoder, runJsonDecoder)
+import Json.Types (JsonErrorHandlers(..), JsonOffset, TypeHint, printJsonOffsetPath, printTypeHint)
 
 handlersPde :: JsonErrorHandlers (Doc Void)
 handlersPde = JsonErrorHandlers

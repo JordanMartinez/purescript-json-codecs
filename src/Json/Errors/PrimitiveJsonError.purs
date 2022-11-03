@@ -11,7 +11,8 @@ import Data.Monoid (power)
 import Data.Newtype (class Newtype, over, unwrap)
 import Data.These (These(..))
 import Json.Errors.Tree (TreeError(..))
-import Json.JsonDecoder (ActualJsonType, ExpectedJsonType, JsonDecoder, JsonErrorHandlers(..), JsonOffset, TypeHint, printActualJsonType, printExpectedJsonType, printJsonOffsetPath, printTypeHint, runJsonDecoder)
+import Json.JsonDecoder (JsonDecoder, runJsonDecoder)
+import Json.Types (ActualJsonType, ExpectedJsonType, JsonErrorHandlers(..), JsonOffset, TypeHint, printActualJsonType, printExpectedJsonType, printJsonOffsetPath, printTypeHint)
 
 data JsonLeafError
   = TypeMismatch ExpectedJsonType ActualJsonType

@@ -85,8 +85,9 @@ import Data.Tuple (Tuple(..))
 import Data.Validation.Semigroup (V(..), invalid)
 import Foreign.Object (Object)
 import Foreign.Object as Object
-import Json.JsonDecoder (ActualJsonType(..), ExpectedJsonType(..), JsonDecoder, JsonErrorHandlers(..), JsonOffset(..), addCtorHint, addOffset, addSubtermHint, addTypeHint, altAccumulate, failWithMissingField, failWithStructureError, failWithUnrefinableValue)
+import Json.JsonDecoder (JsonDecoder, addCtorHint, addOffset, addSubtermHint, addTypeHint, altAccumulate, failWithMissingField, failWithStructureError, failWithUnrefinableValue)
 import Json.JsonDecoder.Qualified as JD
+import Json.Types (ActualJsonType(..), ExpectedJsonType(..), JsonErrorHandlers(..), JsonOffset(..))
 import Prim.Row as Row
 import Prim.RowList (class RowToList, RowList)
 import Prim.RowList as RowList

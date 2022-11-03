@@ -8,7 +8,8 @@ import Dodo (Doc, twoSpaces)
 import Dodo as D
 import Dodo.Ansi (Color(..), GraphicsParam, ansiGraphics, foreground)
 import Json.Errors.PrimitiveJsonError (printMissingField, printMissingIndex, printTypeMismatchErr)
-import Json.JsonDecoder (JsonDecoder, JsonErrorHandlers(..), JsonOffset, TypeHint(..), printJsonOffsetPath, runJsonDecoder)
+import Json.JsonDecoder (JsonDecoder, runJsonDecoder)
+import Json.Types (JsonErrorHandlers(..), JsonOffset, TypeHint(..), printJsonOffsetPath)
 
 handlersAde :: JsonErrorHandlers (Doc GraphicsParam)
 handlersAde = JsonErrorHandlers

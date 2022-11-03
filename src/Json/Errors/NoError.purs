@@ -5,7 +5,8 @@ import Prelude
 import Data.Argonaut.Core (Json)
 import Data.Either (hush)
 import Data.Maybe (Maybe)
-import Json.JsonDecoder (JsonDecoder, JsonErrorHandlers(..), runJsonDecoder)
+import Json.JsonDecoder (JsonDecoder, runJsonDecoder)
+import Json.Types (JsonErrorHandlers(..))
 
 handlersNone :: JsonErrorHandlers Unit
 handlersNone = JsonErrorHandlers

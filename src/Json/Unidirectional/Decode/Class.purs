@@ -145,7 +145,7 @@ instance
   , IsSymbol sym
   ) =>
   DecodeJson err extra (K0 sym a) where
-  decodeJson = DecoderFn $ mkFn5 \json pathSoFar appendFn handlers extra -> do
+  decodeJson = DecoderFn $ mkFn5 \pathSoFar appendFn handlers extra json -> do
     let
       localOverrides :: { | rows }
       localOverrides = unwrap extra
@@ -153,7 +153,7 @@ instance
 
       reAddNewtype :: V err a -> V err (K0 sym a)
       reAddNewtype = coerce
-    reAddNewtype $ runFn5 f json pathSoFar appendFn handlers extra
+    reAddNewtype $ runFn5 f pathSoFar appendFn handlers extra json
 
 -- | Build a value via `mkExistentialDecoder1`.
 foreign import data ExistentialDecoder1 :: (Type -> Type) -> Type
@@ -178,7 +178,7 @@ instance
   , IsSymbol sym
   ) =>
   DecodeJson err extra (K1 sym (f a)) where
-  decodeJson = DecoderFn $ mkFn5 \json pathSoFar appendFn handlers extra -> do
+  decodeJson = DecoderFn $ mkFn5 \pathSoFar appendFn handlers extra json -> do
     let
       localOverrides :: { | rows }
       localOverrides = unwrap extra
@@ -190,7 +190,7 @@ instance
 
       reAddNewtype :: V err (f a) -> V err (K1 sym (f a))
       reAddNewtype = coerce
-    reAddNewtype $ runFn5 f json pathSoFar appendFn handlers extra
+    reAddNewtype $ runFn5 f pathSoFar appendFn handlers extra json
 
 -- | Build a value via `mkExistentialDecoder2`.
 foreign import data ExistentialDecoder2 :: (Type -> Type -> Type) -> Type
@@ -216,7 +216,7 @@ instance
   , IsSymbol sym
   ) =>
   DecodeJson err extra (K2 sym (f a b)) where
-  decodeJson = DecoderFn $ mkFn5 \json pathSoFar appendFn handlers extra -> do
+  decodeJson = DecoderFn $ mkFn5 \pathSoFar appendFn handlers extra json -> do
     let
       localOverrides :: { | rows }
       localOverrides = unwrap extra
@@ -228,7 +228,7 @@ instance
 
       reAddNewtype :: V err (f a b) -> V err (K2 sym (f a b))
       reAddNewtype = coerce
-    reAddNewtype $ runFn5 f json pathSoFar appendFn handlers extra
+    reAddNewtype $ runFn5 f pathSoFar appendFn handlers extra json
 
 -- | Build a value via `mkExistentialDecoder3`.
 foreign import data ExistentialDecoder3 :: (Type -> Type -> Type -> Type) -> Type
@@ -255,7 +255,7 @@ instance
   , IsSymbol sym
   ) =>
   DecodeJson err extra (K3 sym (f a b c)) where
-  decodeJson = DecoderFn $ mkFn5 \json pathSoFar appendFn handlers extra -> do
+  decodeJson = DecoderFn $ mkFn5 \pathSoFar appendFn handlers extra json -> do
     let
       localOverrides :: { | rows }
       localOverrides = unwrap extra
@@ -267,7 +267,7 @@ instance
 
       reAddNewtype :: V err (f a b c) -> V err (K3 sym (f a b c))
       reAddNewtype = coerce
-    reAddNewtype $ runFn5 f json pathSoFar appendFn handlers extra
+    reAddNewtype $ runFn5 f pathSoFar appendFn handlers extra json
 
 newtype RowListObject :: Type -> Type -> RowList.RowList Type -> Type -> Type
 newtype RowListObject err extra rl a = RowListObject (Object a)

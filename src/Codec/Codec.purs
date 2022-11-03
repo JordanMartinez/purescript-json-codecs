@@ -1,70 +1,110 @@
--- | Note: this module is the same as `purescript-codec@v5.0.0`
+-- | Note: this module is the same as `purescript-codec@v6.0.0`
 -- | with the following changes:
--- | - `Star` was moved to `Codec`
--- | - `Codec`'s `ReaderT` and `Star` types were renamed to `DecoderFn` and `EncoderFn`,
--- |   respectively, due to using uncurried `Fn*` types underneath
+-- | - `Codec`'s `decode` and `encode` functions were converted to an uncurried representation via `Fn*` types
+-- | - The decode function includes additional parts that enable custom decoding errors.
 -- | - The decoding monad was hard-coded to `V e`
 module Codec.Codec where
 
-import Prelude
+import Prelude hiding (compose, identity)
 
 import Codec.Decoder (DecoderFn(..))
-import Codec.Encoder (EncoderFn(..))
-import Control.Alternative (class Alt, class Alternative, class Plus, empty, (<|>))
-import Control.Monad.Writer (Writer, execWriter, runWriter, writer)
-import Data.Either (Either)
-import Data.Function.Uncurried (mkFn2, mkFn5, runFn2, runFn5)
+import Data.Bifunctor (lmap)
+import Data.Either (Either(..))
+import Data.Function.Uncurried (Fn2, mkFn2, mkFn5, runFn2, runFn5)
 import Data.Functor.Invariant (class Invariant, imapF)
-import Data.Newtype (un)
-import Data.Profunctor (class Profunctor, dimap, lcmap)
+import Data.Profunctor (class Profunctor, lcmap)
 import Data.Tuple (Tuple(..), fst)
 import Data.Validation.Semigroup (V(..), andThen)
 
--- | A general type for codecs.
-data GCodec :: (Type -> Type) -> (Type -> Type -> Type) -> Type -> Type -> Type
-data GCodec m n a b = GCodec (m b) (n a b)
+data Codec decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput decodeOutputEncodeAccumuladecodeToEncodeFromr =
+  Codec
+    (DecoderFn decodePath decodeHandlers decodeError extra decodeInput decodeOutputEncodeAccumuladecodeToEncodeFromr)
+    (Fn2 extra encodeInput (Tuple encodeOutput decodeOutputEncodeAccumuladecodeToEncodeFromr))
 
-instance functorGCodec ∷ (Functor m, Functor (n a)) ⇒ Functor (GCodec m n a) where
-  map f (GCodec dec enc) =
-    GCodec (map f dec) (map f enc)
+instance Functor (Codec decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput) where
+  map
+    :: forall decodeOutputEncodeAccumuladecodeToEncodeFromr decodeOutputEncodeAccumuladecodeToEncodeFromr'
+     . (decodeOutputEncodeAccumuladecodeToEncodeFromr -> decodeOutputEncodeAccumuladecodeToEncodeFromr')
+    -> Codec decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput decodeOutputEncodeAccumuladecodeToEncodeFromr
+    -> Codec decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput decodeOutputEncodeAccumuladecodeToEncodeFromr'
+  map f (Codec g h) = Codec (f <$> g) (mkFn2 \extra a -> f <$> runFn2 h extra a)
 
-instance invariantGCodec ∷ (Functor m, Functor (n a)) ⇒ Invariant (GCodec m n a) where
+instance Invariant (Codec decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput) where
   imap = imapF
 
-instance applyGCodec ∷ (Apply m, Apply (n a)) ⇒ Apply (GCodec m n a) where
-  apply (GCodec decf encf) (GCodec decx encx) =
-    GCodec (decf <*> decx) (encf <*> encx)
+instance Semigroup encodeOutput => Apply (Codec decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput) where
+  apply (Codec f g) (Codec h i) = Codec (f <*> h)
+    ( mkFn2 \extra a ->
+        runFn2 g extra a <*> runFn2 i extra a
+    )
 
-instance applicativeGCodec ∷ (Applicative m, Applicative (n a)) ⇒ Applicative (GCodec m n a) where
-  pure x =
-    GCodec (pure x) (pure x)
+instance Monoid encodeOutput => Applicative (Codec decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput) where
+  pure x = Codec (pure x) (mkFn2 \_ _ -> pure x)
 
-instance profunctorGCodec ∷ (Functor m, Profunctor n) ⇒ Profunctor (GCodec m n) where
-  dimap f g (GCodec dec enc) =
-    GCodec (map g dec) (dimap f g enc)
+instance Profunctor (Codec decodePath decodeHandlers decodeError extra decodeInput encodeOutput) where
+  dimap f g (Codec h i) =
+    Codec (g <$> h) (mkFn2 \extra a -> g <$> runFn2 i extra (f a))
 
-instance altGCodec ∷ (Alt m, Alt (n a)) ⇒ Alt (GCodec m n a) where
-  alt (GCodec decx encx) (GCodec decy ency) =
-    GCodec (decx <|> decy) (encx <|> ency)
+codec
+  ∷ ∀ decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput
+  . (DecoderFn decodePath decodeHandlers decodeError extra decodeInput encodeInput)
+  → (Fn2 extra encodeInput encodeOutput)
+  → Codec decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput encodeInput
+codec f g = Codec f (mkFn2 \extra b -> Tuple (runFn2 g extra b) b)
 
-instance plusGCodec ∷ (Plus m, Plus (n a)) ⇒ Plus (GCodec m n a) where
-  empty = GCodec empty empty
+type Codec' decodePath decodeHandlers decodeError extra decodeFromEncodeTo decodeToEncodeFrom =
+  Codec decodePath decodeHandlers decodeError extra decodeFromEncodeTo decodeFromEncodeTo decodeToEncodeFrom decodeToEncodeFrom
 
-instance alternativeGCodec ∷ (Alternative m, Alternative (n a)) ⇒ Alternative (GCodec m n a)
+codec'
+  ∷ ∀ decodePath decodeHandlers decodeError extra decodeFromEncodeTo decodeToEncodeFrom
+  . (DecoderFn decodePath decodeHandlers decodeError extra decodeFromEncodeTo decodeToEncodeFrom)
+  → (Fn2 extra decodeToEncodeFrom decodeFromEncodeTo)
+  → Codec' decodePath decodeHandlers decodeError extra decodeFromEncodeTo decodeToEncodeFrom
+codec' = codec
 
-instance semigroupoidGCodec ∷ Semigroupoid n ⇒ Semigroupoid (GCodec m n) where
-  compose (GCodec decx encx) (GCodec _ ency) =
-    GCodec decx (compose encx ency)
+decode
+  ∷ ∀ decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput decodeOutputEncodeAccumuladecodeToEncodeFromr
+  . Codec decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput decodeOutputEncodeAccumuladecodeToEncodeFromr
+  → DecoderFn decodePath decodeHandlers decodeError extra decodeInput decodeOutputEncodeAccumuladecodeToEncodeFromr
+decode (Codec f _) = f
 
--- | Extracts the decoder part of a `GCodec`
-decoder ∷ ∀ m n a b. GCodec m n a b → m b
-decoder (GCodec f _) = f
+encode
+  ∷ ∀ decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput decodeOutputEncodeAccumuladecodeToEncodeFromr
+  . Codec decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput decodeOutputEncodeAccumuladecodeToEncodeFromr
+  → Fn2 extra encodeInput (Tuple encodeOutput decodeOutputEncodeAccumuladecodeToEncodeFromr)
+encode (Codec _ f) = f
 
--- | Extracts the encoder part of a `GCodec`
-encoder ∷ ∀ m n a b. GCodec m n a b → n a b
-encoder (GCodec _ f) = f
+identity
+  ∷ ∀ decodePath decodeHandlers decodeError extra a
+  . Codec decodePath decodeHandlers decodeError extra a a a a
+identity = codec (DecoderFn $ mkFn5 \_ _ _ _ a -> V $ Right a) (mkFn2 \_ a -> a)
 
--- | `GCodec` is defined as a `Profunctor` so that `lcmap` can be used to target
+compose
+  ∷ ∀ decodePath decodeHandlers decodeError extra a d f b e c
+  . Codec decodePath decodeHandlers decodeError extra d c e f
+  → Codec decodePath decodeHandlers decodeError extra a b c d
+  → Codec decodePath decodeHandlers decodeError extra a b e f
+compose (Codec (DecoderFn f) g) (Codec (DecoderFn h) i) =
+  Codec
+    ( DecoderFn $ mkFn5 \path appendFn handlers extra decodeFromEncodeToValue ->
+        andThen
+          (runFn5 h path appendFn handlers extra decodeFromEncodeToValue)
+          (\x -> runFn5 f path appendFn handlers extra x)
+    )
+    (mkFn2 \extra decodeFromEncodeToValue -> lmap (\x -> fst $ runFn2 i extra x) $ runFn2 g extra decodeFromEncodeToValue)
+
+infixr 8 compose as <~<
+
+composeFlipped
+  ∷ ∀ decodePath decodeHandlers decodeError extra a d f b e c
+  . Codec decodePath decodeHandlers decodeError extra a b c d
+  → Codec decodePath decodeHandlers decodeError extra d c e f
+  → Codec decodePath decodeHandlers decodeError extra a b e f
+composeFlipped = flip compose
+
+infixr 8 composeFlipped as >~>
+
+-- | `Codec` is defined as a `Profunctor` so that `lcmap` can be used to target
 -- | specific fields when defining a codec for a product type. This operator
 -- | is a convenience for that:
 -- |
@@ -75,99 +115,3 @@ encoder (GCodec _ f) = f
 -- |     <*> snd ~ sndCodec
 -- | ```
 infixl 5 lcmap as ~
-
--- | ```
--- | GCodec 
--- |  (Fn5 a decPath (decE -> decE -> decE) decHandlers decExtra (V decE c))
--- |  (Fn2 encExtra d -> Writer b d)
--- | ```
-type Codec decPath decHandlers decE decExtra encExtra a b c d =
-  GCodec (DecoderFn a decPath decHandlers decE decExtra) (EncoderFn encExtra (Writer b)) c d
-
-codec ∷ ∀ decPath decHandlers decE decExtra encExtra a b c d. DecoderFn a decPath decHandlers decE decExtra d → EncoderFn encExtra (Writer b) c d → Codec decPath decHandlers decE decExtra encExtra a b c d
-codec dec enc = GCodec dec enc
-
-decode
-  ∷ ∀ decPath decHandlers decE decExtra encExtra a b c d
-   . Codec decPath decHandlers decE decExtra encExtra a b c d
-  → a
-  -> decPath
-  -> (decE -> decE -> decE)
-  → decHandlers
-  -> decExtra
-  -> Either decE d
-decode gcodec from path appendFn handlers extra =
-  un V $ runFn5 (un DecoderFn (decoder gcodec)) from path appendFn handlers extra
-
-encode
-  ∷ ∀ decPath decHandlers decE decExtra encExtra a b c d
-   . Codec decPath decHandlers decE decExtra encExtra a b c d
-  → encExtra
-  -> c
-  → b
-encode gcodec extra a = execWriter $ runFn2 (un EncoderFn (encoder gcodec)) extra a
-
-mapCodec
-  ∷ ∀ decPath decHandlers decE decExtra encExtra a b c d
-  . (DecoderFn a decPath decHandlers decE decExtra b)
-  → EncoderFn encExtra (Writer b) b a
-  → Codec decPath decHandlers decE decExtra encExtra c d a a
-  → Codec decPath decHandlers decE decExtra encExtra c d b b
-mapCodec (DecoderFn f) (EncoderFn g) (GCodec (DecoderFn decf) (EncoderFn encf)) = GCodec dec enc
-  where
-  dec = DecoderFn $ mkFn5 \from path appendFn handlers extra -> do
-    andThen (runFn5 decf from path appendFn handlers extra) (\a -> runFn5 f a path appendFn handlers extra)
-  enc = EncoderFn $ mkFn2 \extra a →
-    let
-      (Tuple _ x) = runWriter $ runFn2 encf extra (fst $ runWriter $ runFn2 g extra a)
-    in
-      writer $ Tuple a x
-
-composeCodec
-  ∷ ∀ decPath decHandlers decE decExtra encExtra a d f b e c
-  . Codec decPath decHandlers decE decExtra encExtra d c e f
-  → Codec decPath decHandlers decE decExtra encExtra a b c d
-  → Codec decPath decHandlers decE decExtra encExtra a b e f
-composeCodec (GCodec (DecoderFn decf) (EncoderFn encf)) (GCodec (DecoderFn decg) (EncoderFn encg)) =
-  GCodec
-    ( DecoderFn $ mkFn5 \from path appendFn handlers extra →
-        andThen (runFn5 decg from path appendFn handlers extra)
-          ( \a ->
-              runFn5 decf a path appendFn handlers extra
-          )
-    )
-    ( EncoderFn $ mkFn2 \extra c →
-        let
-          (Tuple w x) = runWriter $ runFn2 encf extra c
-        in
-          writer $ Tuple w (execWriter $ runFn2 encg extra x)
-    )
-
-infixr 8 composeCodec as <~<
-
-composeCodecFlipped
-  ∷ ∀ a d f b e c decPath decHandlers decE decExtra encExtra
-  . Codec decPath decHandlers decE decExtra encExtra a b c d
-  → Codec decPath decHandlers decE decExtra encExtra d c e f
-  → Codec decPath decHandlers decE decExtra encExtra a b e f
-composeCodecFlipped = flip composeCodec
-
-infixr 8 composeCodecFlipped as >~>
-
--- hoistCodec ∷ ∀ m m' a b c d. (m ~> m') → Codec m a b c d → Codec m' a b c d
--- hoistCodec f = bihoistGCodec (mapReaderT f) identity
-
--- | Changes the `m` and `n` functors used in the codec using the specified
--- | natural transformations.
--- bihoistGCodec
---   ∷ ∀ m m' n n' a b
---   . (m ~> m')
---   → (n ~> n')
---   → GCodec m (Star n) a b
---   → GCodec m' (Star n') a b
--- bihoistGCodec f g (GCodec dec (Star h)) = GCodec (f dec) (Star (g <<< h))
-
-type BasicCodec decPath decHandlers decE decExtra encExtra a b = Codec decPath decHandlers decE decExtra encExtra a a b b
-
--- basicCodec ∷ ∀ m a b. (a → m b) → (b → a) → BasicCodec m a b
--- basicCodec f g = GCodec (ReaderT f) (Star \x → writer $ Tuple x (g x))

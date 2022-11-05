@@ -5,7 +5,7 @@ import Prelude
 import Data.Either (Either(..))
 import Data.Function.Uncurried (Fn5, mkFn5, runFn5)
 import Data.Newtype (class Newtype, unwrap)
-import Data.Validation.Semigroup (V(..), invalid)
+import Data.Validation.Semigroup (V(..), andThen, invalid)
 
 -- | Think of this as
 -- | ```
@@ -45,8 +45,20 @@ instance applyDecoderFn :: Apply (DecoderFn path handlers e extra from) where
 instance applicativeDecoderFn :: Applicative (DecoderFn path handlers e extra from) where
   pure a = DecoderFn $ mkFn5 \_ _ _ _ _ -> V $ Right a
 
+instance semigroupoidDecoderFn :: Semigroupoid (DecoderFn path handlers e extra) where
+  compose (DecoderFn bToC) (DecoderFn aToB) = DecoderFn $ mkFn5 \path appendFn handlers extra a ->
+    andThen
+      (runFn5 aToB path appendFn handlers extra a)
+      (\b -> runFn5 bToC path appendFn handlers extra b)
+
+instance categoryDecoderFn :: Category (DecoderFn path handlers e extra) where
+  identity = getInput
+
 getPath :: forall path handlers e extra from. DecoderFn path handlers e extra from path
 getPath = DecoderFn $ mkFn5 \path _ _ _ _ -> V $ Right path
+
+getInput :: forall path handlers e extra from. DecoderFn path handlers e extra from from
+getInput = DecoderFn $ mkFn5 \_ _ _ _ a -> V $ Right a
 
 -- | Works like `alt`/`<|>`. Decodes using the first decoder and, if that fails,
 -- | decodes using the second decoder. Errors from both decoders accumulate.

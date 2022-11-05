@@ -21,6 +21,7 @@ import Json.Types (JsonErrorHandlers(..), JsonOffset, TypeHint(..))
 -- |           If this value isn't needed, you should set this to `Unit`.
 -- | - V e a - an Either-like monad that accumulates errors using the `append` function in the handlers arg.
 type JsonDecoder e extra a = DecoderFn (Array JsonOffset) (JsonErrorHandlers e) e extra Json a
+type JsonDecoder' e extra from to = DecoderFn (Array JsonOffset) (JsonErrorHandlers e) e extra from to
 
 addOffset :: forall e extra a. JsonOffset -> Json -> JsonDecoder e extra a -> JsonDecoder e extra a
 addOffset offset json (DecoderFn f) = DecoderFn $

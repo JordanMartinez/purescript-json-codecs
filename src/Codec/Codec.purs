@@ -3,6 +3,7 @@
 -- | - `Codec`'s `decode` and `encode` functions were converted to an uncurried representation via `Fn*` types
 -- | - The decode function includes additional parts that enable custom decoding errors.
 -- | - The decoding monad was hard-coded to `V e`
+-- | - `decode` and `encode` were renamed to `decoder` and `encoder`
 module Codec.Codec where
 
 import Prelude hiding (compose, identity)
@@ -62,17 +63,17 @@ codec'
   → Codec' decodePath decodeHandlers decodeError extra decodeFromEncodeTo decodeToEncodeFrom
 codec' = codec
 
-decode
+decoder
   ∷ ∀ decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput decodeOutputEncodeAccumuladecodeToEncodeFromr
   . Codec decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput decodeOutputEncodeAccumuladecodeToEncodeFromr
   → DecoderFn decodePath decodeHandlers decodeError extra decodeInput decodeOutputEncodeAccumuladecodeToEncodeFromr
-decode (Codec f _) = f
+decoder (Codec f _) = f
 
-encode
+encoder
   ∷ ∀ decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput decodeOutputEncodeAccumuladecodeToEncodeFromr
   . Codec decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput decodeOutputEncodeAccumuladecodeToEncodeFromr
   → Fn2 extra encodeInput (Tuple encodeOutput decodeOutputEncodeAccumuladecodeToEncodeFromr)
-encode (Codec _ f) = f
+encoder (Codec _ f) = f
 
 identity
   ∷ ∀ decodePath decodeHandlers decodeError extra a

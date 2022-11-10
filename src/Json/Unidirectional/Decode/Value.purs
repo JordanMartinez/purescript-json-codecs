@@ -86,7 +86,7 @@ import Data.Tuple (Tuple(..))
 import Data.Validation.Semigroup (V(..), invalid)
 import Foreign.Object (Object)
 import Foreign.Object as Object
-import Json.JsonDecoder (JsonDecoder, addCtorHint, addOffset, addSubtermHint, addTypeHint, altAccumulate, failWithMissingField, failWithStructureError, failWithUnrefinableValue)
+import Json.JsonDecoder (JsonDecoder, JsonDecoder', addCtorHint, addOffset, addSubtermHint, addTypeHint, altAccumulate, failWithMissingField, failWithStructureError, failWithUnrefinableValue)
 import Json.Types (ActualJsonType(..), ExpectedJsonType(..), JsonErrorHandlers(..), JsonOffset(..))
 import Prim.Row as Row
 import Prim.RowList (class RowToList, RowList)
@@ -153,12 +153,12 @@ decodeArrayPrim = DecoderFn $ mkFn5 \pathSoFar _ (JsonErrorHandlers h) _ json ->
     (invalid <<< h.onTypeMismatch pathSoFar ExpectedArray <<< ActualObject)
     json
 
-decodeIndex :: forall e extra a. Array Json -> Int -> JsonDecoder e extra a -> JsonDecoder e extra a
+decodeIndex :: forall e extra from a. Array Json -> Int -> JsonDecoder e extra a -> JsonDecoder' e extra from a
 decodeIndex arr idx = decodeIndex' arr idx do
   DecoderFn $ mkFn5 \pathSoFar _ (JsonErrorHandlers h) _ _ ->
     invalid $ h.onMissingIndex pathSoFar idx
 
-decodeIndex' :: forall e extra a. Array Json -> Int -> JsonDecoder e extra a -> JsonDecoder e extra a -> JsonDecoder e extra a
+decodeIndex' :: forall e extra from a. Array Json -> Int -> JsonDecoder' e extra from a -> JsonDecoder e extra a -> JsonDecoder' e extra from a
 decodeIndex' arr idx onMissingIndex decodeElem = case Array.index arr idx of
   Nothing ->
     onMissingIndex
@@ -176,12 +176,12 @@ decodeObjectPrim = DecoderFn $ mkFn5 \pathSoFar _ (JsonErrorHandlers h) _ json -
     (V <<< Right)
     json
 
-decodeField :: forall e extra a. Object Json -> String -> JsonDecoder e extra a -> JsonDecoder e extra a
+decodeField :: forall e extra from a. Object Json -> String -> JsonDecoder e extra a -> JsonDecoder' e extra from a
 decodeField obj field = decodeField' obj field do
   DecoderFn $ mkFn5 \pathSoFar _ (JsonErrorHandlers h) _ _ ->
     invalid $ h.onMissingField pathSoFar field
 
-decodeField' :: forall e extra a. Object Json -> String -> JsonDecoder e extra a -> JsonDecoder e extra a -> JsonDecoder e extra a
+decodeField' :: forall e extra from a. Object Json -> String -> JsonDecoder' e extra from a -> JsonDecoder e extra a -> JsonDecoder' e extra from a
 decodeField' obj field onMissingField decodeElem = case Object.lookup field obj of
   Nothing ->
     onMissingField

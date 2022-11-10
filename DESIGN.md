@@ -184,11 +184,11 @@ Semigroup err
 -Semigroup err
 -=> ReaderT 
 +  ReaderT 
-    { json :: Json
-    , pathSoFar :: Array JsonOffset
+    { pathSoFar :: Array JsonOffset
 +   , appendFn :: e -> e -> e
     , handlers :: JsonErrorHandlers err
     , extra :: extra
+    , json :: Json
     }
     (V err)
     a
@@ -197,7 +197,23 @@ Semigroup err
 ## Using uncurried functions for performance
 
 ```diff
--ReaderT { pathSoFar :: Array JsonOffset, handlers :: JsonErrorHandlers err, extra :: extra, json :: Json } (V err) a
-+Fn3                   (Array JsonOffset)             JsonErrorHandlers err           extra          Json   (V err  a)
+-ReaderT
+- { pathSoFar :: Array JsonOffset
+- , appendFn :: e -> e -> e
+- , handlers :: JsonErrorHandlers err
+- , extra :: extra, json :: Json 
+- } 
+- (V err) a
++Fn5
++                (Array JsonOffset)
++                (e -> e -> e)
++                (JsonErrorHandlers err)         
++                extra
++                Json 
++ (V err  a)
 ```
 
+Simplifying the `Fn5`, we get:
+```purs
+Fn5 (Array JsonOffset) (e -> e -> e) (JsonErrorHandlers err) extra Json (V err a)
+```

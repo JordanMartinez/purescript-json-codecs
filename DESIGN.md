@@ -201,6 +201,3 @@ Semigroup err
 +Fn3                   (Array JsonOffset)             JsonErrorHandlers err           extra          Json   (V err  a)
 ```
 
-## Problem: No `Semigroup` instance
-
-- also means no `forWithIndex`, so how does one decode `Array a`?

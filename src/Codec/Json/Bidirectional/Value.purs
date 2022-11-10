@@ -5,6 +5,7 @@ import Prelude
 import Codec.Codec (Codec(..), codec, codec', decoder, encoder, (>~>))
 import Codec.Decoder (altAccumulate)
 import Codec.Decoder.Qualified as Decoder
+import Codec.Json.Errors.DecodeMessages (arrayNotEmptyFailure, numToIntConversionFailure, stringNotEmptyFailure, stringToCharConversionFailure)
 import Data.Argonaut.Core (Json)
 import Data.Array as Array
 import Data.Array.NonEmpty (NonEmptyArray)
@@ -143,18 +144,18 @@ unitCodec = unit <$ jnull
 
 int :: forall e extra. JsonCodec e extra Int
 int = number >~> refinedValue
-  (\n -> Int.fromNumber n # note ("Could not convert Number to Int: " <> show n))
+  (\n -> Int.fromNumber n # note (numToIntConversionFailure n))
   Int.toNumber
 
 char :: forall e extra. JsonCodec e extra Char
 char = string >~> refinedValue
-  (\s -> charAt 0 s # note ("Could not get char at index 0 in String: " <> s))
+  (\s -> charAt 0 s # note (stringToCharConversionFailure s))
   SCU.singleton
 
 nonEmptyString :: forall e extra. JsonCodec e extra NonEmptyString
 nonEmptyString =
   string >~> refinedValue
-    (NonEmptyString.fromString >>> note "Received empty String")
+    (NonEmptyString.fromString >>> note stringNotEmptyFailure)
     (\(NonEmptyString s) -> s)
 
 array :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (Array a)
@@ -173,7 +174,7 @@ array aCodec =
 nonEmptyArray :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (NonEmptyArray a)
 nonEmptyArray aCodec =
   array aCodec >~> refinedValue
-    (NEA.fromArray >>> note "Received empty array")
+    (NEA.fromArray >>> note arrayNotEmptyFailure)
     NEA.toArray
 
 object :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (Object a)

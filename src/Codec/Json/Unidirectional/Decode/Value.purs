@@ -55,6 +55,7 @@ import Prelude
 
 import Codec.Decoder (DecoderFn(..))
 import Codec.Decoder.Qualified as Decoder
+import Codec.Json.Errors.DecodeMessages (arrayNotEmptyFailure, numToIntConversionFailure, stringNotEmptyFailure, stringToCharConversionFailure)
 import Data.Argonaut.Core (Json, caseJson)
 import Data.Array as Array
 import Data.Array.NonEmpty (NonEmptyArray)
@@ -204,7 +205,7 @@ decodeInt = addTypeHint "Int" Decoder.do
   n <- decodeNumber
   case Int.fromNumber n of
     Nothing ->
-      failWithUnrefinableValue $ "Could not convert Number to Int: " <> show n
+      failWithUnrefinableValue $ numToIntConversionFailure n
     Just i ->
       pure i
 
@@ -215,7 +216,7 @@ decodeChar = addTypeHint "Char" Decoder.do
   s <- decodeString
   case charAt 0 s of
     Nothing ->
-      failWithUnrefinableValue $ "Could not get char at index 0 in String: " <> s
+      failWithUnrefinableValue $ stringToCharConversionFailure s
     Just c ->
       pure c
 
@@ -226,7 +227,7 @@ decodeNonEmptyString = addTypeHint "NonEmptyString" Decoder.do
   s <- decodeString
   case NonEmptyString.fromString s of
     Nothing ->
-      failWithUnrefinableValue $ "Received empty String"
+      failWithUnrefinableValue stringNotEmptyFailure
     Just nes ->
       pure nes
 
@@ -246,7 +247,7 @@ decodeNonEmptyArray
 decodeNonEmptyArray decodeElem = addTypeHint "NonEmptyArray" Decoder.do
   arr <- decodeArray decodeElem
   case NEA.fromArray arr of
-    Nothing -> failWithUnrefinableValue $ "Received empty array"
+    Nothing -> failWithUnrefinableValue arrayNotEmptyFailure
     Just a -> pure a
 
 decodeObject

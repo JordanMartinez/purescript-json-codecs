@@ -2,13 +2,15 @@ module Json.JsonCodec where
 
 import Prelude
 
-import Codec.Codec (Codec', codec', decoder, encoder)
+import Codec.Codec (Codec, Codec', codec', decoder, encoder)
 import Codec.Decoder (DecoderFn(..))
 import Data.Argonaut.Core (Json)
 import Data.Either (Either(..))
 import Data.Function.Uncurried (mkFn2, mkFn5, runFn2)
-import Data.Tuple (fst)
+import Data.List (List)
+import Data.Tuple (Tuple, fst)
 import Data.Validation.Semigroup (V(..), invalid)
+import Foreign.Object (Object)
 import Json.JsonDecoder (JsonDecoder)
 import Json.JsonDecoder as JsonDecoder
 import Json.Types (JsonErrorHandlers(..), JsonOffset)
@@ -21,6 +23,8 @@ import Json.Types (JsonErrorHandlers(..), JsonOffset)
 -- | - a - decode Json to a value of this type or encode it to Json
 type JsonCodec e extra a = JsonCodec' e extra Json a
 type JsonCodec' e extra from to = Codec' (Array JsonOffset) (JsonErrorHandlers e) e extra from to
+type JIndexedCodec e extra a = Codec (Array JsonOffset) (JsonErrorHandlers e) e extra (Array Json) (List Json) a a
+type JPropCodec e extra a = Codec (Array JsonOffset) (JsonErrorHandlers e) e extra (Object Json) (List (Tuple String Json)) a a
 
 -- addOffset :: forall e extra a. JsonOffset -> Json -> JsonCodec e extra a -> JsonCodec e extra a
 -- addOffset offset json (DecoderFn f) = DecoderFn $

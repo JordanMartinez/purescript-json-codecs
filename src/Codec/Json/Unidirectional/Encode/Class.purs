@@ -1,4 +1,4 @@
-module Json.Encode.Class
+module Codec.Json.Encode.Class
   ( class EncodeJson
   , encodeJson
   , encodeJson'

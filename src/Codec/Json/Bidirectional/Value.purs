@@ -1,4 +1,4 @@
-module Json.Bidirectional.Value where
+module Codec.Json.Bidirectional.Value where
 
 import Prelude
 

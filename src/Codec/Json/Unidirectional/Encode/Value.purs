@@ -1,4 +1,4 @@
-module Json.Unidirectional.Encode.Value
+module Codec.Json.Unidirectional.Encode.Value
   ( encodeVoid
   , encodeJNull
   , encodeUnitToNull

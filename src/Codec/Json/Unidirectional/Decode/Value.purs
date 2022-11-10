@@ -1,4 +1,4 @@
-module Json.Unidirectional.Decode.Value
+module Codec.Json.Unidirectional.Decode.Value
   ( decodeVoid
   , decodeJNull
   , decodeUnitFromNull

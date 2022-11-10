@@ -1,4 +1,4 @@
-module Json.Types where
+module Codec.Json.Types where
 
 import Prelude
 

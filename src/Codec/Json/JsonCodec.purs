@@ -1,4 +1,4 @@
-module Json.JsonCodec where
+module Codec.Json.JsonCodec where
 
 import Prelude
 

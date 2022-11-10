@@ -1,4 +1,4 @@
-module Json.Decode.Class
+module Codec.Json.Decode.Class
   ( class DecodeJson
   , decodeJson
   , ExistentialDecoder0

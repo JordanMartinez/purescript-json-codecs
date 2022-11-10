@@ -1,4 +1,4 @@
-module Json.Errors.PlainDodoError where
+module Codec.Json.Errors.PlainDodoError where
 
 import Prelude
 

@@ -1,4 +1,4 @@
-module Json.Errors.Tree where
+module Codec.Json.Errors.Tree where
 
 import Prelude
 

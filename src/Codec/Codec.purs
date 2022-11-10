@@ -17,17 +17,17 @@ import Data.Profunctor (class Profunctor, lcmap)
 import Data.Tuple (Tuple(..), fst)
 import Data.Validation.Semigroup (V(..), andThen)
 
-data Codec decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput decodeOutputEncodeAccumuladecodeToEncodeFromr =
+data Codec decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput decodeOutputEncodeAccumulator =
   Codec
-    (DecoderFn decodePath decodeHandlers decodeError extra decodeInput decodeOutputEncodeAccumuladecodeToEncodeFromr)
-    (Fn2 extra encodeInput (Tuple encodeOutput decodeOutputEncodeAccumuladecodeToEncodeFromr))
+    (DecoderFn decodePath decodeHandlers decodeError extra decodeInput decodeOutputEncodeAccumulator)
+    (Fn2 extra encodeInput (Tuple encodeOutput decodeOutputEncodeAccumulator))
 
 instance Functor (Codec decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput) where
   map
-    :: forall decodeOutputEncodeAccumuladecodeToEncodeFromr decodeOutputEncodeAccumuladecodeToEncodeFromr'
-     . (decodeOutputEncodeAccumuladecodeToEncodeFromr -> decodeOutputEncodeAccumuladecodeToEncodeFromr')
-    -> Codec decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput decodeOutputEncodeAccumuladecodeToEncodeFromr
-    -> Codec decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput decodeOutputEncodeAccumuladecodeToEncodeFromr'
+    :: forall decodeOutputEncodeAccumulator decodeOutputEncodeAccumulator'
+     . (decodeOutputEncodeAccumulator -> decodeOutputEncodeAccumulator')
+    -> Codec decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput decodeOutputEncodeAccumulator
+    -> Codec decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput decodeOutputEncodeAccumulator'
   map f (Codec g h) = Codec (f <$> g) (mkFn2 \extra a -> f <$> runFn2 h extra a)
 
 instance Invariant (Codec decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput) where
@@ -64,15 +64,15 @@ codec'
 codec' = codec
 
 decoder
-  ∷ ∀ decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput decodeOutputEncodeAccumuladecodeToEncodeFromr
-  . Codec decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput decodeOutputEncodeAccumuladecodeToEncodeFromr
-  → DecoderFn decodePath decodeHandlers decodeError extra decodeInput decodeOutputEncodeAccumuladecodeToEncodeFromr
+  ∷ ∀ decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput decodeOutputEncodeAccumulator
+  . Codec decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput decodeOutputEncodeAccumulator
+  → DecoderFn decodePath decodeHandlers decodeError extra decodeInput decodeOutputEncodeAccumulator
 decoder (Codec f _) = f
 
 encoder
-  ∷ ∀ decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput decodeOutputEncodeAccumuladecodeToEncodeFromr
-  . Codec decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput decodeOutputEncodeAccumuladecodeToEncodeFromr
-  → Fn2 extra encodeInput (Tuple encodeOutput decodeOutputEncodeAccumuladecodeToEncodeFromr)
+  ∷ ∀ decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput decodeOutputEncodeAccumulator
+  . Codec decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput decodeOutputEncodeAccumulator
+  → Fn2 extra encodeInput (Tuple encodeOutput decodeOutputEncodeAccumulator)
 encoder (Codec _ f) = f
 
 identity

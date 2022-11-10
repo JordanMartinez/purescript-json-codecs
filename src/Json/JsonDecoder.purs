@@ -23,7 +23,7 @@ import Json.Types (JsonErrorHandlers(..), JsonOffset, TypeHint(..))
 type JsonDecoder e extra a = DecoderFn (Array JsonOffset) (JsonErrorHandlers e) e extra Json a
 type JsonDecoder' e extra from to = DecoderFn (Array JsonOffset) (JsonErrorHandlers e) e extra from to
 
-addOffset :: forall e extra a. JsonOffset -> Json -> JsonDecoder e extra a -> JsonDecoder e extra a
+addOffset :: forall e extra from a. JsonOffset -> Json -> JsonDecoder' e extra Json a -> JsonDecoder' e extra from a
 addOffset offset json (DecoderFn f) = DecoderFn $
   mkFn5 \path appendFn handlers@(JsonErrorHandlers h) extra _ ->
     runFn5 f (if h.includeJsonOffset then Array.snoc path offset else path) appendFn handlers extra json

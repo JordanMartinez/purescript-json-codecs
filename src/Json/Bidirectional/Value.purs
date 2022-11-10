@@ -13,6 +13,7 @@ import Data.Either (note)
 import Data.Function.Uncurried (mkFn2, runFn2)
 import Data.Identity (Identity(..))
 import Data.Int as Int
+import Data.List (List(..))
 import Data.List as List
 import Data.Maybe (Maybe(..))
 import Data.Nullable (Nullable)
@@ -22,6 +23,7 @@ import Data.String.CodeUnits (charAt)
 import Data.String.CodeUnits as SCU
 import Data.String.NonEmpty.Internal (NonEmptyString(..))
 import Data.String.NonEmpty.Internal as NonEmptyString
+import Data.Symbol (class IsSymbol)
 import Data.TraversableWithIndex (forWithIndex)
 import Data.Tuple (Tuple(..), fst)
 import Foreign.Object (Object)
@@ -31,7 +33,9 @@ import Json.JsonDecoder (addOffset)
 import Json.Types (JsonOffset(..))
 import Json.Unidirectional.Decode.Value (decodeJArray, decodeBoolean, decodeField, decodeIndex, decodeJNull, decodeNumber, decodeJObject, decodeString, decodeVoid)
 import Json.Unidirectional.Encode.Value (encodeJArray, encodeBoolean, encodeNumber, encodeJObject, encodeString, encodeUnitToNull, encodeVoid)
+import Prim.Row as Row
 import Safe.Coerce (coerce)
+import Type.Proxy (Proxy(..))
 
 json :: forall e extra. JsonCodec e extra Json
 json = mkJsonCodec identity identity
@@ -76,6 +80,63 @@ index ix codec = Codec dec enc
 
 jobject :: forall e extra. JsonCodec e extra (Object Json)
 jobject = mkJsonCodec decodeJObject encodeJObject
+
+objectPrim :: forall e extra a. JPropCodec e extra a -> JsonCodec e extra a
+objectPrim fieldsCodec = codec'
+  (decoder jobject >>> decoder fieldsCodec)
+  ( mkFn2 \extra a ->
+      fst
+        $ runFn2 (encoder jobject) extra
+        $ Object.fromFoldable
+        $ fst
+        $ runFn2 (encoder fieldsCodec) extra a
+  )
+
+requiredField :: forall e extra a. String -> JsonCodec e extra a -> JPropCodec e extra a
+requiredField key propCodec = codec
+  ( Decoder.do
+      obj <- identity
+      decodeField obj key (decoder propCodec)
+  )
+  ( mkFn2 \extra a ->
+      pure $ Tuple key $ fst $ runFn2 (encoder propCodec) extra a
+  )
+
+recordPrim :: forall e extra a. (JPropCodec e extra {} -> JPropCodec e extra a) -> JsonCodec e extra a
+recordPrim buildRecordCodec = codec'
+  (decoder jobject >>> decoder propCodec)
+  ( mkFn2 \extra a ->
+      fst
+        $ runFn2 (encoder jobject) extra
+        $ Object.fromFoldable
+        $ fst
+        $ runFn2 (encoder propCodec) extra a
+  )
+  where
+  propCodec = buildRecordCodec start
+
+  start :: JPropCodec e extra {}
+  start = Codec (pure {}) (mkFn2 \_ a -> Tuple Nil a)
+
+-- propRequired
+--   :: forall e extra sym a r r'
+--    . IsSymbol sym
+--   => Row.Cons sym a r r'
+--   => Proxy sym
+--   -> JsonCodec e extra a
+--   -> JPropCodec e extra { | r }
+--   -> JPropCodec e extra { | r' }
+-- propRequired _sym codecA codecR = ?help
+
+-- propOptional
+--   :: forall e extra sym a r r'
+--    . IsSymbol sym
+--   => Row.Cons sym (Maybe a) r r'
+--   => Proxy sym
+--   -> JsonCodec e extra a
+--   -> JPropCodec e extra { | r }
+--   -> JPropCodec e extra { | r' }
+-- propOptional p codecA codecR = ?help
 
 unitCodec :: forall e extra. JsonCodec e extra Unit
 unitCodec = unit <$ jnull

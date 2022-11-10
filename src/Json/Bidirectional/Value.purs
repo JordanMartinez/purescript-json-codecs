@@ -29,37 +29,37 @@ import Foreign.Object as Object
 import Json.JsonCodec (JIndexedCodec, JsonCodec, JPropCodec, mkJsonCodec, refinedValue)
 import Json.JsonDecoder (addOffset)
 import Json.Types (JsonOffset(..))
-import Json.Unidirectional.Decode.Value (decodeArrayPrim, decodeBoolean, decodeField, decodeIndex, decodeNull, decodeNumber, decodeObjectPrim, decodeString, decodeVoid)
-import Json.Unidirectional.Encode.Value (encodeArrayPrim, encodeBoolean, encodeNumber, encodeObjectPrim, encodeString, encodeUnitToNull, encodeVoid)
+import Json.Unidirectional.Decode.Value (decodeJArray, decodeBoolean, decodeField, decodeIndex, decodeJNull, decodeNumber, decodeJObject, decodeString, decodeVoid)
+import Json.Unidirectional.Encode.Value (encodeJArray, encodeBoolean, encodeNumber, encodeJObject, encodeString, encodeUnitToNull, encodeVoid)
 import Safe.Coerce (coerce)
 
-jsonCodec :: forall e extra. JsonCodec e extra Json
-jsonCodec = mkJsonCodec identity identity
+json :: forall e extra. JsonCodec e extra Json
+json = mkJsonCodec identity identity
 
-voidCodec :: forall e extra. JsonCodec e extra Void
-voidCodec = mkJsonCodec decodeVoid encodeVoid
+void :: forall e extra. JsonCodec e extra Void
+void = mkJsonCodec decodeVoid encodeVoid
 
-nullCodec :: forall e extra. JsonCodec e extra Unit
-nullCodec = mkJsonCodec decodeNull encodeUnitToNull
+jnull :: forall e extra. JsonCodec e extra Unit
+jnull = mkJsonCodec decodeJNull encodeUnitToNull
 
-booleanCodec :: forall e extra. JsonCodec e extra Boolean
-booleanCodec = mkJsonCodec decodeBoolean encodeBoolean
+boolean :: forall e extra. JsonCodec e extra Boolean
+boolean = mkJsonCodec decodeBoolean encodeBoolean
 
-numberCodec :: forall e extra. JsonCodec e extra Number
-numberCodec = mkJsonCodec decodeNumber encodeNumber
+number :: forall e extra. JsonCodec e extra Number
+number = mkJsonCodec decodeNumber encodeNumber
 
-stringCodec :: forall e extra. JsonCodec e extra String
-stringCodec = mkJsonCodec decodeString encodeString
+string :: forall e extra. JsonCodec e extra String
+string = mkJsonCodec decodeString encodeString
 
-arrayPrimCodec :: forall e extra. JsonCodec e extra (Array Json)
-arrayPrimCodec = mkJsonCodec decodeArrayPrim encodeArrayPrim
+jarray :: forall e extra. JsonCodec e extra (Array Json)
+jarray = mkJsonCodec decodeJArray encodeJArray
 
-indexedArrayCodec :: forall e extra a. JIndexedCodec e extra a -> JsonCodec e extra a
-indexedArrayCodec jiCodec = codec'
-  (decoder arrayPrimCodec >>> decoder jiCodec)
+indexedArray :: forall e extra a. JIndexedCodec e extra a -> JsonCodec e extra a
+indexedArray jiCodec = codec'
+  (decoder jarray >>> decoder jiCodec)
   ( mkFn2 \extra a ->
       fst
-        $ runFn2 (encoder arrayPrimCodec) extra
+        $ runFn2 (encoder jarray) extra
         $ Array.fromFoldable
         $ fst
         $ runFn2 (encoder jiCodec) extra a
@@ -74,31 +74,31 @@ index ix codec = Codec dec enc
   enc = mkFn2 \extra a ->
     Tuple (List.singleton $ fst $ runFn2 (encoder codec) extra a) a
 
-objectPrimCodec :: forall e extra. JsonCodec e extra (Object Json)
-objectPrimCodec = mkJsonCodec decodeObjectPrim encodeObjectPrim
+jobject :: forall e extra. JsonCodec e extra (Object Json)
+jobject = mkJsonCodec decodeJObject encodeJObject
 
 unitCodec :: forall e extra. JsonCodec e extra Unit
-unitCodec = unit <$ nullCodec
+unitCodec = unit <$ jnull
 
-intCodec :: forall e extra. JsonCodec e extra Int
-intCodec = numberCodec >~> refinedValue
+int :: forall e extra. JsonCodec e extra Int
+int = number >~> refinedValue
   (\n -> Int.fromNumber n # note ("Could not convert Number to Int: " <> show n))
   Int.toNumber
 
-charCodec :: forall e extra. JsonCodec e extra Char
-charCodec = stringCodec >~> refinedValue
+char :: forall e extra. JsonCodec e extra Char
+char = string >~> refinedValue
   (\s -> charAt 0 s # note ("Could not get char at index 0 in String: " <> s))
   SCU.singleton
 
-nonEmptyStringCodec :: forall e extra. JsonCodec e extra NonEmptyString
-nonEmptyStringCodec =
-  stringCodec >~> refinedValue
+nonEmptyString :: forall e extra. JsonCodec e extra NonEmptyString
+nonEmptyString =
+  string >~> refinedValue
     (NonEmptyString.fromString >>> note "Received empty String")
     (\(NonEmptyString s) -> s)
 
-arrayCodec :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (Array a)
-arrayCodec aCodec =
-  arrayPrimCodec >~> codec'
+array :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (Array a)
+array aCodec =
+  jarray >~> codec'
     ( Decoder.do
         arr <- identity
         forWithIndex arr \i j ->
@@ -109,15 +109,15 @@ arrayCodec aCodec =
         (\a -> fst $ runFn2 enc extra a) <$> fa
     )
 
-nonEmptyArrayCodec :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (NonEmptyArray a)
-nonEmptyArrayCodec aCodec =
-  arrayCodec aCodec >~> refinedValue
+nonEmptyArray :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (NonEmptyArray a)
+nonEmptyArray aCodec =
+  array aCodec >~> refinedValue
     (NEA.fromArray >>> note "Received empty array")
     NEA.toArray
 
-objectCodec :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (Object a)
-objectCodec aCodec =
-  objectPrimCodec >~> codec'
+object :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (Object a)
+object aCodec =
+  jobject >~> codec'
     ( Decoder.do
         obj <- identity
         forWithIndex obj \k j ->
@@ -128,20 +128,20 @@ objectCodec aCodec =
         (\a -> fst $ runFn2 enc extra a) <$> fa
     )
 
-nullableCodec :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (Nullable a)
-nullableCodec aCodec =
-  dimap Nullable.toMaybe Nullable.toNullable $ maybeNullableCodec aCodec
+nullable :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (Nullable a)
+nullable aCodec =
+  dimap Nullable.toMaybe Nullable.toNullable $ maybeNullable aCodec
 
 identityCodec :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (Identity a)
 identityCodec = coerce
 
--- maybeTaggedCodec :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (Maybe a)
--- maybeTaggedCodec aCodec =
+-- maybeTagged :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (Maybe a)
+-- maybeTaggedCodec a =
 
-maybeNullableCodec :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (Maybe a)
-maybeNullableCodec aCodec = codec'
-  (altAccumulate (decoder (Nothing <$ nullCodec)) (decoder (Just <$> aCodec)))
+maybeNullable :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (Maybe a)
+maybeNullable aCodec = codec'
+  (altAccumulate (decoder (Nothing <$ jnull)) (decoder (Just <$> aCodec)))
   ( mkFn2 \extra a -> case a of
       Just a' -> fst $ runFn2 (encoder aCodec) extra a'
-      Nothing -> fst $ runFn2 (encoder nullCodec) extra unit
+      Nothing -> fst $ runFn2 (encoder jnull) extra unit
   )

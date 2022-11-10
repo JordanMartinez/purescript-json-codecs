@@ -1,6 +1,6 @@
 module Json.Unidirectional.Encode.Value
   ( encodeVoid
-  , encodeNull
+  , encodeJNull
   , encodeUnitToNull
   , encodeBoolean
   , encodeNumber
@@ -9,10 +9,10 @@ module Json.Unidirectional.Encode.Value
   , encodeString
   , encodeNonEmptyString
   , encodeArray
-  , encodeArrayPrim
+  , encodeJArray
   , encodeNonEmptyArray
   , encodeObject
-  , encodeObjectPrim
+  , encodeJObject
   , encodeNullable
   , encodeIdentity
   , encodeMaybeTagged
@@ -82,11 +82,11 @@ import Type.Proxy (Proxy(..))
 encodeVoid :: Void -> Json
 encodeVoid = absurd
 
-encodeNull :: Json
-encodeNull = jsonNull
+encodeJNull :: Json
+encodeJNull = jsonNull
 
 encodeUnitToNull :: Unit -> Json
-encodeUnitToNull = const encodeNull
+encodeUnitToNull = const encodeJNull
 
 encodeBoolean :: Boolean -> Json
 encodeBoolean = fromBoolean
@@ -107,19 +107,19 @@ encodeNonEmptyString :: NonEmptyString -> Json
 encodeNonEmptyString (NonEmptyString s) = encodeString s
 
 encodeArray :: forall a. (a -> Json) -> Array a -> Json
-encodeArray encodeA = map encodeA >>> encodeArrayPrim
+encodeArray encodeA = map encodeA >>> encodeJArray
 
-encodeArrayPrim :: Array Json -> Json
-encodeArrayPrim = fromArray
+encodeJArray :: Array Json -> Json
+encodeJArray = fromArray
 
 encodeNonEmptyArray :: forall a. (a -> Json) -> NonEmptyArray a -> Json
 encodeNonEmptyArray encodeA = NEA.toArray >>> encodeArray encodeA
 
 encodeObject :: forall a. (a -> Json) -> Object a -> Json
-encodeObject encodeA = map encodeA >>> encodeObjectPrim
+encodeObject encodeA = map encodeA >>> encodeJObject
 
-encodeObjectPrim :: Object Json -> Json
-encodeObjectPrim = fromObject
+encodeJObject :: Object Json -> Json
+encodeJObject = fromObject
 
 encodeNullable :: forall a. (a -> Json) -> Nullable a -> Json
 encodeNullable encodeA = toMaybe >>> encodeMaybeNullable encodeA
@@ -130,23 +130,23 @@ encodeIdentity encodeA (Identity a) = encodeA a
 encodeMaybeTagged :: forall a. (a -> Json) -> Maybe a -> Json
 encodeMaybeTagged encodeA =
   maybe (Object.singleton "tag" $ encodeString "Nothing") (tagged "Just" <<< encodeA)
-    >>> encodeObjectPrim
+    >>> encodeJObject
   where
   tagged tag j = Object.fromFoldable [ Tuple "tag" $ encodeString tag, Tuple "value" j ]
 
 encodeMaybeNullable :: forall a. (a -> Json) -> Maybe a -> Json
-encodeMaybeNullable encodeA = maybe encodeNull encodeA
+encodeMaybeNullable encodeA = maybe encodeJNull encodeA
 
 encodeEither :: forall a b. (a -> Json) -> (b -> Json) -> Either a b -> Json
 encodeEither encodeA encodeB =
   either (tagged "Left" <<< encodeA) (tagged "Right" <<< encodeB)
-    >>> encodeObjectPrim
+    >>> encodeJObject
   where
   tagged tag j = Object.fromFoldable [ Tuple "tag" $ encodeString tag, Tuple "value" j ]
 
 encodeTuple :: forall a b. (a -> Json) -> (b -> Json) -> Tuple a b -> Json
 encodeTuple encodeA encodeB (Tuple a b) =
-  encodeArrayPrim
+  encodeJArray
     [ encodeA a
     , encodeB b
     ]
@@ -154,46 +154,46 @@ encodeTuple encodeA encodeB (Tuple a b) =
 encodeThese :: forall a b. (a -> Json) -> (b -> Json) -> These a b -> Json
 encodeThese encodeA encodeB =
   these
-    (tagged "This" <<< encodeObjectPrim <<< Object.singleton "value" <<< encodeA)
-    (tagged "That" <<< encodeObjectPrim <<< Object.singleton "value" <<< encodeB)
-    ( \a b -> tagged "Both" $ encodeObjectPrim $ Object.fromFoldable
+    (tagged "This" <<< encodeJObject <<< Object.singleton "value" <<< encodeA)
+    (tagged "That" <<< encodeJObject <<< Object.singleton "value" <<< encodeB)
+    ( \a b -> tagged "Both" $ encodeJObject $ Object.fromFoldable
         [ Tuple "this" $ encodeA a
         , Tuple "that" $ encodeB b
         ]
     )
-    >>> encodeObjectPrim
+    >>> encodeJObject
   where
   tagged tag j = Object.fromFoldable [ Tuple "tag" $ encodeString tag, Tuple "value" j ]
 
 encodeNonEmpty :: forall f a. (a -> Json) -> (f a -> Json) -> NonEmpty f a -> Json
 encodeNonEmpty encodeHead encodeTail (NonEmpty a fa) =
-  encodeObjectPrim
+  encodeJObject
     $ Object.fromFoldable
         [ Tuple "head" $ encodeHead a
         , Tuple "tail" $ encodeTail fa
         ]
 
 encodeList :: forall a. (a -> Json) -> List a -> Json
-encodeList encodeA = foldl (\arr -> Array.snoc arr <<< encodeA) [] >>> encodeArrayPrim
+encodeList encodeA = foldl (\arr -> Array.snoc arr <<< encodeA) [] >>> encodeJArray
 
 encodeNonEmptyList :: forall a. (a -> Json) -> (NonEmptyList a -> Json)
-encodeNonEmptyList encodeA = foldl (\arr -> Array.snoc arr <<< encodeA) [] >>> encodeArrayPrim
+encodeNonEmptyList encodeA = foldl (\arr -> Array.snoc arr <<< encodeA) [] >>> encodeJArray
 
 encodeMap :: forall k v. (k -> Json) -> (v -> Json) -> Map k v -> Json
 encodeMap encodeKey encodeValue =
   foldlWithIndex
     ( \k acc v -> Array.snoc acc
-        $ encodeObjectPrim
+        $ encodeJObject
         $ Object.fromFoldable
             [ Tuple "key" $ encodeKey k
             , Tuple "value" $ encodeValue v
             ]
     )
     []
-    >>> encodeArrayPrim
+    >>> encodeJArray
 
 encodeSet :: forall a. (a -> Json) -> Set a -> Json
-encodeSet encodeA = foldl (\arr -> Array.snoc arr <<< encodeA) [] >>> encodeArrayPrim
+encodeSet encodeA = foldl (\arr -> Array.snoc arr <<< encodeA) [] >>> encodeJArray
 
 encodeNonEmptySet :: forall a. (a -> Json) -> NonEmptySet a -> Json
 encodeNonEmptySet encodeA = toSet >>> encodeSet encodeA
@@ -225,7 +225,7 @@ encodeRecord'
   => RLRecordEncoder encodeRl encodeRows
   -> { | inputRows }
   -> Json
-encodeRecord' propEncoders = encodeObjectPrim <<< encodeRowList propEncoders
+encodeRecord' propEncoders = encodeJObject <<< encodeRowList propEncoders
 
 buildRecordEncoder
   :: forall encodeRows encodeRl

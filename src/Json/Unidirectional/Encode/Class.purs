@@ -40,7 +40,7 @@ import Data.Tuple (Tuple)
 import Foreign.Object (Object)
 import Foreign.Object as Object
 import Json.Newtypes (K0(..), K1(..), K2(..), K3(..), Optional)
-import Json.Unidirectional.Encode.Value (encodeArray, encodeBoolean, encodeChar, encodeCodePoint, encodeEither, encodeIdentity, encodeInt, encodeList, encodeMap, encodeMaybeTagged, encodeNonEmpty, encodeNonEmptyArray, encodeNonEmptyList, encodeNonEmptySet, encodeNonEmptyString, encodeNullable, encodeNumber, encodeObject, encodeObjectPrim, encodeSet, encodeString, encodeThese, encodeTuple, encodeUnitToNull, encodeVoid)
+import Json.Unidirectional.Encode.Value (encodeArray, encodeBoolean, encodeChar, encodeCodePoint, encodeEither, encodeIdentity, encodeInt, encodeList, encodeMap, encodeMaybeTagged, encodeNonEmpty, encodeNonEmptyArray, encodeNonEmptyList, encodeNonEmptySet, encodeNonEmptyString, encodeNullable, encodeNumber, encodeObject, encodeJObject, encodeSet, encodeString, encodeThese, encodeTuple, encodeUnitToNull, encodeVoid)
 import Prim.Coerce (class Coercible)
 import Prim.Row as Row
 import Prim.RowList as RowList
@@ -270,7 +270,7 @@ instance
   ) =>
   EncodeJson extra { | rows } where
   encodeJsonFn = mkFn2 \extra input ->
-    encodeObjectPrim $ runFn2 encodeRecordInput (RowListRecord input :: RowListRecord rl { | rows }) extra
+    encodeJObject $ runFn2 encodeRecordInput (RowListRecord input :: RowListRecord rl { | rows }) extra
 
 newtype RowListRecord :: RowList.RowList Type -> Type -> Type
 newtype RowListRecord rl rec = RowListRecord rec

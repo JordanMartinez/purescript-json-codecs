@@ -1,4 +1,4 @@
-module Codec.Json.Decode.Class
+module Codec.Json.Unidirectional.Decode.Class
   ( class DecodeJson
   , decodeJson
   , ExistentialDecoder0
@@ -38,9 +38,9 @@ import Data.These (These)
 import Data.Tuple (Tuple)
 import Data.Validation.Semigroup (V)
 import Foreign.Object (Object)
-import Json.JsonDecoder (JsonDecoder, failWithMissingField)
-import Json.Newtypes (K0(..), K1(..), K2(..), K3(..), Optional(..))
-import Json.Unidirectional.Decode.Value (decodeArray, decodeBoolean, decodeChar, decodeCodePoint, decodeEither, decodeField', decodeIdentity, decodeInt, decodeList, decodeMap, decodeMaybeTagged, decodeNonEmpty, decodeNonEmptyArray, decodeNonEmptyList, decodeNonEmptySet, decodeNonEmptyString, decodeNullable, decodeNumber, decodeObject, decodeRecordPrim, decodeSet, decodeString, decodeThese, decodeTuple, decodeUnitFromNull, decodeVoid)
+import Codec.Json.JsonDecoder (JsonDecoder, failWithMissingField)
+import Codec.Json.Newtypes (K0(..), K1(..), K2(..), K3(..), Optional(..))
+import Codec.Json.Unidirectional.Decode.Value (decodeArray, decodeBoolean, decodeChar, decodeCodePoint, decodeEither, decodeField', decodeIdentity, decodeInt, decodeList, decodeMap, decodeMaybeTagged, decodeNonEmpty, decodeNonEmptyArray, decodeNonEmptyList, decodeNonEmptySet, decodeNonEmptyString, decodeNullable, decodeNumber, decodeObject, decodeRecordPrim, decodeSet, decodeString, decodeThese, decodeTuple, decodeUnitFromNull, decodeVoid)
 import Prim.Row as Row
 import Prim.RowList as RowList
 import Prim.RowList as RowToList

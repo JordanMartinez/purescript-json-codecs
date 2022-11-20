@@ -9,9 +9,9 @@ import Data.Newtype (class Newtype)
 import Data.Tuple (Tuple(..), swap)
 import Effect (Effect)
 import Effect.Class.Console (log)
-import Json.Encode.Class (ExistentialEncoder0, ExistentialEncoder2, encodeJson, encodeJson', mkExistentialEncoder0, mkExistentialEncoder2)
-import Json.Newtypes (K0(..), K2(..))
-import Json.Unidirectional.Encode.Value (encodeString, encodeTuple)
+import Codec.Json.Newtypes (K0(..), K2(..))
+import Codec.Json.Unidirectional.Encode.Class (ExistentialEncoder0, ExistentialEncoder2, encodeJson, encodeJson', mkExistentialEncoder0, mkExistentialEncoder2)
+import Codec.Json.Unidirectional.Encode.Value (encodeString, encodeTuple)
 import Safe.Coerce (coerce)
 
 runOutput :: Effect Unit

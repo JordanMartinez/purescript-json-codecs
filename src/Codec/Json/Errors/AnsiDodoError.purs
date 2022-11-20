@@ -7,9 +7,9 @@ import Data.Either (Either)
 import Dodo (Doc, twoSpaces)
 import Dodo as D
 import Dodo.Ansi (Color(..), GraphicsParam, ansiGraphics, foreground)
-import Json.Errors.PrimitiveJsonError (printMissingField, printMissingIndex, printTypeMismatchErr)
-import Json.JsonDecoder (JsonDecoder, runJsonDecoder)
-import Json.Types (JsonErrorHandlers(..), JsonOffset, TypeHint(..), printJsonOffsetPath)
+import Codec.Json.Errors.PrimitiveJsonError (printMissingField, printMissingIndex, printTypeMismatchErr)
+import Codec.Json.JsonDecoder (JsonDecoder, runJsonDecoder)
+import Codec.Json.Types (JsonErrorHandlers(..), JsonOffset, TypeHint(..), printJsonOffsetPath)
 
 handlersAde :: JsonErrorHandlers (Doc GraphicsParam)
 handlersAde = JsonErrorHandlers

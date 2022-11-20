@@ -13,12 +13,12 @@ import Effect (Effect)
 import Effect.Class.Console (log)
 import Foreign.Object (Object)
 import Foreign.Object as Object
-import Json.Decode.Class (decodeJson)
-import Json.Encode.Class (encodeJson)
-import Json.Errors.AnsiDodoError (printAnsiDodoError, runJsonDecoderADE)
-import Json.JsonDecoder (JsonDecoder)
-import Json.Newtypes (Optional(..))
-import Json.Unidirectional.Encode.Value (encodeArray, encodeBoolean, encodeInt, encodeNumber, encodeObject, encodeRecord, encodeString, encodeUnitToNull)
+import Codec.Json.Errors.AnsiDodoError (printAnsiDodoError, runJsonDecoderADE)
+import Codec.Json.JsonDecoder (JsonDecoder)
+import Codec.Json.Newtypes (Optional(..))
+import Codec.Json.Unidirectional.Decode.Class (decodeJson)
+import Codec.Json.Unidirectional.Encode.Class (encodeJson)
+import Codec.Json.Unidirectional.Encode.Value (encodeArray, encodeBoolean, encodeInt, encodeNumber, encodeObject, encodeRecord, encodeString, encodeUnitToNull)
 
 runOutput :: Effect Unit
 runOutput = do

@@ -10,7 +10,7 @@ import Data.Either (Either(..))
 import Data.Function.Uncurried (mkFn5, runFn5)
 import Data.Newtype (un, unwrap)
 import Data.Validation.Semigroup (V(..), invalid)
-import Json.Types (JsonErrorHandlers(..), JsonOffset, TypeHint(..))
+import Codec.Json.Types (JsonErrorHandlers(..), JsonOffset, TypeHint(..))
 
 -- | Overview of values:
 -- | - Json - the JSON value currently being decoded at this point

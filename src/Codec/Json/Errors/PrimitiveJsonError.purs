@@ -10,9 +10,9 @@ import Data.Either (Either(..))
 import Data.Monoid (power)
 import Data.Newtype (class Newtype, over, unwrap)
 import Data.These (These(..))
-import Json.Errors.Tree (TreeError(..))
-import Json.JsonDecoder (JsonDecoder, runJsonDecoder)
-import Json.Types (ActualJsonType, ExpectedJsonType, JsonErrorHandlers(..), JsonOffset, TypeHint, printActualJsonType, printExpectedJsonType, printJsonOffsetPath, printTypeHint)
+import Codec.Json.Errors.Tree (TreeError(..))
+import Codec.Json.JsonDecoder (JsonDecoder, runJsonDecoder)
+import Codec.Json.Types (ActualJsonType, ExpectedJsonType, JsonErrorHandlers(..), JsonOffset, TypeHint, printActualJsonType, printExpectedJsonType, printJsonOffsetPath, printTypeHint)
 
 data JsonLeafError
   = TypeMismatch ExpectedJsonType ActualJsonType

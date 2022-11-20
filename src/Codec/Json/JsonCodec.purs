@@ -11,9 +11,9 @@ import Data.List (List)
 import Data.Tuple (Tuple, fst)
 import Data.Validation.Semigroup (V(..), invalid)
 import Foreign.Object (Object)
-import Json.JsonDecoder (JsonDecoder)
-import Json.JsonDecoder as JsonDecoder
-import Json.Types (JsonErrorHandlers(..), JsonOffset)
+import Codec.Json.JsonDecoder (JsonDecoder)
+import Codec.Json.JsonDecoder as JsonDecoder
+import Codec.Json.Types (JsonErrorHandlers(..), JsonOffset)
 
 -- | Overview of values:
 -- | - e - the custom Json decoding error

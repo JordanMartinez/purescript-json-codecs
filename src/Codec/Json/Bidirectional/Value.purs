@@ -6,6 +6,7 @@ import Codec.Codec (Codec(..), codec, codec', decoder, encoder, (>~>))
 import Codec.Decoder (altAccumulate)
 import Codec.Decoder.Qualified as Decoder
 import Codec.Json.Errors.DecodeMessages (arrayNotEmptyFailure, numToIntConversionFailure, stringNotEmptyFailure, stringToCharConversionFailure)
+import Codec.Json.Unidirectional.Decode.Value (decodeField')
 import Data.Argonaut.Core (Json)
 import Data.Array as Array
 import Data.Array.NonEmpty (NonEmptyArray)
@@ -93,14 +94,25 @@ objectPrim fieldsCodec = codec'
         $ runFn2 (encoder fieldsCodec) extra a
   )
 
-requiredField :: forall e extra a. String -> JsonCodec e extra a -> JPropCodec e extra a
-requiredField key propCodec = codec
+fieldRequired :: forall e extra a. String -> JsonCodec e extra a -> JPropCodec e extra a
+fieldRequired key propCodec = codec
   ( Decoder.do
       obj <- identity
       decodeField obj key (decoder propCodec)
   )
   ( mkFn2 \extra a ->
       pure $ Tuple key $ fst $ runFn2 (encoder propCodec) extra a
+  )
+
+fieldOptional :: forall e extra a. String -> JsonCodec e extra a -> JPropCodec e extra (Maybe a)
+fieldOptional key propCodec = codec
+  ( Decoder.do
+      obj <- identity
+      decodeField' obj key (pure Nothing) (Just <$> decoder propCodec)
+  )
+  ( mkFn2 \extra a -> case a of
+      Nothing -> Nil
+      Just a' -> pure $ Tuple key $ fst $ runFn2 (encoder propCodec) extra a'
   )
 
 recordPrim :: forall e extra a. (JPropCodec e extra {} -> JPropCodec e extra a) -> JsonCodec e extra a

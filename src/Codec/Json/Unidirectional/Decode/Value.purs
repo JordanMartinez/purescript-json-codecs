@@ -13,11 +13,13 @@ module Codec.Json.Unidirectional.Decode.Value
   , decodeJArray
   , decodeIndex
   , decodeIndex'
+  , decodeIndex''
   , decodeNonEmptyArray
   , decodeObject
   , decodeJObject
   , decodeField
   , decodeField'
+  , decodeField''
   , decodeNullable
   , decodeIdentity
   , decodeMaybeTagged
@@ -168,6 +170,21 @@ decodeIndex' idx (DecoderFn onMissingIndex) (DecoderFn decodeElem) =
       Just elemJson ->
         runFn5 decodeElem (if h.includeJsonOffset then Array.snoc path (AtIndex idx) else path) appendFn handlers extra elemJson
 
+decodeIndex''
+  :: forall e extra from a
+   . Array Json
+  -> Int
+  -> JsonDecoder' e extra from a
+  -> JsonDecoder e extra a
+  -> JsonDecoder' e extra from a
+decodeIndex'' arr idx onMissingIndex (DecoderFn decodeElem) =
+  case Array.index arr idx of
+    Nothing ->
+      onMissingIndex
+    Just elemJson ->
+      DecoderFn $ mkFn5 \path appendFn handlers@(JsonErrorHandlers h) extra _ ->
+        runFn5 decodeElem (if h.includeJsonOffset then Array.snoc path (AtIndex idx) else path) appendFn handlers extra elemJson
+
 decodeJObject :: forall e extra. JsonDecoder e extra (Object Json)
 decodeJObject = DecoderFn $ mkFn5 \pathSoFar _ (JsonErrorHandlers h) _ json ->
   caseJson
@@ -191,6 +208,21 @@ decodeField' field (DecoderFn onMissingField) (DecoderFn decodeElem) =
       Nothing ->
         runFn5 onMissingField path appendFn handlers extra obj
       Just fieldJson ->
+        runFn5 decodeElem (if h.includeJsonOffset then Array.snoc path (AtKey field) else path) appendFn handlers extra fieldJson
+
+decodeField''
+  :: forall e extra from a
+   . Object Json
+  -> String
+  -> JsonDecoder' e extra from a
+  -> JsonDecoder e extra a
+  -> JsonDecoder' e extra from a
+decodeField'' obj field onMissingField (DecoderFn decodeElem) =
+  case Object.lookup field obj of
+    Nothing ->
+      onMissingField
+    Just fieldJson ->
+      DecoderFn $ mkFn5 \path appendFn handlers@(JsonErrorHandlers h) extra _ ->
         runFn5 decodeElem (if h.includeJsonOffset then Array.snoc path (AtKey field) else path) appendFn handlers extra fieldJson
 
 decodeVoid :: forall err extra. JsonDecoder err extra Void

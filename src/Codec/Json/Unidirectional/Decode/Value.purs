@@ -56,12 +56,14 @@ import Prelude
 import Codec.Decoder (DecoderFn(..))
 import Codec.Decoder.Qualified as Decoder
 import Codec.Json.Errors.DecodeMessages (arrayNotEmptyFailure, numToIntConversionFailure, stringNotEmptyFailure, stringToCharConversionFailure)
+import Codec.Json.JsonDecoder (JsonDecoder, JsonDecoder', addCtorHint, addOffset, addSubtermHint, addTypeHint, altAccumulate, failWithMissingField, failWithStructureError, failWithUnrefinableValue)
+import Codec.Json.Types (ActualJsonType(..), ExpectedJsonType(..), JsonErrorHandlers(..), JsonOffset(..))
 import Data.Argonaut.Core (Json, caseJson)
 import Data.Array as Array
 import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Array.NonEmpty as NEA
 import Data.Either (Either(..))
-import Data.Function.Uncurried (mkFn5)
+import Data.Function.Uncurried (mkFn5, runFn5)
 import Data.Identity (Identity(..))
 import Data.Int as Int
 import Data.List (List(..))
@@ -87,8 +89,6 @@ import Data.Tuple (Tuple(..))
 import Data.Validation.Semigroup (V(..), invalid)
 import Foreign.Object (Object)
 import Foreign.Object as Object
-import Codec.Json.JsonDecoder (JsonDecoder, JsonDecoder', addCtorHint, addOffset, addSubtermHint, addTypeHint, altAccumulate, failWithMissingField, failWithStructureError, failWithUnrefinableValue)
-import Codec.Json.Types (ActualJsonType(..), ExpectedJsonType(..), JsonErrorHandlers(..), JsonOffset(..))
 import Prim.Row as Row
 import Prim.RowList (class RowToList, RowList)
 import Prim.RowList as RowList
@@ -154,17 +154,20 @@ decodeJArray = DecoderFn $ mkFn5 \pathSoFar _ (JsonErrorHandlers h) _ json ->
     (invalid <<< h.onTypeMismatch pathSoFar ExpectedArray <<< ActualObject)
     json
 
-decodeIndex :: forall e extra from a. Array Json -> Int -> JsonDecoder e extra a -> JsonDecoder' e extra from a
-decodeIndex arr idx = decodeIndex' arr idx do
+decodeIndex :: forall e extra a. Int -> JsonDecoder e extra a -> JsonDecoder' e extra (Array Json) a
+decodeIndex idx = decodeIndex' idx do
   DecoderFn $ mkFn5 \pathSoFar _ (JsonErrorHandlers h) _ _ ->
     invalid $ h.onMissingIndex pathSoFar idx
 
-decodeIndex' :: forall e extra from a. Array Json -> Int -> JsonDecoder' e extra from a -> JsonDecoder e extra a -> JsonDecoder' e extra from a
-decodeIndex' arr idx onMissingIndex decodeElem = case Array.index arr idx of
-  Nothing ->
-    onMissingIndex
-  Just a ->
-    addOffset (AtIndex idx) a decodeElem
+decodeIndex' :: forall e extra a. Int -> JsonDecoder' e extra (Array Json) a -> JsonDecoder e extra a -> JsonDecoder' e extra (Array Json) a
+decodeIndex' idx (DecoderFn onMissingIndex) (DecoderFn decodeElem) =
+  DecoderFn $
+    mkFn5 \path appendFn handlers@(JsonErrorHandlers h) extra arr ->
+      case Array.index arr idx of
+        Nothing ->
+          runFn5 onMissingIndex path appendFn handlers extra arr
+        Just elemJson ->
+          runFn5 decodeElem (if h.includeJsonOffset then Array.snoc path (AtIndex idx) else path) appendFn handlers extra elemJson
 
 decodeJObject :: forall e extra. JsonDecoder e extra (Object Json)
 decodeJObject = DecoderFn $ mkFn5 \pathSoFar _ (JsonErrorHandlers h) _ json ->

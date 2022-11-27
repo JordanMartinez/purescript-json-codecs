@@ -112,9 +112,7 @@ indexedArray jiCodec = codec'
 index :: forall e extra a. Int -> JsonCodec e extra a -> JIndexedCodec e extra a
 index ix codec = Codec dec enc
   where
-  dec = Decoder.do
-    xs <- identity
-    decodeIndex xs ix (decoder codec)
+  dec = decodeIndex ix (decoder codec)
   enc = mkFn2 \extra a ->
     Tuple (List.singleton $ fst $ runFn2 (encoder codec) extra a) a
 

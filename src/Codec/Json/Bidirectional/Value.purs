@@ -132,20 +132,14 @@ objectPrim fieldsCodec = codec'
 
 fieldRequired :: forall e extra a. String -> JsonCodec e extra a -> JPropCodec e extra a
 fieldRequired key propCodec = codec
-  ( Decoder.do
-      obj <- identity
-      decodeField obj key (decoder propCodec)
-  )
+  (decodeField key (decoder propCodec))
   ( mkFn2 \extra a ->
       pure $ Tuple key $ fst $ runFn2 (encoder propCodec) extra a
   )
 
 fieldOptional :: forall e extra a. String -> JsonCodec e extra a -> JPropCodec e extra (Maybe a)
 fieldOptional key propCodec = codec
-  ( Decoder.do
-      obj <- identity
-      decodeField' obj key (pure Nothing) (Just <$> decoder propCodec)
-  )
+  (decodeField' key (pure Nothing) (Just <$> decoder propCodec))
   ( mkFn2 \extra a -> case a of
       Nothing -> Nil
       Just a' -> pure $ Tuple key $ fst $ runFn2 (encoder propCodec) extra a'
@@ -238,9 +232,8 @@ requiredProp _sym codecA codecR = Codec dec enc
   where
   key = reflectSymbol _sym
   dec = Decoder.do
-    obj <- identity
     r <- decoder codecR
-    a <- decodeField obj key (decoder codecA)
+    a <- decodeField key (decoder codecA)
     pure $ unsafeSet key a r
 
   enc :: Fn2 extra { | r' } (Tuple (List (Tuple String Json)) { | r' })
@@ -275,9 +268,8 @@ optionalProp _sym codecA codecR = Codec dec enc
   where
   key = reflectSymbol _sym
   dec = Decoder.do
-    obj <- identity
     r <- decoder codecR
-    a <- decodeField' obj key (pure Nothing) (Just <$> decoder codecA)
+    a <- decodeField' key (pure Nothing) (Just <$> decoder codecA)
     pure $ unsafeSet key a r
 
   enc :: Fn2 extra { | r' } (Tuple (List (Tuple String Json)) { | r' })

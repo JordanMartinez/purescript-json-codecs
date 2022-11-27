@@ -161,13 +161,12 @@ decodeIndex idx = decodeIndex' idx do
 
 decodeIndex' :: forall e extra a. Int -> JsonDecoder' e extra (Array Json) a -> JsonDecoder e extra a -> JsonDecoder' e extra (Array Json) a
 decodeIndex' idx (DecoderFn onMissingIndex) (DecoderFn decodeElem) =
-  DecoderFn $
-    mkFn5 \path appendFn handlers@(JsonErrorHandlers h) extra arr ->
-      case Array.index arr idx of
-        Nothing ->
-          runFn5 onMissingIndex path appendFn handlers extra arr
-        Just elemJson ->
-          runFn5 decodeElem (if h.includeJsonOffset then Array.snoc path (AtIndex idx) else path) appendFn handlers extra elemJson
+  DecoderFn $ mkFn5 \path appendFn handlers@(JsonErrorHandlers h) extra arr ->
+    case Array.index arr idx of
+      Nothing ->
+        runFn5 onMissingIndex path appendFn handlers extra arr
+      Just elemJson ->
+        runFn5 decodeElem (if h.includeJsonOffset then Array.snoc path (AtIndex idx) else path) appendFn handlers extra elemJson
 
 decodeJObject :: forall e extra. JsonDecoder e extra (Object Json)
 decodeJObject = DecoderFn $ mkFn5 \pathSoFar _ (JsonErrorHandlers h) _ json ->
@@ -180,17 +179,19 @@ decodeJObject = DecoderFn $ mkFn5 \pathSoFar _ (JsonErrorHandlers h) _ json ->
     (V <<< Right)
     json
 
-decodeField :: forall e extra from a. Object Json -> String -> JsonDecoder e extra a -> JsonDecoder' e extra from a
-decodeField obj field = decodeField' obj field do
+decodeField :: forall e extra a. String -> JsonDecoder e extra a -> JsonDecoder' e extra (Object Json) a
+decodeField field = decodeField' field do
   DecoderFn $ mkFn5 \pathSoFar _ (JsonErrorHandlers h) _ _ ->
     invalid $ h.onMissingField pathSoFar field
 
-decodeField' :: forall e extra from a. Object Json -> String -> JsonDecoder' e extra from a -> JsonDecoder e extra a -> JsonDecoder' e extra from a
-decodeField' obj field onMissingField decodeElem = case Object.lookup field obj of
-  Nothing ->
-    onMissingField
-  Just a ->
-    addOffset (AtKey field) a decodeElem
+decodeField' :: forall e extra a. String -> JsonDecoder' e extra (Object Json) a -> JsonDecoder e extra a -> JsonDecoder' e extra (Object Json) a
+decodeField' field (DecoderFn onMissingField) (DecoderFn decodeElem) =
+  DecoderFn $ mkFn5 \path appendFn handlers@(JsonErrorHandlers h) extra obj ->
+    case Object.lookup field obj of
+      Nothing ->
+        runFn5 onMissingField path appendFn handlers extra obj
+      Just fieldJson ->
+        runFn5 decodeElem (if h.includeJsonOffset then Array.snoc path (AtKey field) else path) appendFn handlers extra fieldJson
 
 decodeVoid :: forall err extra. JsonDecoder err extra Void
 decodeVoid = addTypeHint "Void" $ failWithUnrefinableValue "Decoding a value to Void is impossible"
@@ -279,12 +280,11 @@ decodeMaybeTagged
   :: forall err extra a
    . JsonDecoder err extra a
   -> JsonDecoder err extra (Maybe a)
-decodeMaybeTagged decodeElem = addTypeHint "Maybe" Decoder.do
-  obj <- decodeJObject
-  tag <- decodeField obj "tag" decodeString
+decodeMaybeTagged decodeElem = addTypeHint "Maybe" $ decodeJObject >>> Decoder.do
+  tag <- decodeField "tag" decodeString
   case tag of
     "Just" -> addCtorHint "Just" do
-      Just <$> decodeField obj "value" decodeElem
+      Just <$> decodeField "value" decodeElem
     "Nothing" ->
       pure Nothing
     unknownTag ->
@@ -302,14 +302,13 @@ decodeEither
    . JsonDecoder err extra a
   -> JsonDecoder err extra b
   -> JsonDecoder err extra (Either a b)
-decodeEither decodeLeft decodeRight = addTypeHint "Either" Decoder.do
-  obj <- decodeJObject
-  tag <- decodeField obj "tag" decodeString
+decodeEither decodeLeft decodeRight = addTypeHint "Either" $ decodeJObject >>> Decoder.do
+  tag <- decodeField "tag" decodeString
   case tag of
     "Left" -> addCtorHint "Left" do
-      Left <$> decodeField obj "value" decodeLeft
+      Left <$> decodeField "value" decodeLeft
     "Right" -> addCtorHint "Right" do
-      Right <$> decodeField obj "value" decodeRight
+      Right <$> decodeField "value" decodeRight
     unknownTag ->
       failWithStructureError $ "Tag was not 'Left' or 'Right': " <> unknownTag
 
@@ -333,18 +332,17 @@ decodeThese
    . JsonDecoder err extra a
   -> JsonDecoder err extra b
   -> JsonDecoder err extra (These a b)
-decodeThese decodeA decodeB = addTypeHint "These" Decoder.do
-  obj <- decodeJObject
-  tag <- decodeField obj "tag" decodeString
+decodeThese decodeA decodeB = addTypeHint "These" $ decodeJObject >>> Decoder.do
+  tag <- decodeField "tag" decodeString
   case tag of
     "This" -> addCtorHint "This" do
-      This <$> decodeField obj "value" decodeA
+      This <$> decodeField "value" decodeA
     "That" -> addCtorHint "That" do
-      That <$> decodeField obj "value" decodeB
+      That <$> decodeField "value" decodeB
     "Both" -> addCtorHint "This" do
       Both
-        <$> (addSubtermHint 0 $ decodeField obj "this" decodeA)
-        <*> (addSubtermHint 1 $ decodeField obj "that" decodeB)
+        <$> (addSubtermHint 0 $ decodeField "this" decodeA)
+        <*> (addSubtermHint 1 $ decodeField "that" decodeB)
     unknownTag ->
       failWithStructureError $ "Tag was not 'This', 'That', or 'Both': " <> unknownTag
 
@@ -353,11 +351,10 @@ decodeNonEmpty
    . JsonDecoder err extra a
   -> JsonDecoder err extra (f a)
   -> JsonDecoder err extra (NonEmpty f a)
-decodeNonEmpty decodeHead decodeTail = addTypeHint "NonEmpty" Decoder.do
-  obj <- decodeJObject
+decodeNonEmpty decodeHead decodeTail = addTypeHint "NonEmpty" $ decodeJObject >>> Decoder.do
   NonEmpty
-    <$> (addSubtermHint 0 $ decodeField obj "head" decodeHead)
-    <*> (addSubtermHint 0 $ decodeField obj "tail" decodeTail)
+    <$> (addSubtermHint 0 $ decodeField "head" decodeHead)
+    <*> (addSubtermHint 0 $ decodeField "tail" decodeTail)
 
 decodeList
   :: forall err extra a
@@ -390,10 +387,12 @@ decodeMap decodeKey decodeValue = addTypeHint "Map" Decoder.do
   arr <- decodeJArray
   map Map.fromFoldable $ forWithIndex arr \i a ->
     addOffset (AtIndex i) a Decoder.do
-      obj <- decodeJObject
-      Tuple
-        <$> decodeField obj "key" decodeKey
-        <*> decodeField obj "value" decodeValue
+      decodeJObject
+        >>>
+          ( Tuple
+              <$> decodeField "key" decodeKey
+              <*> decodeField "value" decodeValue
+          )
 
 decodeSet
   :: forall err extra a
@@ -449,11 +448,10 @@ decodeRecord' propDecoders = decodeRecordPrim (decodeRowList propDecoders)
 
 decodeRecordPrim
   :: forall err extra outputRows
-   . (Object Json -> JsonDecoder err extra { | outputRows })
+   . JsonDecoder' err extra (Object Json) { | outputRows }
   -> JsonDecoder err extra { | outputRows }
 decodeRecordPrim decoder = addTypeHint "Record" Decoder.do
-  obj <- decodeJObject
-  decoder obj
+  decodeJObject >>> decoder
 
 buildRecordDecoder
   :: forall err extra rl decoderRows
@@ -504,7 +502,7 @@ decodeOptionalProps props =
   insertOptionalPropDecoders (RLRecordDecoder props :: RLRecordDecoder err extra propsRl { | props })
 
 newtype PropDecoder err extra a = PropDecoder
-  { onMissingField :: JsonDecoder err extra a
+  { onMissingField :: JsonDecoder' err extra (Object Json) a
   , decoder :: JsonDecoder err extra a
   }
 
@@ -605,10 +603,10 @@ instance Category (RLRecordDecoderBuilder err extra) where
 -- | Decodes an `Object Json` into a `Record rows` and works whether fields are required or optional.
 class DecodeRowList :: Type -> Type -> RowList Type -> Type -> Type -> Constraint
 class DecodeRowList err extra rowList inputRec out | err rowList -> inputRec out where
-  decodeRowList :: RLRecordDecoder err extra rowList inputRec -> Object Json -> JsonDecoder err extra out
+  decodeRowList :: RLRecordDecoder err extra rowList inputRec -> JsonDecoder' err extra (Object Json) out
 
 instance DecodeRowList err extra RowList.Nil {} {} where
-  decodeRowList _ _ = pure {}
+  decodeRowList _ = pure {}
 else instance
   ( Row.Cons sym (PropDecoder err extra a) tail inputRows
   , DecodeRowList err extra tailList { | tail } { | intermediateRows }
@@ -617,9 +615,9 @@ else instance
   , IsSymbol sym
   ) =>
   DecodeRowList err extra (RowList.Cons sym (PropDecoder err extra a) tailList) { | inputRows } { | outRows } where
-  decodeRowList (RLRecordDecoder fieldDecoders) obj = ado
-    tailRecord <- decodeRowList (RLRecordDecoder fieldDecodersTail :: RLRecordDecoder err extra tailList { | tail }) obj
-    value <- decodeField' obj keyStr field.onMissingField field.decoder
+  decodeRowList (RLRecordDecoder fieldDecoders) = ado
+    tailRecord <- decodeRowList (RLRecordDecoder fieldDecodersTail :: RLRecordDecoder err extra tailList { | tail })
+    value <- decodeField' keyStr field.onMissingField field.decoder
     in Record.insert _sym value tailRecord
     where
     _sym = Proxy :: Proxy sym

@@ -9,7 +9,7 @@ module Codec.Json.Unidirectional.Decode.Class
   , mkExistentialDecoder2
   , ExistentialDecoder3
   , mkExistentialDecoder3
-  , RowListObject
+  , RowListJsonObjDecoder
   , class BuildPropDecoders
   , buildPropDecoders
   ) where
@@ -17,6 +17,9 @@ module Codec.Json.Unidirectional.Decode.Class
 import Prelude
 
 import Codec.Decoder (DecoderFn(..))
+import Codec.Json.JsonDecoder (JsonDecoder, JsonDecoder', failWithMissingField)
+import Codec.Json.Newtypes (K0(..), K1(..), K2(..), K3(..), Optional(..))
+import Codec.Json.Unidirectional.Decode.Value (decodeArray, decodeBoolean, decodeChar, decodeCodePoint, decodeEither, decodeField', decodeIdentity, decodeInt, decodeList, decodeMap, decodeMaybeTagged, decodeNonEmpty, decodeNonEmptyArray, decodeNonEmptyList, decodeNonEmptySet, decodeNonEmptyString, decodeNullable, decodeNumber, decodeObject, decodeRecordPrim, decodeSet, decodeString, decodeThese, decodeTuple, decodeUnitFromNull, decodeVoid)
 import Data.Argonaut.Core (Json)
 import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Either (Either)
@@ -38,9 +41,6 @@ import Data.These (These)
 import Data.Tuple (Tuple)
 import Data.Validation.Semigroup (V)
 import Foreign.Object (Object)
-import Codec.Json.JsonDecoder (JsonDecoder, failWithMissingField)
-import Codec.Json.Newtypes (K0(..), K1(..), K2(..), K3(..), Optional(..))
-import Codec.Json.Unidirectional.Decode.Value (decodeArray, decodeBoolean, decodeChar, decodeCodePoint, decodeEither, decodeField', decodeIdentity, decodeInt, decodeList, decodeMap, decodeMaybeTagged, decodeNonEmpty, decodeNonEmptyArray, decodeNonEmptyList, decodeNonEmptySet, decodeNonEmptyString, decodeNullable, decodeNumber, decodeObject, decodeRecordPrim, decodeSet, decodeString, decodeThese, decodeTuple, decodeUnitFromNull, decodeVoid)
 import Prim.Row as Row
 import Prim.RowList as RowList
 import Prim.RowList as RowToList
@@ -269,47 +269,57 @@ instance
       reAddNewtype = coerce
     reAddNewtype $ runFn5 f pathSoFar appendFn handlers extra json
 
-newtype RowListObject :: Type -> Type -> RowList.RowList Type -> Type -> Type
-newtype RowListObject err extra rl a = RowListObject (Object a)
+newtype RowListJsonObjDecoder :: Type -> Type -> RowList.RowList Type -> Row Type -> Type
+newtype RowListJsonObjDecoder err extra rl rows = RowListJsonObjDecoder (JsonDecoder' err extra (Object Json) (Builder {} { | rows }))
+
+unwrapRLJOD
+  :: forall err extra rl rows
+   . RowListJsonObjDecoder err extra rl rows
+  -> JsonDecoder' err extra (Object Json) (Builder {} { | rows })
+unwrapRLJOD (RowListJsonObjDecoder codec) = codec
 
 instance
   ( RowToList.RowToList rows rl
-  , BuildPropDecoders err extra rl { | rows }
+  , BuildPropDecoders err extra rl rows
   ) =>
   DecodeJson err extra { | rows } where
-  decodeJson = decodeRecordPrim \obj -> buildFromScratch <$> buildPropDecoders (RowListObject obj :: RowListObject err extra rl Json)
+  decodeJson =
+    decodeRecordPrim
+      $ map buildFromScratch
+      $ unwrapRLJOD (buildPropDecoders :: RowListJsonObjDecoder err extra rl rows)
 
+class BuildPropDecoders :: Type -> Type -> RowList.RowList Type -> Row Type -> Constraint
 class BuildPropDecoders err extra rl out | err extra rl -> out where
-  buildPropDecoders :: RowListObject err extra rl Json -> JsonDecoder err extra (Builder {} out)
+  buildPropDecoders :: RowListJsonObjDecoder err extra rl out
 
-instance BuildPropDecoders err extra RowList.Nil {} where
-  buildPropDecoders _ = pure identity
+instance BuildPropDecoders err extra RowList.Nil () where
+  buildPropDecoders = RowListJsonObjDecoder (pure identity)
 else instance
   ( DecodeJson err extra a
-  , BuildPropDecoders err extra tailList { | intermediate }
+  , BuildPropDecoders err extra tailList intermediate
   , Row.Lacks sym intermediate
   , Row.Cons sym (Optional (Maybe a)) intermediate out
   , IsSymbol sym
   ) =>
-  BuildPropDecoders err extra (RowList.Cons sym (Optional (Maybe a)) tailList) { | out } where
-  buildPropDecoders (RowListObject obj) = ado
-    tailBuilder <- buildPropDecoders (RowListObject obj :: RowListObject err extra tailList Json)
-    value <- decodeField' obj keyStr (pure (Optional Nothing)) ((\a -> Optional (Just a)) <$> decodeJson)
+  BuildPropDecoders err extra (RowList.Cons sym (Optional (Maybe a)) tailList) out where
+  buildPropDecoders = RowListJsonObjDecoder ado
+    tailBuilder <- unwrapRLJOD (buildPropDecoders :: RowListJsonObjDecoder err extra tailList intermediate)
+    value <- decodeField' keyStr (pure (Optional Nothing)) ((\a -> Optional (Just a)) <$> decodeJson)
     in Builder.insert _sym value <<< tailBuilder
     where
     _sym = Proxy :: Proxy sym
     keyStr = reflectSymbol _sym
 else instance
   ( DecodeJson err extra a
-  , BuildPropDecoders err extra tailList { | intermediate }
+  , BuildPropDecoders err extra tailList intermediate
   , Row.Lacks sym intermediate
   , Row.Cons sym a intermediate out
   , IsSymbol sym
   ) =>
-  BuildPropDecoders err extra (RowList.Cons sym a tailList) { | out } where
-  buildPropDecoders (RowListObject obj) = ado
-    tailBuilder <- buildPropDecoders (RowListObject obj :: RowListObject err extra tailList Json)
-    value <- decodeField' obj keyStr (failWithMissingField keyStr) decodeJson
+  BuildPropDecoders err extra (RowList.Cons sym a tailList) out where
+  buildPropDecoders = RowListJsonObjDecoder ado
+    tailBuilder <- unwrapRLJOD (buildPropDecoders :: RowListJsonObjDecoder err extra tailList intermediate)
+    value <- decodeField' keyStr (failWithMissingField keyStr) decodeJson
     in Builder.insert _sym value <<< tailBuilder
     where
     _sym = Proxy :: Proxy sym

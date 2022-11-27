@@ -27,7 +27,6 @@ module Codec.Json.Bidirectional.Value
   , optionalProps
   , nullable
   , identityCodec
-  , maybeNullable
   , RlJCodec
   , class InsertRequiredPropCodecs
   , insertRequiredPropCodecs
@@ -291,22 +290,18 @@ optionalProps codecs =
   insertOptionalPropCodecs (RlJCodec codecs :: RlJCodec e extra rl codecs)
 
 nullable :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (Nullable a)
-nullable aCodec =
-  dimap Nullable.toMaybe Nullable.toNullable $ maybeNullable aCodec
+nullable aCodec = codec'
+  (altAccumulate (decoder (Nullable.toNullable Nothing <$ jnull)) (decoder (Nullable.toNullable <<< Just <$> aCodec)))
+  ( mkFn2 \extra a -> case Nullable.toMaybe a of
+      Just a' -> fst $ runFn2 (encoder aCodec) extra a'
+      Nothing -> fst $ runFn2 (encoder jnull) extra unit
+  )
 
 identityCodec :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (Identity a)
 identityCodec = coerce
 
 -- maybeTagged :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (Maybe a)
 -- maybeTaggedCodec a =
-
-maybeNullable :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (Maybe a)
-maybeNullable aCodec = codec'
-  (altAccumulate (decoder (Nothing <$ jnull)) (decoder (Just <$> aCodec)))
-  ( mkFn2 \extra a -> case a of
-      Just a' -> fst $ runFn2 (encoder aCodec) extra a'
-      Nothing -> fst $ runFn2 (encoder jnull) extra unit
-  )
 
 newtype RlJCodec :: Type -> Type -> RL.RowList Type -> Row Type -> Type
 newtype RlJCodec e extra rl row = RlJCodec { | row }

@@ -31,6 +31,7 @@ module Codec.Json.Bidirectional.Value
   , variantCase
   , nullable
   , identityCodec
+  , maybe
   , RlJCodec
   , class InsertRequiredPropCodecs
   , insertRequiredPropCodecs
@@ -63,7 +64,8 @@ import Data.Identity (Identity(..))
 import Data.Int as Int
 import Data.List (List(..), (:))
 import Data.List as List
-import Data.Maybe (Maybe(..), maybe)
+import Data.Maybe (Maybe(..))
+import Data.Maybe as Maybe
 import Data.Nullable (Nullable)
 import Data.Nullable as Nullable
 import Data.Profunctor (dimap)
@@ -287,7 +289,7 @@ optionalProp _sym codecA codecR = Codec dec enc
   enc = mkFn2 \extra val -> do
     let tail = fst $ runFn2 (encoder codecR) extra (unsafeForget val)
     let mbHead = map (\a -> Tuple key (fst $ runFn2 (encoder codecA) extra a)) $ unsafeGet key val
-    Tuple (maybe tail (\h -> h : tail) mbHead) val
+    Tuple (Maybe.maybe tail (\h -> h : tail) mbHead) val
 
   unsafeForget :: Record r' → Record r
   unsafeForget = unsafeCoerce
@@ -378,11 +380,25 @@ nullable aCodec = codec'
 identityCodec :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (Identity a)
 identityCodec = coerce
 
--- maybe :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (Maybe a)
--- maybe a = jobject >~> codec'
---   ( Decoder.do
---       tag <- decodeField "tag"
---   )
+maybe :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (Maybe a)
+maybe codecA = dimap toVariant fromVariant
+  ( variantPrim
+      ( \v ->
+          v
+            # variantCase _just altAccumulate (Right codecA)
+            # variantCase _nothing altAccumulate (Left unit)
+      )
+  )
+  where
+  _just = Proxy :: Proxy "just"
+  _nothing = Proxy :: Proxy "nothing"
+  toVariant = case _ of
+    Just a -> V.inj _just a
+    Nothing -> V.inj _nothing unit
+  fromVariant = V.match
+    { just: Just
+    , nothing: const Nothing
+    }
 
 newtype RlJCodec :: Type -> Type -> RL.RowList Type -> Row Type -> Type
 newtype RlJCodec e extra rl row = RlJCodec { | row }

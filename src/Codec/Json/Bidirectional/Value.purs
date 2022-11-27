@@ -230,10 +230,10 @@ requiredProp
 requiredProp _sym codecA codecR = Codec dec enc
   where
   key = reflectSymbol _sym
-  dec = Decoder.do
+  dec = ado
     r <- decoder codecR
     a <- decodeField key (decoder codecA)
-    pure $ unsafeSet key a r
+    in unsafeSet key a r
 
   enc :: Fn2 extra { | r' } (Tuple (List (Tuple String Json)) { | r' })
   enc = mkFn2 \extra val ->
@@ -266,10 +266,10 @@ optionalProp
 optionalProp _sym codecA codecR = Codec dec enc
   where
   key = reflectSymbol _sym
-  dec = Decoder.do
+  dec = ado
     r <- decoder codecR
     a <- decodeField' key (pure Nothing) (Just <$> decoder codecA)
-    pure $ unsafeSet key a r
+    in unsafeSet key a r
 
   enc :: Fn2 extra { | r' } (Tuple (List (Tuple String Json)) { | r' })
   enc = mkFn2 \extra val -> do
@@ -300,8 +300,11 @@ nullable aCodec = codec'
 identityCodec :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (Identity a)
 identityCodec = coerce
 
--- maybeTagged :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (Maybe a)
--- maybeTaggedCodec a =
+-- maybe :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (Maybe a)
+-- maybe a = jobject >~> codec'
+--   ( Decoder.do
+--       tag <- decodeField "tag"
+--   )
 
 newtype RlJCodec :: Type -> Type -> RL.RowList Type -> Row Type -> Type
 newtype RlJCodec e extra rl row = RlJCodec { | row }

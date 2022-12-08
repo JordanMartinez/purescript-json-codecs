@@ -2,31 +2,39 @@ module Codec.Json.Bidirectional.Class where
 
 import Prelude
 
+import Codec.Codec (Codec(..), decoder, encoder)
 import Codec.Decoder (altAccumulate)
 import Codec.Json.Bidirectional.Value (array, boolean, codePoint, either, int, json, list, mapCodec, maybe, nonEmpty, nonEmptyArray, nonEmptyList, nonEmptySet, nonEmptyString, nullable, number, object, recordPrim, requiredProp, set, string, these, tuple, unitCodec, variantCase, variantPrim, voidCodec)
 import Codec.Json.JsonCodec (JPropCodec, JsonCodec, JsonCodec')
 import Codec.Json.JsonDecoder (DecodeErrorAccumulatorFn)
+import Codec.Json.Newtypes (Optional(..))
+import Codec.Json.Unidirectional.Decode.Value (decodeField')
 import Data.Argonaut.Core (Json)
 import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Either (Either(..))
+import Data.Function.Uncurried (Fn2, mkFn2, runFn2)
 import Data.List (List)
+import Data.List as List
 import Data.List.Types (NonEmptyList)
 import Data.Map (Map)
-import Data.Maybe (Maybe)
+import Data.Maybe (Maybe(..))
+import Data.Maybe as Maybe
 import Data.NonEmpty (NonEmpty)
 import Data.Nullable (Nullable)
 import Data.Set (Set)
 import Data.Set.NonEmpty (NonEmptySet)
 import Data.String (CodePoint)
 import Data.String.NonEmpty.Internal (NonEmptyString)
-import Data.Symbol (class IsSymbol)
+import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.These (These)
-import Data.Tuple (Tuple)
+import Data.Tuple (Tuple(..), fst)
 import Data.Variant (Variant)
 import Foreign.Object (Object)
 import Prim.Row as Row
 import Prim.RowList as RL
+import Record.Unsafe (unsafeGet, unsafeSet)
 import Type.Proxy (Proxy(..))
+import Unsafe.Coerce (unsafeCoerce)
 
 class CodecJson e extra a where
   codecJson :: JsonCodec e extra a
@@ -130,7 +138,19 @@ class CodecJsonRecord e extra rl row | e extra rl -> row where
 instance CodecJsonRecord e extra RL.Nil () where
   codecJsonRecord = CJPropFn identity
 
-instance
+else instance
+  ( Row.Cons sym (Optional (Maybe a)) row' row
+  , CodecJson e extra a
+  , CodecJsonRecord e extra tail row'
+  , IsSymbol sym
+  ) =>
+  CodecJsonRecord e extra (RL.Cons sym (Optional (Maybe a)) tail) row where
+  codecJsonRecord = CJPropFn
+    ( optionalProp' (Proxy :: Proxy sym) codecJson
+        <<< (unCJPropFn (codecJsonRecord :: CJPropFn e extra tail row'))
+    )
+
+else instance
   ( Row.Cons sym a row' row
   , CodecJson e extra a
   , CodecJsonRecord e extra tail row'
@@ -141,6 +161,31 @@ instance
     ( requiredProp (Proxy :: Proxy sym) codecJson
         <<< (unCJPropFn (codecJsonRecord :: CJPropFn e extra tail row'))
     )
+
+optionalProp'
+  :: forall e extra sym a r r'
+   . IsSymbol sym
+  => Row.Cons sym (Optional (Maybe a)) r r'
+  => Proxy sym
+  -> JsonCodec e extra a
+  -> JPropCodec e extra { | r }
+  -> JPropCodec e extra { | r' }
+optionalProp' _sym codecA codecR = Codec dec enc
+  where
+  key = reflectSymbol _sym
+  dec = ado
+    r <- decoder codecR
+    a <- decodeField' key (pure Nothing) (Just <$> decoder codecA)
+    in unsafeSet key (Optional a) r
+
+  enc :: Fn2 extra { | r' } (Tuple (List (Tuple String Json)) { | r' })
+  enc = mkFn2 \extra val -> do
+    let tail = fst $ runFn2 (encoder codecR) extra (unsafeForget val)
+    let mbHead = map (\a -> Tuple key (fst $ runFn2 (encoder codecA) extra a)) $ unsafeGet key val
+    Tuple (Maybe.maybe tail (\h -> h List.: tail) mbHead) val
+
+  unsafeForget :: Record r' → Record r
+  unsafeForget = unsafeCoerce
 
 newtype CJVariantFn :: Type -> Type -> RL.RowList Type -> Row Type -> Type
 newtype CJVariantFn e extra rl rows = CJVariantFn

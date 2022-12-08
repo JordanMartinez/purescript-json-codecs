@@ -31,6 +31,16 @@ module Codec.Json.Bidirectional.Value
   , nullable
   , identityCodec
   , maybe
+  , either
+  , tuple
+  , these
+  , nonEmpty
+  , list
+  , nonEmptyList
+  , mapCodec
+  , set
+  , nonEmptySet
+  , codePoint
   , RlJCodec
   , class InsertRequiredPropCodecs
   , insertRequiredPropCodecs
@@ -43,14 +53,13 @@ module Codec.Json.Bidirectional.Value
 
 import Prelude
 
-import Codec.Codec (Codec(..), codec, codec', decoder, encoder, (>~>))
+import Codec.Codec (Codec(..), codec, codec', decoder, encoder, (>~>), (~))
 import Codec.Decoder (altAccumulate)
 import Codec.Decoder.Qualified as Decoder
 import Codec.Json.Errors.DecodeMessages (arrayNotEmptyFailure, numToIntConversionFailure, stringNotEmptyFailure, stringToCharConversionFailure)
-import Codec.Json.JsonCodec (JIndexedCodec, JPropCodec, JsonCodec', JsonCodec, mkJsonCodec, refinedValue)
-import Codec.Json.JsonDecoder (DecodeErrorAccumulatorFn, addOffset, failWithStructureError, failWithUnrefinableValue)
-import Codec.Json.Types (JsonOffset(..))
-import Codec.Json.Unidirectional.Decode.Value (decodeBoolean, decodeField, decodeField', decodeIndex, decodeJArray, decodeJNull, decodeJObject, decodeNumber, decodeString, decodeVoid)
+import Codec.Json.JsonCodec (JIndexedCodec, JPropCodec, JsonCodec, JsonCodec', mkJsonCodec, refinedValue)
+import Codec.Json.JsonDecoder (DecodeErrorAccumulatorFn, failWithStructureError, failWithUnrefinableValue)
+import Codec.Json.Unidirectional.Decode.Value (decodeBoolean, decodeField, decodeField', decodeFields, decodeIndex, decodeIndices, decodeJArray, decodeJNull, decodeJObject, decodeNumber, decodeString, decodeVoid)
 import Codec.Json.Unidirectional.Encode.Value (encodeJArray, encodeBoolean, encodeNumber, encodeJObject, encodeString, encodeUnitToNull, encodeVoid)
 import Control.Monad.ST as ST
 import Data.Argonaut.Core (Json)
@@ -58,23 +67,35 @@ import Data.Array as Array
 import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Array.NonEmpty as NEA
 import Data.Either (Either(..), note)
+import Data.FoldableWithIndex (foldlWithIndex)
 import Data.Function.Uncurried (Fn2, mkFn2, runFn2)
 import Data.Identity (Identity(..))
 import Data.Int as Int
 import Data.List (List(..), (:))
 import Data.List as List
+import Data.List.NonEmpty (NonEmptyList)
+import Data.List.NonEmpty as NEL
+import Data.Map (Map)
+import Data.Map as Map
 import Data.Maybe (Maybe(..))
 import Data.Maybe as Maybe
+import Data.NonEmpty (NonEmpty(..))
 import Data.Nullable (Nullable)
 import Data.Nullable as Nullable
 import Data.Profunctor (dimap)
+import Data.Set (Set)
+import Data.Set as Set
+import Data.Set.NonEmpty (NonEmptySet)
+import Data.Set.NonEmpty as NonEmptySet
+import Data.String (CodePoint, codePointAt)
+import Data.String as String
 import Data.String.CodeUnits (charAt)
 import Data.String.CodeUnits as SCU
 import Data.String.NonEmpty.Internal (NonEmptyString(..))
 import Data.String.NonEmpty.Internal as NonEmptyString
 import Data.Symbol (class IsSymbol, reflectSymbol)
-import Data.TraversableWithIndex (forWithIndex)
-import Data.Tuple (Tuple(..), fst)
+import Data.These (These(..))
+import Data.Tuple (Tuple(..), fst, snd, uncurry)
 import Data.Variant (Variant, case_)
 import Data.Variant as V
 import Foreign.Object (Object)
@@ -111,12 +132,10 @@ jarray :: forall e extra. JsonCodec e extra (Array Json)
 jarray = mkJsonCodec decodeJArray encodeJArray
 
 indexedArray :: forall e extra a. JIndexedCodec e extra a -> JsonCodec e extra a
-indexedArray jiCodec = codec'
-  (decoder jarray >>> decoder jiCodec)
+indexedArray jiCodec = jarray >~> codec'
+  (decoder jiCodec)
   ( mkFn2 \extra a ->
-      fst
-        $ runFn2 (encoder jarray) extra
-        $ Array.fromFoldable
+      Array.fromFoldable
         $ fst
         $ runFn2 (encoder jiCodec) extra a
   )
@@ -158,11 +177,7 @@ fieldOptional key propCodec = codec
 object :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (Object a)
 object aCodec =
   jobject >~> codec'
-    ( Decoder.do
-        obj <- identity
-        forWithIndex obj \k j ->
-          addOffset (AtKey k) j (decoder aCodec)
-    )
+    (decodeFields (decoder aCodec))
     ( mkFn2 \extra fa -> do
         let enc = encoder aCodec
         (\a -> fst $ runFn2 enc extra a) <$> fa
@@ -190,11 +205,7 @@ nonEmptyString =
 array :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (Array a)
 array aCodec =
   jarray >~> codec'
-    ( Decoder.do
-        arr <- identity
-        forWithIndex arr \i j ->
-          addOffset (AtIndex i) j (decoder aCodec)
-    )
+    (decodeIndices (decoder aCodec))
     ( mkFn2 \extra fa -> do
         let enc = encoder aCodec
         (\a -> fst $ runFn2 enc extra a) <$> fa
@@ -396,6 +407,89 @@ maybe codecA = dimap toVariant fromVariant
     { "Just": Just
     , "Nothing": const Nothing
     }
+
+either :: forall e extra a b. JsonCodec e extra a -> JsonCodec e extra b -> JsonCodec e extra (Either a b)
+either codecA codecB = dimap toVariant fromVariant
+  $ variantPrim altAccumulate
+  $ variantCase _left (Right codecA)
+      >>> variantCase _right (Right codecB)
+  where
+  _left = Proxy :: Proxy "Left"
+  _right = Proxy :: Proxy "Right"
+
+  toVariant = case _ of
+    Left a -> V.inj _left a
+    Right b -> V.inj _right b
+  fromVariant = V.match
+    { "Left": Left
+    , "Right": Right
+    }
+
+tuple :: forall e extra a b. JsonCodec e extra a -> JsonCodec e extra b -> JsonCodec e extra (Tuple a b)
+tuple codecA codecB = indexedArray $
+  Tuple
+    <$> fst ~ index 0 codecA
+    <*> snd ~ index 1 codecB
+
+these :: forall e extra a b. JsonCodec e extra a -> JsonCodec e extra b -> JsonCodec e extra (These a b)
+these codecA codecB = dimap toVariant fromVariant
+  $ variantPrim altAccumulate
+  $ variantCase _this (Right codecA)
+      >>> variantCase _that (Right codecB)
+      >>> variantCase _both (Right $ tuple codecA codecB)
+  where
+  _this = Proxy :: Proxy "This"
+  _that = Proxy :: Proxy "That"
+  _both = Proxy :: Proxy "Both"
+
+  toVariant = case _ of
+    This a -> V.inj _this a
+    That b -> V.inj _that b
+    Both a b -> V.inj _both $ Tuple a b
+  fromVariant = V.match
+    { "This": This
+    , "That": That
+    , "Both": uncurry Both
+    }
+
+nonEmpty :: forall e extra f a. JsonCodec e extra a -> JsonCodec e extra (f a) -> JsonCodec e extra (NonEmpty f a)
+nonEmpty codecA codecFA = dimap to from $
+  record
+    { head: codecA
+    , tail: codecFA
+    }
+  where
+  to (NonEmpty a fa) = { head: a, tail: fa }
+  from { head, tail } = NonEmpty head tail
+
+list :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (List a)
+list codecA = dimap Array.fromFoldable List.fromFoldable
+  $ array codecA
+
+nonEmptyList :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (NonEmptyList a)
+nonEmptyList codecA =
+  list codecA >~> refinedValue (note "Received empty list" <<< NEL.fromList) NEL.toList
+
+mapCodec :: forall e extra k v. Ord k => JsonCodec e extra k -> JsonCodec e extra v -> JsonCodec e extra (Map k v)
+mapCodec codecKey codecValue = dimap to from
+  $ array (record { key: codecKey, value: codecValue })
+  where
+  to = foldlWithIndex (\key acc value -> Array.snoc acc { key, value }) []
+  from = Array.foldl (\m { key, value } -> Map.insert key value m) Map.empty
+
+set :: forall e extra a. Ord a => JsonCodec e extra a -> JsonCodec e extra (Set a)
+set codecValue = dimap to from $ array codecValue
+  where
+  to = Set.toUnfoldable
+  from = Array.foldl (flip Set.insert) Set.empty
+
+nonEmptySet :: forall e extra a. Ord a => JsonCodec e extra a -> JsonCodec e extra (NonEmptySet a)
+nonEmptySet codecValue =
+  set codecValue >~> refinedValue (note "Received empty set" <<< NonEmptySet.fromSet) (NonEmptySet.toSet)
+
+codePoint :: forall e extra. JsonCodec e extra CodePoint
+codePoint =
+  string >~> refinedValue (\s -> note ("Invalid code point for string: " <> show s) $ codePointAt 0 s) String.singleton
 
 newtype RlJCodec :: Type -> Type -> RL.RowList Type -> Row Type -> Type
 newtype RlJCodec e extra rl row = RlJCodec { | row }

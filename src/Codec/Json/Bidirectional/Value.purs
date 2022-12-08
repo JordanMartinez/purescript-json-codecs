@@ -1,6 +1,6 @@
 module Codec.Json.Bidirectional.Value
   ( json
-  , void
+  , voidCodec
   , jnull
   , unitCodec
   , boolean
@@ -113,8 +113,8 @@ import Unsafe.Coerce (unsafeCoerce)
 json :: forall e extra. JsonCodec e extra Json
 json = mkJsonCodec identity identity
 
-void :: forall e extra. JsonCodec e extra Void
-void = mkJsonCodec decodeVoid encodeVoid
+voidCodec :: forall e extra. JsonCodec e extra Void
+voidCodec = mkJsonCodec decodeVoid encodeVoid
 
 jnull :: forall e extra. JsonCodec e extra Unit
 jnull = mkJsonCodec decodeJNull encodeUnitToNull

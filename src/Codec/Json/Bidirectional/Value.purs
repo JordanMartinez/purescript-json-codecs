@@ -132,12 +132,10 @@ jobject :: forall e extra. JsonCodec e extra (Object Json)
 jobject = mkJsonCodec decodeJObject encodeJObject
 
 objectPrim :: forall e extra a. JPropCodec e extra a -> JsonCodec e extra a
-objectPrim fieldsCodec = codec'
-  (decoder jobject >>> decoder fieldsCodec)
+objectPrim fieldsCodec = jobject >~> codec'
+  (decoder fieldsCodec)
   ( mkFn2 \extra a ->
-      fst
-        $ runFn2 (encoder jobject) extra
-        $ Object.fromFoldable
+      Object.fromFoldable
         $ fst
         $ runFn2 (encoder fieldsCodec) extra a
   )

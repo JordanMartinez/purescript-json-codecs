@@ -36,21 +36,28 @@ module Codec.Json.Unidirectional.Encode.Value
   , encodeOptionalProp
   , encodeRequiredProps
   , encodeOptionalProps
+  , encodeVariant
+  , encodeVariantPrim
+  , encodeVariantCase
   , class InsertRequiredPropEncoders
   , insertRequiredPropEncoders
   , class InsertOptionalPropEncoders
   , insertOptionalPropEncoders
   , class EncodeRowList
   , encodeRowList
+  , VRecord
+  , class EncodeJsonVariant
+  , encodeJsonVariant
   ) where
 
 import Prelude
 
+import Control.Monad.ST as ST
 import Data.Argonaut.Core (Json, fromArray, fromBoolean, fromNumber, fromObject, fromString, jsonNull)
 import Data.Array as Array
 import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Array.NonEmpty as NEA
-import Data.Either (Either, either)
+import Data.Either (Either(..), either)
 import Data.Foldable (foldl)
 import Data.FoldableWithIndex (foldlWithIndex)
 import Data.Identity (Identity(..))
@@ -70,14 +77,20 @@ import Data.String.NonEmpty.Internal (NonEmptyString(..))
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.These (These, these)
 import Data.Tuple (Tuple(..))
+import Data.Variant (Variant)
+import Data.Variant as V
 import Foreign.Object (Object)
 import Foreign.Object as Object
+import Foreign.Object.ST as FOST
+import Foreign.Object.ST.Unsafe as FOSTU
 import Prim.Row as Row
+import Prim.RowList as RL
 import Prim.RowList as RowList
 import Record as Record
 import Record.Builder (Builder)
 import Record.Builder as Builder
 import Type.Proxy (Proxy(..))
+import Unsafe.Coerce (unsafeCoerce)
 
 encodeVoid :: Void -> Json
 encodeVoid = absurd
@@ -274,6 +287,47 @@ encodeOptionalProps
 encodeOptionalProps props =
   insertOptionalPropEncoders (RLRecordEncoder props :: RLRecordEncoder propsRl props)
 
+encodeVariant
+  :: forall rows rl out
+   . RL.RowToList rows rl
+  => EncodeJsonVariant rl rows out
+  => { | rows }
+  -> Variant out
+  -> Json
+encodeVariant r = encodeVariantPrim (encodeJsonVariant (VRecord r :: VRecord rl rows))
+
+encodeVariantEmpty :: Variant () -> Object Json
+encodeVariantEmpty = V.case_
+
+encodeVariantPrim
+  :: forall rows
+   . ((Variant () -> Object Json) -> (Variant rows -> Object Json))
+  -> Variant rows
+  -> Json
+encodeVariantPrim buildCodec = encodeJObject <<< (buildCodec encodeVariantEmpty)
+
+encodeVariantCase
+  :: forall sym a tail row
+   . IsSymbol sym
+  => Row.Cons sym a tail row
+  => Proxy sym
+  -> Either a (a -> Json)
+  -> (Variant tail -> Object Json)
+  -> (Variant row -> Object Json)
+encodeVariantCase _sym eacodec tailEncoder = do
+  V.on _sym
+    ( \v' -> ST.run do
+        obj <- FOST.new
+        _ <- FOST.poke "tag" (encodeString label) obj
+        _ <- case eacodec of
+          Left _ -> pure obj
+          Right encoder -> FOST.poke "value" (encoder v') obj
+        FOSTU.unsafeFreeze obj
+    )
+    (\v' -> tailEncoder v')
+  where
+  label = reflectSymbol _sym
+
 class InsertRequiredPropEncoders :: RowList.RowList Type -> Row Type -> RowList.RowList Type -> Row Type -> RowList.RowList Type -> Row Type -> Constraint
 class InsertRequiredPropEncoders propsRl props oldRl oldRows newRl newRows | propsRl props oldRl oldRows -> newRl newRows where
   insertRequiredPropEncoders :: RLRecordEncoder propsRl props -> RLRecordEncoderBuilder oldRl oldRows newRl newRows
@@ -356,3 +410,31 @@ else instance
 
     value :: a
     value = Record.get _sym inputRec
+
+newtype VRecord :: RL.RowList Type -> Row Type -> Type
+newtype VRecord rowlist rows = VRecord { | rows }
+
+class EncodeJsonVariant :: RL.RowList Type -> Row Type -> Row Type -> Constraint
+class EncodeJsonVariant rowlist row out | rowlist -> row out where
+  encodeJsonVariant
+    :: VRecord rowlist row
+    -> ((Variant () -> Object Json) -> (Variant out -> Object Json))
+
+instance encodeJsonVariantNil :: EncodeJsonVariant RL.Nil () () where
+  encodeJsonVariant _ x = x
+
+instance encodeJsonVariantCons ::
+  ( Row.Cons sym (Either a (a -> Json)) codecRows' codecRows
+  , EncodeJsonVariant tail codecRows' out'
+  , Row.Cons sym a out' out
+  , IsSymbol sym
+  ) =>
+  EncodeJsonVariant (RL.Cons sym (Either a (a -> Json)) tail) codecRows out where
+  encodeJsonVariant (VRecord r) tailEncoder =
+    encodeVariantCase _sym (Record.get _sym r)
+      (encodeJsonVariant (VRecord $ unsafeForget r :: VRecord tail codecRows') tailEncoder)
+    where
+    _sym = Proxy :: Proxy sym
+
+    unsafeForget :: { | codecRows } -> { | codecRows' }
+    unsafeForget = unsafeCoerce

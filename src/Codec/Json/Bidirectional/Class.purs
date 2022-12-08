@@ -1,24 +1,42 @@
-module Codec.Json.Bidirectional.Class where
+module Codec.Json.Bidirectional.Class
+  ( class CodecJson
+  , codecJson
+  , ExistentialCodecJson0
+  , mkExistentialCodecJson0
+  , ExistentialCodecJson1
+  , mkExistentialCodecJson1
+  , ExistentialCodecJson2
+  , mkExistentialCodecJson2
+  , ExistentialCodecJson3
+  , mkExistentialCodecJson3
+  , CJPropFn
+  , class CodecJsonRecord
+  , codecJsonRecord
+  , CJVariantFn
+  , class CodecJsonVariant
+  , codecJsonVariant
+  ) where
 
 import Prelude
 
 import Codec.Codec (Codec(..), decoder, encoder)
-import Codec.Decoder (altAccumulate)
+import Codec.Decoder (DecoderFn(..), altAccumulate)
 import Codec.Json.Bidirectional.Value (array, boolean, codePoint, either, int, json, list, mapCodec, maybe, nonEmpty, nonEmptyArray, nonEmptyList, nonEmptySet, nonEmptyString, nullable, number, object, recordPrim, requiredProp, set, string, these, tuple, unitCodec, variantCase, variantPrim, voidCodec)
-import Codec.Json.JsonCodec (JPropCodec, JsonCodec, JsonCodec')
+import Codec.Json.JsonCodec (JPropCodec, JsonCodec', JsonCodec)
 import Codec.Json.JsonDecoder (DecodeErrorAccumulatorFn)
-import Codec.Json.Newtypes (Optional(..))
+import Codec.Json.Newtypes (K0(..), K1(..), K2(..), K3(..), Optional(..))
 import Codec.Json.Unidirectional.Decode.Value (decodeField')
 import Data.Argonaut.Core (Json)
 import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Either (Either(..))
-import Data.Function.Uncurried (Fn2, mkFn2, runFn2)
+import Data.Function.Uncurried (Fn2, mkFn2, mkFn5, runFn2, runFn5)
 import Data.List (List)
 import Data.List as List
 import Data.List.Types (NonEmptyList)
 import Data.Map (Map)
 import Data.Maybe (Maybe(..))
 import Data.Maybe as Maybe
+import Data.Newtype (class Newtype, unwrap)
 import Data.NonEmpty (NonEmpty)
 import Data.Nullable (Nullable)
 import Data.Set (Set)
@@ -28,11 +46,14 @@ import Data.String.NonEmpty.Internal (NonEmptyString)
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.These (These)
 import Data.Tuple (Tuple(..), fst)
+import Data.Validation.Semigroup (V)
 import Data.Variant (Variant)
 import Foreign.Object (Object)
 import Prim.Row as Row
 import Prim.RowList as RL
+import Record as Record
 import Record.Unsafe (unsafeGet, unsafeSet)
+import Safe.Coerce (coerce)
 import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
 
@@ -121,6 +142,176 @@ instance
   ) =>
   CodecJson e extra (Variant row) where
   codecJson = variantPrim altAccumulate (unCJVariantFn (codecJsonVariant :: CJVariantFn e extra rl row))
+
+foreign import data ExistentialCodecJson0 :: Type -> Type
+
+mkExistentialCodecJson0 :: forall e extra a. JsonCodec e extra a -> ExistentialCodecJson0 a
+mkExistentialCodecJson0 = unsafeCoerce
+
+unExistentialCodecJson0 :: forall e extra a. ExistentialCodecJson0 a -> JsonCodec e extra a
+unExistentialCodecJson0 = unsafeCoerce
+
+instance
+  ( Newtype extra { | rows }
+  , Row.Cons sym (ExistentialCodecJson0 a) tail rows
+  , IsSymbol sym
+  ) =>
+  CodecJson e extra (K0 sym a) where
+  codecJson = Codec dec enc
+    where
+    _sym = Proxy :: Proxy sym
+    dec = DecoderFn $ mkFn5 \pathSoFar appendFn handlers extra json -> do
+      let
+        localOverrides :: { | rows }
+        localOverrides = unwrap extra
+        (DecoderFn f) = decoder $ unExistentialCodecJson0 $ Record.get _sym localOverrides
+
+        reAddNewtype :: V e a -> V e (K0 sym a)
+        reAddNewtype = coerce
+      reAddNewtype $ runFn5 f pathSoFar appendFn handlers extra json
+    enc = mkFn2 \extra k0a -> do
+      let
+        localOverrides :: { | rows }
+        localOverrides = unwrap extra
+
+        f = encoder $ unExistentialCodecJson0 $ Record.get _sym localOverrides
+
+        a :: a
+        a = coerce k0a
+
+      k0a <$ runFn2 f extra a
+
+foreign import data ExistentialCodecJson1 :: (Type -> Type) -> Type
+
+mkExistentialCodecJson1 :: forall e extra f a. (JsonCodec e extra a -> JsonCodec e extra (f a)) -> ExistentialCodecJson1 f
+mkExistentialCodecJson1 = unsafeCoerce
+
+unExistentialCodecJson1 :: forall e extra f a. ExistentialCodecJson1 f -> (JsonCodec e extra a -> JsonCodec e extra (f a))
+unExistentialCodecJson1 = unsafeCoerce
+
+instance
+  ( Newtype extra { | rows }
+  , CodecJson e extra a
+  , Row.Cons sym (ExistentialCodecJson1 f) tail rows
+  , IsSymbol sym
+  ) =>
+  CodecJson e extra (K1 sym (f a)) where
+  codecJson = Codec dec enc
+    where
+    _sym = Proxy :: Proxy sym
+    codecJsonA = codecJson :: JsonCodec e extra a
+    dec = DecoderFn $ mkFn5 \pathSoFar appendFn handlers extra json -> do
+      let
+        localOverrides :: { | rows }
+        localOverrides = unwrap extra
+        buildDecoder = unExistentialCodecJson1 $ Record.get _sym localOverrides
+        (DecoderFn f) = decoder $ buildDecoder codecJsonA
+
+        reAddNewtype :: V e (f a) -> V e (K1 sym (f a))
+        reAddNewtype = coerce
+      reAddNewtype $ runFn5 f pathSoFar appendFn handlers extra json
+    enc = mkFn2 \extra k1fa -> do
+      let
+        localOverrides :: { | rows }
+        localOverrides = unwrap extra
+
+        buildEncoder = unExistentialCodecJson1 $ Record.get _sym localOverrides
+        f = encoder $ buildEncoder codecJsonA
+
+        fa :: f a
+        fa = coerce k1fa
+
+      k1fa <$ runFn2 f extra fa
+
+foreign import data ExistentialCodecJson2 :: (Type -> Type -> Type) -> Type
+
+mkExistentialCodecJson2 :: forall e extra f a b. (JsonCodec e extra a -> JsonCodec e extra b -> JsonCodec e extra (f a b)) -> ExistentialCodecJson2 f
+mkExistentialCodecJson2 = unsafeCoerce
+
+unExistentialCodecJson2 :: forall e extra f a b. ExistentialCodecJson2 f -> (JsonCodec e extra a -> JsonCodec e extra b -> JsonCodec e extra (f a b))
+unExistentialCodecJson2 = unsafeCoerce
+
+instance
+  ( Newtype extra { | rows }
+  , CodecJson e extra a
+  , CodecJson e extra b
+  , Row.Cons sym (ExistentialCodecJson2 f) tail rows
+  , IsSymbol sym
+  ) =>
+  CodecJson e extra (K2 sym (f a b)) where
+  codecJson = Codec dec enc
+    where
+    _sym = Proxy :: Proxy sym
+    codecJsonA = codecJson :: JsonCodec e extra a
+    codecJsonB = codecJson :: JsonCodec e extra b
+    dec = DecoderFn $ mkFn5 \pathSoFar appendFn handlers extra json -> do
+      let
+        localOverrides :: { | rows }
+        localOverrides = unwrap extra
+        buildDecoder = unExistentialCodecJson2 $ Record.get _sym localOverrides
+        (DecoderFn f) = decoder $ buildDecoder codecJsonA codecJsonB
+
+        reAddNewtype :: V e (f a b) -> V e (K2 sym (f a b))
+        reAddNewtype = coerce
+      reAddNewtype $ runFn5 f pathSoFar appendFn handlers extra json
+    enc = mkFn2 \extra k2fab -> do
+      let
+        localOverrides :: { | rows }
+        localOverrides = unwrap extra
+
+        buildEncoder = unExistentialCodecJson2 $ Record.get _sym localOverrides
+        f = encoder $ buildEncoder codecJsonA codecJsonB
+
+        fab :: f a b
+        fab = coerce k2fab
+
+      k2fab <$ runFn2 f extra fab
+
+foreign import data ExistentialCodecJson3 :: (Type -> Type -> Type -> Type) -> Type
+
+mkExistentialCodecJson3 :: forall e extra f a b c. (JsonCodec e extra a -> JsonCodec e extra b -> JsonCodec e extra c -> JsonCodec e extra (f a b c)) -> ExistentialCodecJson3 f
+mkExistentialCodecJson3 = unsafeCoerce
+
+unExistentialCodecJson3 :: forall e extra f a b c. ExistentialCodecJson3 f -> (JsonCodec e extra a -> JsonCodec e extra b -> JsonCodec e extra c -> JsonCodec e extra (f a b c))
+unExistentialCodecJson3 = unsafeCoerce
+
+instance
+  ( Newtype extra { | rows }
+  , CodecJson e extra a
+  , CodecJson e extra b
+  , CodecJson e extra c
+  , Row.Cons sym (ExistentialCodecJson3 f) tail rows
+  , IsSymbol sym
+  ) =>
+  CodecJson e extra (K3 sym (f a b c)) where
+  codecJson = Codec dec enc
+    where
+    _sym = Proxy :: Proxy sym
+    codecJsonA = codecJson :: JsonCodec e extra a
+    codecJsonB = codecJson :: JsonCodec e extra b
+    codecJsonC = codecJson :: JsonCodec e extra c
+    dec = DecoderFn $ mkFn5 \pathSoFar appendFn handlers extra json -> do
+      let
+        localOverrides :: { | rows }
+        localOverrides = unwrap extra
+        buildDecoder = unExistentialCodecJson3 $ Record.get _sym localOverrides
+        (DecoderFn f) = decoder $ buildDecoder codecJsonA codecJsonB codecJsonC
+
+        reAddNewtype :: V e (f a b c) -> V e (K3 sym (f a b c))
+        reAddNewtype = coerce
+      reAddNewtype $ runFn5 f pathSoFar appendFn handlers extra json
+    enc = mkFn2 \extra k3fabc -> do
+      let
+        localOverrides :: { | rows }
+        localOverrides = unwrap extra
+
+        buildEncoder = unExistentialCodecJson3 $ Record.get _sym localOverrides
+        f = encoder $ buildEncoder codecJsonA codecJsonB codecJsonC
+
+        fabc :: f a b c
+        fabc = coerce k3fabc
+
+      k3fabc <$ runFn2 f extra fabc
 
 newtype CJPropFn :: Type -> Type -> RL.RowList Type -> Row Type -> Type
 newtype CJPropFn e extra rl to =

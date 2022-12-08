@@ -272,15 +272,6 @@ instance
       reAddNewtype = coerce
     reAddNewtype $ runFn5 f pathSoFar appendFn handlers extra json
 
-newtype RowListJsonObjDecoder :: Type -> Type -> RowList.RowList Type -> Row Type -> Type
-newtype RowListJsonObjDecoder err extra rl rows = RowListJsonObjDecoder (JsonDecoder' err extra (Object Json) (Builder {} { | rows }))
-
-unwrapRLJOD
-  :: forall err extra rl rows
-   . RowListJsonObjDecoder err extra rl rows
-  -> JsonDecoder' err extra (Object Json) (Builder {} { | rows })
-unwrapRLJOD (RowListJsonObjDecoder codec) = codec
-
 instance
   ( RowToList.RowToList rows rl
   , BuildPropDecoders err extra rl rows
@@ -290,6 +281,15 @@ instance
     decodeRecordPrim
       $ map buildFromScratch
       $ unwrapRLJOD (buildPropDecoders :: RowListJsonObjDecoder err extra rl rows)
+
+newtype RowListJsonObjDecoder :: Type -> Type -> RowList.RowList Type -> Row Type -> Type
+newtype RowListJsonObjDecoder err extra rl rows = RowListJsonObjDecoder (JsonDecoder' err extra (Object Json) (Builder {} { | rows }))
+
+unwrapRLJOD
+  :: forall err extra rl rows
+   . RowListJsonObjDecoder err extra rl rows
+  -> JsonDecoder' err extra (Object Json) (Builder {} { | rows })
+unwrapRLJOD (RowListJsonObjDecoder codec) = codec
 
 class BuildPropDecoders :: Type -> Type -> RowList.RowList Type -> Row Type -> Constraint
 class BuildPropDecoders err extra rl out | err extra rl -> out where

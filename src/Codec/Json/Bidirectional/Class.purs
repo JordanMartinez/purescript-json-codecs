@@ -2,11 +2,13 @@ module Codec.Json.Bidirectional.Class where
 
 import Prelude
 
-import Codec.Json.Bidirectional.Value (array, boolean, codePoint, either, int, json, list, mapCodec, maybe, nonEmpty, nonEmptyArray, nonEmptyList, nonEmptySet, nonEmptyString, nullable, number, object, recordPrim, requiredProp, set, string, these, tuple, unitCodec, voidCodec)
-import Codec.Json.JsonCodec (JPropCodec, JsonCodec)
+import Codec.Decoder (altAccumulate)
+import Codec.Json.Bidirectional.Value (array, boolean, codePoint, either, int, json, list, mapCodec, maybe, nonEmpty, nonEmptyArray, nonEmptyList, nonEmptySet, nonEmptyString, nullable, number, object, recordPrim, requiredProp, set, string, these, tuple, unitCodec, variantCase, variantPrim, voidCodec)
+import Codec.Json.JsonCodec (JPropCodec, JsonCodec, JsonCodec')
+import Codec.Json.JsonDecoder (DecodeErrorAccumulatorFn)
 import Data.Argonaut.Core (Json)
 import Data.Array.NonEmpty (NonEmptyArray)
-import Data.Either (Either)
+import Data.Either (Either(..))
 import Data.List (List)
 import Data.List.Types (NonEmptyList)
 import Data.Map (Map)
@@ -20,6 +22,7 @@ import Data.String.NonEmpty.Internal (NonEmptyString)
 import Data.Symbol (class IsSymbol)
 import Data.These (These)
 import Data.Tuple (Tuple)
+import Data.Variant (Variant)
 import Foreign.Object (Object)
 import Prim.Row as Row
 import Prim.RowList as RL
@@ -104,6 +107,13 @@ instance
   CodecJson e extra { | row } where
   codecJson = recordPrim (unCJPropFn (codecJsonRecord :: CJPropFn e extra rl row))
 
+instance
+  ( RL.RowToList row rl
+  , CodecJsonVariant e extra rl row
+  ) =>
+  CodecJson e extra (Variant row) where
+  codecJson = variantPrim altAccumulate (unCJVariantFn (codecJsonVariant :: CJVariantFn e extra rl row))
+
 newtype CJPropFn :: Type -> Type -> RL.RowList Type -> Row Type -> Type
 newtype CJPropFn e extra rl to =
   CJPropFn (JPropCodec e extra {} -> JPropCodec e extra { | to })
@@ -132,6 +142,45 @@ instance
         <<< (unCJPropFn (codecJsonRecord :: CJPropFn e extra tail row'))
     )
 
--- Variant
+newtype CJVariantFn :: Type -> Type -> RL.RowList Type -> Row Type -> Type
+newtype CJVariantFn e extra rl rows = CJVariantFn
+  ( ( DecodeErrorAccumulatorFn e extra (Object Json) (Variant ())
+      -> JsonCodec' e extra (Object Json) (Variant ())
+    )
+    -> ( DecodeErrorAccumulatorFn e extra (Object Json) (Variant rows)
+         -> JsonCodec' e extra (Object Json) (Variant rows)
+       )
+  )
+
+unCJVariantFn
+  :: forall e extra rl rows
+   . CJVariantFn e extra rl rows
+  -> ( ( DecodeErrorAccumulatorFn e extra (Object Json) (Variant ())
+         -> JsonCodec' e extra (Object Json) (Variant ())
+       )
+       -> ( DecodeErrorAccumulatorFn e extra (Object Json) (Variant rows)
+            -> JsonCodec' e extra (Object Json) (Variant rows)
+          )
+     )
+unCJVariantFn (CJVariantFn fn) = fn
+
+class CodecJsonVariant e extra rl row | e extra rl -> row where
+  codecJsonVariant :: CJVariantFn e extra rl row
+
+instance CodecJsonVariant e extra RL.Nil () where
+  codecJsonVariant = CJVariantFn \buildTailCodec errorAccumulator ->
+    buildTailCodec errorAccumulator
+
+instance
+  ( Row.Cons sym a row' row
+  , CodecJson e extra a
+  , CodecJsonVariant e extra tail row'
+  , IsSymbol sym
+  ) =>
+  CodecJsonVariant e extra (RL.Cons sym a tail) row where
+  codecJsonVariant = CJVariantFn
+    ( variantCase (Proxy :: Proxy sym) (Right codecJson)
+        <<< (unCJVariantFn (codecJsonVariant :: CJVariantFn e extra tail row'))
+    )
 
 -- Generic

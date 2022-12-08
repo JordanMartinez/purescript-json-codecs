@@ -25,8 +25,7 @@ module Codec.Json.Bidirectional.Value
   , requiredProps
   , optionalProp
   , optionalProps
-  , variantAcc
-  , variantLast
+  , variant
   , variantPrim
   , variantCase
   , nullable
@@ -49,7 +48,7 @@ import Codec.Decoder (altAccumulate)
 import Codec.Decoder.Qualified as Decoder
 import Codec.Json.Errors.DecodeMessages (arrayNotEmptyFailure, numToIntConversionFailure, stringNotEmptyFailure, stringToCharConversionFailure)
 import Codec.Json.JsonCodec (JIndexedCodec, JPropCodec, JsonCodec', JsonCodec, mkJsonCodec, refinedValue)
-import Codec.Json.JsonDecoder (JsonDecoder', addOffset, altLast, failWithStructureError, failWithUnrefinableValue)
+import Codec.Json.JsonDecoder (DecodeErrorAccumulatorFn, addOffset, failWithStructureError, failWithUnrefinableValue)
 import Codec.Json.Types (JsonOffset(..))
 import Codec.Json.Unidirectional.Decode.Value (decodeBoolean, decodeField, decodeField', decodeIndex, decodeJArray, decodeJNull, decodeJObject, decodeNumber, decodeString, decodeVoid)
 import Codec.Json.Unidirectional.Encode.Value (encodeJArray, encodeBoolean, encodeNumber, encodeJObject, encodeString, encodeUnitToNull, encodeVoid)
@@ -303,41 +302,39 @@ optionalProps
 optionalProps codecs =
   insertOptionalPropCodecs (RlJCodec codecs :: RlJCodec e extra rl codecs)
 
-variantAcc
-  :: forall e extra row rowlist out
-   . RL.RowToList row rowlist
-  => VariantJsonCodec e extra rowlist row out
-  => { | row }
+variant
+  :: forall e extra rows rl out
+   . RL.RowToList rows rl
+  => VariantJsonCodec e extra rl rows out
+  => DecodeErrorAccumulatorFn e extra (Object Json) (Variant out)
+  -> { | rows }
   -> JsonCodec e extra (Variant out)
-variantAcc r = jobject >~> (variantJsonCodec (RlRecord r :: RlRecord e extra rowlist row) altAccumulate)
-
-variantLast
-  :: forall e extra row rowlist out
-   . RL.RowToList row rowlist
-  => VariantJsonCodec e extra rowlist row out
-  => { | row }
-  -> JsonCodec e extra (Variant out)
-variantLast r = jobject >~> (variantJsonCodec (RlRecord r :: RlRecord e extra rowlist row) altLast)
+variant errAcc r = variantPrim errAcc (variantJsonCodec (RlRecord r :: RlRecord e extra rl rows))
 
 variantEmpty :: forall e extra from. JsonCodec' e extra from (Variant ())
 variantEmpty = codec' (failWithUnrefinableValue "All variant decoders failed to decode") (mkFn2 \_ v -> case_ v)
 
 variantPrim
   :: forall e extra rows
-   . (JsonCodec' e extra (Object Json) (Variant ()) -> JsonCodec' e extra (Object Json) (Variant rows))
+   . DecodeErrorAccumulatorFn e extra (Object Json) (Variant rows)
+  -> ( ((DecodeErrorAccumulatorFn e extra (Object Json) (Variant ()) -> JsonCodec' e extra (Object Json) (Variant ())))
+       -> (DecodeErrorAccumulatorFn e extra (Object Json) (Variant rows) -> JsonCodec' e extra (Object Json) (Variant rows))
+     )
   -> JsonCodec e extra (Variant rows)
-variantPrim buildCodec = jobject >~> (buildCodec variantEmpty)
+variantPrim accErrs buildCodec = jobject >~> (buildCodec (\_ -> variantEmpty) accErrs)
 
 variantCase
   :: forall e extra sym a tail row
    . IsSymbol sym
   => Row.Cons sym a tail row
   => Proxy sym
-  -> (forall x. JsonDecoder' e extra (Object Json) x -> JsonDecoder' e extra (Object Json) x -> JsonDecoder' e extra (Object Json) x)
   -> Either a (JsonCodec e extra a)
-  -> JsonCodec' e extra (Object Json) (Variant tail)
-  -> JsonCodec' e extra (Object Json) (Variant row)
-variantCase _sym errorAccumulator eacodec (Codec dec enc) =
+  -> ( (DecodeErrorAccumulatorFn e extra (Object Json) (Variant tail) -> JsonCodec' e extra (Object Json) (Variant tail))
+       -> (DecodeErrorAccumulatorFn e extra (Object Json) (Variant row) -> JsonCodec' e extra (Object Json) (Variant row))
+     )
+variantCase _sym eacodec = \buildTailCodec errorAccumulator -> do
+  let
+    Codec dec enc = buildTailCodec $ coerceA errorAccumulator
   codec'
     ( Decoder.do
         tag <- decodeField "tag" (decoder string)
@@ -369,6 +366,11 @@ variantCase _sym errorAccumulator eacodec (Codec dec enc) =
   coerceR :: Variant tail -> Variant row
   coerceR = unsafeCoerce
 
+  coerceA
+    :: DecodeErrorAccumulatorFn e extra (Object Json) (Variant row)
+    -> DecodeErrorAccumulatorFn e extra (Object Json) (Variant tail)
+  coerceA = unsafeCoerce
+
 nullable :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (Nullable a)
 nullable aCodec = codec'
   (altAccumulate (decoder (Nullable.toNullable Nothing <$ jnull)) (decoder (Nullable.toNullable <<< Just <$> aCodec)))
@@ -382,22 +384,19 @@ identityCodec = coerce
 
 maybe :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (Maybe a)
 maybe codecA = dimap toVariant fromVariant
-  ( variantPrim
-      ( \v ->
-          v
-            # variantCase _just altAccumulate (Right codecA)
-            # variantCase _nothing altAccumulate (Left unit)
-      )
-  )
+  $ variantPrim altAccumulate
+  $ variantCase _just (Right codecA)
+      >>> variantCase _nothing (Left unit)
   where
-  _just = Proxy :: Proxy "just"
-  _nothing = Proxy :: Proxy "nothing"
+  _just = Proxy :: Proxy "Just"
+  _nothing = Proxy :: Proxy "Nothing"
+
   toVariant = case _ of
     Just a -> V.inj _just a
     Nothing -> V.inj _nothing unit
   fromVariant = V.match
-    { just: Just
-    , nothing: const Nothing
+    { "Just": Just
+    , "Nothing": const Nothing
     }
 
 newtype RlJCodec :: Type -> Type -> RL.RowList Type -> Row Type -> Type
@@ -456,11 +455,12 @@ class VariantJsonCodec :: Type -> Type -> RL.RowList Type -> Row Type -> Row Typ
 class VariantJsonCodec e extra rowlist row out | e extra rowlist -> row out where
   variantJsonCodec
     :: RlRecord e extra rowlist row
-    -> (forall x. JsonDecoder' e extra (Object Json) x -> JsonDecoder' e extra (Object Json) x -> JsonDecoder' e extra (Object Json) x)
-    -> JsonCodec' e extra (Object Json) (Variant out)
+    -> ( (DecodeErrorAccumulatorFn e extra (Object Json) (Variant ()) -> JsonCodec' e extra (Object Json) (Variant ()))
+         -> (DecodeErrorAccumulatorFn e extra (Object Json) (Variant out) -> JsonCodec' e extra (Object Json) (Variant out))
+       )
 
 instance variantJsonCodecNil :: VariantJsonCodec e extra RL.Nil () () where
-  variantJsonCodec _ _ = variantEmpty
+  variantJsonCodec _ = \buildTailCodec errorAccumulator -> buildTailCodec errorAccumulator
 
 instance variantJsonCodecCons ::
   ( Row.Cons sym (Either a (JsonCodec e extra a)) codecRows' codecRows
@@ -469,8 +469,9 @@ instance variantJsonCodecCons ::
   , IsSymbol sym
   ) =>
   VariantJsonCodec e extra (RL.Cons sym (Either a (JsonCodec e extra a)) tail) codecRows out where
-  variantJsonCodec (RlRecord r) errorAccumulator =
-    variantCase _sym errorAccumulator (Record.get _sym r) (variantJsonCodec (RlRecord $ unsafeForget r :: RlRecord e extra tail codecRows') errorAccumulator)
+  variantJsonCodec (RlRecord r) =
+    (variantJsonCodec (RlRecord $ unsafeForget r :: RlRecord e extra tail codecRows'))
+      >>> variantCase _sym (Record.get _sym r)
     where
     _sym = Proxy :: Proxy sym
 

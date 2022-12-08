@@ -64,9 +64,12 @@ addSubtermHint = addHint <<< Subterm
 addFieldHint :: forall e extra from a. String -> JsonDecoder' e extra from a -> JsonDecoder' e extra from a
 addFieldHint = addHint <<< Field
 
+type DecodeErrorAccumulatorFn e extra from to =
+  JsonDecoder' e extra from to -> JsonDecoder' e extra from to -> JsonDecoder' e extra from to
+
 -- | Works like `alt`/`<|>`. Decodes using the first decoder and, if that fails,
 -- | decodes using the second decoder. Errors from both decoders accumulate.
-altAccumulate :: forall e extra from a. JsonDecoder' e extra from a -> JsonDecoder' e extra from a -> JsonDecoder' e extra from a
+altAccumulate :: forall e extra from a. DecodeErrorAccumulatorFn e extra from a
 altAccumulate (DecoderFn f1) (DecoderFn f2) = DecoderFn $ mkFn5 \path appendFn handlers extra json ->
   case unwrap $ runFn5 f1 path appendFn handlers extra json of
     Left e -> case unwrap $ runFn5 f2 path appendFn handlers extra json of
@@ -76,7 +79,7 @@ altAccumulate (DecoderFn f1) (DecoderFn f2) = DecoderFn $ mkFn5 \path appendFn h
 
 -- | Same as `altAccumulate` except only the last error is kept. Helpful in cases
 -- | where one is decoding a sum type with a large number of data constructors.
-altLast :: forall e extra from a. JsonDecoder' e extra from a -> JsonDecoder' e extra from a -> JsonDecoder' e extra from a
+altLast :: forall e extra from a. DecodeErrorAccumulatorFn e extra from a
 altLast (DecoderFn f1) (DecoderFn f2) = DecoderFn $ mkFn5 \path appendFn handlers extra json ->
   case unwrap $ runFn5 f1 path appendFn handlers extra json of
     Left _ -> runFn5 f2 path appendFn handlers extra json

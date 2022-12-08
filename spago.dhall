@@ -23,6 +23,7 @@
   , "profunctor"
   , "record"
   , "safe-coerce"
+  , "st"
   , "strings"
   , "these"
   , "tuples"

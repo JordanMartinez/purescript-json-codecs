@@ -12,6 +12,7 @@
   , "functions"
   , "identity"
   , "integers"
+  , "invariant"
   , "lists"
   , "maybe"
   , "newtype"
@@ -19,13 +20,16 @@
   , "nullable"
   , "ordered-collections"
   , "prelude"
+  , "profunctor"
   , "record"
   , "safe-coerce"
+  , "st"
   , "strings"
   , "these"
   , "tuples"
   , "unsafe-coerce"
   , "validation"
+  , "variant"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]

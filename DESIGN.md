@@ -1,5 +1,17 @@
 # Design
 
+## Start
+
+```pur
+Json -> Either JsonDecoderErrror a
+```
+
+## Converting to a `ReaderT`-based representation
+
+```pur
+ReaderT Json (Either JsonDecoderErrror) a
+```
+
 ## Error type
 
 Analyzing the `argonaut-codec`/`codec-argonaut` error type:
@@ -35,9 +47,10 @@ The above analysis shows two kinds of errors:
 
 To help locate where the error occurred in the JSON, we need to keep track of where we are in the JSON. This is done via an `Array JsonOffset` argument that gets modified top-down whenever we decode an indexed value.
 
-Since our code already uses a `Json -> Either err a`-like type (i.e. a `Function`), we can use two encodings:
-- `Json -> Array JsonOffset -> Either err a`
-- `ReaderT { json :: Json, pathSoFar :: Array JsonOffset } (Either err) a`
+```diff
+-ReaderT {                                json :: Json } (Either err) a
++ReaderT { pathSoFar :: Array JsonOffset, json :: Json } (Either err) a
+```
 
 We chose the latter one because it reduces the number of curried functions. Not sure if this is a better idea, but thought I'd try it.
 
@@ -101,8 +114,8 @@ Using `Either` doesn't accumulate errors. So, the first failure will stop the de
 
 Thus, we go from:
 ```diff
--ReaderT { json :: Json, pathSoFar :: Array JsonOffset } (Either err) a
-+ReaderT { json :: Json, pathSoFar :: Array JsonOffset } (V err) a
+-                 ReaderT { pathSoFar :: Array JsonOffset, json :: Json } (Either err) a
++Semigroup err => ReaderT { pathSoFar :: Array JsonOffset, json :: Json } (V      err) a
 ```
 
 `V` does not have an `Alt` instance (e.g. `a <|> b`) because it's not clear whether the user wants the errors to accumulate or not. For example, using `Either err a` where `err` has a `Semigroup` instance:
@@ -135,3 +148,72 @@ Throughout this codebase, there are newtypes like `RLRecord` or `RowListObject`.
 ## Minimizing Boilerplate for Runtime-Configured Typeclass Instances
 
 See the ideas explained in https://github.com/JordanMartinez/local-typeclass-instances
+
+This gives us the following type:
+
+```diff
+Semigroup err =>
+  ReaderT
+    { pathSoFar :: Array JsonOffset
++   , extra :: extra
+    , json :: Json
+    }
+    (V err)
+    a
+```
+
+
+
+## Enabling custom error types
+
+```diff
+Semigroup err
+=> ReaderT 
+    { pathSoFar :: Array JsonOffset
++   , handlers :: JsonErrorHandlers err
+    , extra :: extra
+    , json :: Json
+    }
+    (V err)
+    a
+```
+
+## Inlining the Semigroup instance to reduce curried functions
+
+```diff
+-Semigroup err
+-=> ReaderT 
++  ReaderT 
+    { pathSoFar :: Array JsonOffset
++   , appendFn :: e -> e -> e
+    , handlers :: JsonErrorHandlers err
+    , extra :: extra
+    , json :: Json
+    }
+    (V err)
+    a
+```
+
+## Using uncurried functions for performance
+
+```diff
+-ReaderT
+- { pathSoFar :: Array JsonOffset
+- , appendFn :: e -> e -> e
+- , handlers :: JsonErrorHandlers err
+- , extra :: extra, json :: Json 
+- } 
+- (V err) a
++Fn5
++                (Array JsonOffset)
++                (e -> e -> e)
++                (JsonErrorHandlers err)         
++                extra
++                Json 
++ (V err  a)
+```
+
+Simplifying the `Fn5`, we get:
+```purs
+Fn5 (Array JsonOffset) (e -> e -> e) (JsonErrorHandlers err) extra Json (V err a)
+```

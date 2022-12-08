@@ -2,23 +2,23 @@ module Codec.Json.Bidirectional.Value
   ( json
   , void
   , jnull
+  , unitCodec
   , boolean
   , number
+  , int
+  , char
   , string
+  , nonEmptyString
   , jarray
   , indexedArray
   , index
+  , array
+  , nonEmptyArray
   , jobject
   , objectPrim
   , fieldRequired
   , fieldOptional
   , object
-  , unitCodec
-  , int
-  , char
-  , nonEmptyString
-  , array
-  , nonEmptyArray
   , record
   , recordPrim
   , requiredProp
@@ -95,7 +95,7 @@ import Data.String.NonEmpty.Internal (NonEmptyString(..))
 import Data.String.NonEmpty.Internal as NonEmptyString
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.These (These(..))
-import Data.Tuple (Tuple(..), fst, snd, uncurry)
+import Data.Tuple (Tuple(..), fst, snd)
 import Data.Variant (Variant, case_)
 import Data.Variant as V
 import Foreign.Object (Object)
@@ -202,6 +202,10 @@ nonEmptyString =
     (NonEmptyString.fromString >>> note stringNotEmptyFailure)
     (\(NonEmptyString s) -> s)
 
+codePoint :: forall e extra. JsonCodec e extra CodePoint
+codePoint =
+  string >~> refinedValue (\s -> note ("Invalid code point for string: " <> show s) $ codePointAt 0 s) String.singleton
+
 array :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (Array a)
 array aCodec =
   jarray >~> codec'
@@ -226,12 +230,10 @@ record
 record codecs = recordPrim (requiredProps codecs)
 
 recordPrim :: forall e extra a. (JPropCodec e extra {} -> JPropCodec e extra a) -> JsonCodec e extra a
-recordPrim buildRecordCodec = codec'
-  (decoder jobject >>> decoder propCodec)
+recordPrim buildRecordCodec = jobject >~> codec'
+  (decoder propCodec)
   ( mkFn2 \extra a ->
-      fst
-        $ runFn2 (encoder jobject) extra
-        $ Object.fromFoldable
+      Object.fromFoldable
         $ fst
         $ runFn2 (encoder propCodec) extra a
   )
@@ -326,8 +328,12 @@ variantEmpty = codec' (failWithUnrefinableValue "All variant decoders failed to 
 variantPrim
   :: forall e extra rows
    . DecodeErrorAccumulatorFn e extra (Object Json) (Variant rows)
-  -> ( ((DecodeErrorAccumulatorFn e extra (Object Json) (Variant ()) -> JsonCodec' e extra (Object Json) (Variant ())))
-       -> (DecodeErrorAccumulatorFn e extra (Object Json) (Variant rows) -> JsonCodec' e extra (Object Json) (Variant rows))
+  -> ( ( DecodeErrorAccumulatorFn e extra (Object Json) (Variant ())
+         -> JsonCodec' e extra (Object Json) (Variant ())
+       )
+       -> ( DecodeErrorAccumulatorFn e extra (Object Json) (Variant rows)
+            -> JsonCodec' e extra (Object Json) (Variant rows)
+          )
      )
   -> JsonCodec e extra (Variant rows)
 variantPrim accErrs buildCodec = jobject >~> (buildCodec (\_ -> variantEmpty) accErrs)
@@ -436,7 +442,7 @@ these codecA codecB = dimap toVariant fromVariant
   $ variantPrim altAccumulate
   $ variantCase _this (Right codecA)
       >>> variantCase _that (Right codecB)
-      >>> variantCase _both (Right $ tuple codecA codecB)
+      >>> variantCase _both (Right $ record { this: codecA, that: codecB })
   where
   _this = Proxy :: Proxy "This"
   _that = Proxy :: Proxy "That"
@@ -445,11 +451,11 @@ these codecA codecB = dimap toVariant fromVariant
   toVariant = case _ of
     This a -> V.inj _this a
     That b -> V.inj _that b
-    Both a b -> V.inj _both $ Tuple a b
+    Both a b -> V.inj _both { this: a, that: b }
   fromVariant = V.match
     { "This": This
     , "That": That
-    , "Both": uncurry Both
+    , "Both": \{ this, that } -> Both this that
     }
 
 nonEmpty :: forall e extra f a. JsonCodec e extra a -> JsonCodec e extra (f a) -> JsonCodec e extra (NonEmpty f a)
@@ -486,10 +492,6 @@ set codecValue = dimap to from $ array codecValue
 nonEmptySet :: forall e extra a. Ord a => JsonCodec e extra a -> JsonCodec e extra (NonEmptySet a)
 nonEmptySet codecValue =
   set codecValue >~> refinedValue (note "Received empty set" <<< NonEmptySet.fromSet) (NonEmptySet.toSet)
-
-codePoint :: forall e extra. JsonCodec e extra CodePoint
-codePoint =
-  string >~> refinedValue (\s -> note ("Invalid code point for string: " <> show s) $ codePointAt 0 s) String.singleton
 
 newtype RlJCodec :: Type -> Type -> RL.RowList Type -> Row Type -> Type
 newtype RlJCodec e extra rl row = RlJCodec { | row }

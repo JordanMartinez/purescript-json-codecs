@@ -54,6 +54,9 @@ import Unsafe.Coerce (unsafeCoerce)
 class DecodeJson err extra a where
   decodeJson :: JsonDecoder err extra a
 
+instance DecodeJson err extra Json where
+  decodeJson = identity
+
 instance DecodeJson err extra Void where
   decodeJson = decodeVoid
 

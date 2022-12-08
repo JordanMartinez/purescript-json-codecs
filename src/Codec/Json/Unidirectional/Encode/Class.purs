@@ -59,6 +59,9 @@ encodeJson = encodeJson' unit
 encodeJson' :: forall extra a. EncodeJson extra a => extra -> a -> Json
 encodeJson' = runFn2 encodeJsonFn
 
+instance EncodeJson extra Json where
+  encodeJsonFn = mkFn2 \_ -> identity
+
 instance EncodeJson extra Void where
   encodeJsonFn = mkFn2 \_ -> encodeVoid
 

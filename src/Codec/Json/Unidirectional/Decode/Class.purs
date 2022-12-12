@@ -17,12 +17,12 @@ module Codec.Json.Unidirectional.Decode.Class
 import Prelude
 
 import Codec.Decoder (DecoderFn(..))
-import Codec.Json.JsonDecoder (JsonDecoder, JsonDecoder', failWithMissingField)
+import Codec.Json.JsonDecoder (DecodeErrorAccumulatorFn, JsonDecoder, JsonDecoder', altAccumulate, failWithMissingField)
 import Codec.Json.Newtypes (K0(..), K1(..), K2(..), K3(..), Optional(..))
-import Codec.Json.Unidirectional.Decode.Value (decodeArray, decodeBoolean, decodeChar, decodeCodePoint, decodeEither, decodeField', decodeIdentity, decodeInt, decodeList, decodeMap, decodeMaybeTagged, decodeNonEmpty, decodeNonEmptyArray, decodeNonEmptyList, decodeNonEmptySet, decodeNonEmptyString, decodeNullable, decodeNumber, decodeObject, decodeRecordPrim, decodeSet, decodeString, decodeThese, decodeTuple, decodeUnitFromNull, decodeVoid)
+import Codec.Json.Unidirectional.Decode.Value (decodeArray, decodeBoolean, decodeChar, decodeCodePoint, decodeEither, decodeField', decodeIdentity, decodeInt, decodeList, decodeMap, decodeMaybeTagged, decodeNonEmpty, decodeNonEmptyArray, decodeNonEmptyList, decodeNonEmptySet, decodeNonEmptyString, decodeNullable, decodeNumber, decodeObject, decodeRecordPrim, decodeSet, decodeString, decodeThese, decodeTuple, decodeUnitFromNull, decodeVariantPrim, decodeVariantCase, decodeVoid)
 import Data.Argonaut.Core (Json)
 import Data.Array.NonEmpty (NonEmptyArray)
-import Data.Either (Either)
+import Data.Either (Either(..))
 import Data.Function.Uncurried (mkFn5, runFn5)
 import Data.Identity (Identity)
 import Data.List (List)
@@ -40,8 +40,10 @@ import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.These (These)
 import Data.Tuple (Tuple)
 import Data.Validation.Semigroup (V)
+import Data.Variant (Variant)
 import Foreign.Object (Object)
 import Prim.Row as Row
+import Prim.RowList as RL
 import Prim.RowList as RowList
 import Prim.RowList as RowToList
 import Record as Record
@@ -282,6 +284,13 @@ instance
       $ map buildFromScratch
       $ unwrapRLJOD (buildPropDecoders :: RowListJsonObjDecoder err extra rl rows)
 
+instance
+  ( RowToList.RowToList rows rl
+  , BuildVariantDecoder err extra rl rows
+  ) =>
+  DecodeJson err extra (Variant rows) where
+  decodeJson = decodeVariantPrim altAccumulate (unBvdFn (buildVariantDecoder :: BVDFn err extra rl rows))
+
 newtype RowListJsonObjDecoder :: Type -> Type -> RowList.RowList Type -> Row Type -> Type
 newtype RowListJsonObjDecoder err extra rl rows = RowListJsonObjDecoder (JsonDecoder' err extra (Object Json) (Builder {} { | rows }))
 
@@ -327,3 +336,37 @@ else instance
     where
     _sym = Proxy :: Proxy sym
     keyStr = reflectSymbol _sym
+
+newtype BVDFn :: Type -> Type -> RL.RowList Type -> Row Type -> Type
+newtype BVDFn e extra rowlist out = BVDFn
+  ( (DecodeErrorAccumulatorFn e extra (Object Json) (Variant ()) -> JsonDecoder' e extra (Object Json) (Variant ()))
+    -> (DecodeErrorAccumulatorFn e extra (Object Json) (Variant out) -> JsonDecoder' e extra (Object Json) (Variant out))
+  )
+
+unBvdFn
+  :: forall e extra rowlist out
+   . BVDFn e extra rowlist out
+  -> ( (DecodeErrorAccumulatorFn e extra (Object Json) (Variant ()) -> JsonDecoder' e extra (Object Json) (Variant ()))
+       -> (DecodeErrorAccumulatorFn e extra (Object Json) (Variant out) -> JsonDecoder' e extra (Object Json) (Variant out))
+     )
+unBvdFn (BVDFn fn) = fn
+
+class BuildVariantDecoder :: Type -> Type -> RL.RowList Type -> Row Type -> Constraint
+class BuildVariantDecoder e extra rowlist out | e extra rowlist -> out where
+  buildVariantDecoder :: BVDFn e extra rowlist out
+
+instance buildVariantDecoderNil :: BuildVariantDecoder e extra RL.Nil () where
+  buildVariantDecoder = BVDFn $ \buildTailCodec errorAccumulator -> buildTailCodec errorAccumulator
+
+instance buildVariantDecoderCons ::
+  ( DecodeJson e extra a
+  , BuildVariantDecoder e extra tail out'
+  , Row.Cons sym a out' out
+  , IsSymbol sym
+  ) =>
+  BuildVariantDecoder e extra (RL.Cons sym a tail) out where
+  buildVariantDecoder = BVDFn $
+    (unBvdFn (buildVariantDecoder :: BVDFn e extra tail out'))
+      >>> decodeVariantCase _sym (Right decodeJson)
+    where
+    _sym = Proxy :: Proxy sym

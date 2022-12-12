@@ -56,6 +56,7 @@ module Codec.Json.Unidirectional.Decode.Value
   , insertOptionalPropDecoders
   , class DecodeRowList
   , decodeRowList
+  , RlRecord
   , class DecodeJsonVariant
   , decodeJsonVariant
   ) where
@@ -64,9 +65,8 @@ import Prelude
 
 import Codec.Decoder (DecoderFn(..))
 import Codec.Decoder.Qualified as Decoder
-import Codec.Json.Bidirectional.Value (RlRecord)
 import Codec.Json.Errors.DecodeMessages (arrayNotEmptyFailure, numToIntConversionFailure, stringNotEmptyFailure, stringToCharConversionFailure)
-import Codec.Json.JsonDecoder (JsonDecoder, JsonDecoder', addCtorHint, addOffset, addSubtermHint, addTypeHint, altAccumulate, failWithMissingField, failWithStructureError, failWithUnrefinableValue)
+import Codec.Json.JsonDecoder (DecodeErrorAccumulatorFn, JsonDecoder', JsonDecoder, addCtorHint, addOffset, addSubtermHint, addTypeHint, altAccumulate, failWithMissingField, failWithStructureError, failWithUnrefinableValue)
 import Codec.Json.Types (ActualJsonType(..), ExpectedJsonType(..), JsonErrorHandlers(..), JsonOffset(..))
 import Data.Argonaut.Core (Json, caseJson)
 import Data.Array as Array
@@ -97,6 +97,8 @@ import Data.These (These(..))
 import Data.TraversableWithIndex (forWithIndex)
 import Data.Tuple (Tuple(..))
 import Data.Validation.Semigroup (V(..), invalid)
+import Data.Variant (Variant)
+import Data.Variant as V
 import Foreign.Object (Object)
 import Foreign.Object as Object
 import Prim.Row as Row
@@ -564,13 +566,13 @@ decodeOptionalProps props =
 decodeVariant
   :: forall err extra rl row out
    . DecodeJsonVariant err extra rl row out
-  => RL.RowToList row rl
-  => DecodeErrorAccumulatorFn e extra (Object Json) (Variant rows)
+  => RowList.RowToList row rl
+  => DecodeErrorAccumulatorFn err extra (Object Json) (Variant out)
   -> { | row }
   -> JsonDecoder err extra (Variant out)
-decodeVariant errAcc r = decodeVariantPrim errAcc (decodeJsonVariant (RlRecord r :: RlRecord err extra rl row out))
+decodeVariant errAcc r = decodeVariantPrim errAcc (decodeJsonVariant (RlRecord r :: RlRecord err extra rl row))
 
-decodeVariantEmpty :: forall e extra from. JsonDecoder e extra from (Variant ())
+decodeVariantEmpty :: forall e extra from. JsonDecoder' e extra from (Variant ())
 decodeVariantEmpty = failWithUnrefinableValue "All variant decoders failed to decode"
 
 decodeVariantPrim
@@ -591,18 +593,18 @@ decodeVariantCase
    . IsSymbol sym
   => Row.Cons sym a tail row
   => Proxy sym
-  -> Either a (JsonCodec e extra a)
+  -> Either a (JsonDecoder e extra a)
   -> ( (DecodeErrorAccumulatorFn e extra (Object Json) (Variant tail) -> JsonDecoder' e extra (Object Json) (Variant tail))
        -> (DecodeErrorAccumulatorFn e extra (Object Json) (Variant row) -> JsonDecoder' e extra (Object Json) (Variant row))
      )
 decodeVariantCase _sym eacodec = \buildTailDecoder errorAccumulator -> Decoder.do
   let
     tailDecoder = buildTailDecoder $ coerceA errorAccumulator
-  tag <- decodeField "tag" (decoder string)
+  tag <- decodeField "tag" decodeString
   if tag == label then
     case eacodec of
       Left a -> pure (V.inj _sym a)
-      Right codec -> V.inj _sym <$> decodeField "value" (decoder codec)
+      Right decoder -> V.inj _sym <$> decodeField "value" decoder
   else
     errorAccumulator
       (failWithStructureError $ "Did not get expected tag, " <> show label)
@@ -745,10 +747,10 @@ else instance
 
     (PropDecoder field :: PropDecoder err extra a) = Record.get _sym fieldDecoders
 
-newtype RlRecord :: Type -> Type -> RL.RowList Type -> Row Type -> Type
+newtype RlRecord :: Type -> Type -> RowList.RowList Type -> Row Type -> Type
 newtype RlRecord e extra rowlist rows = RlRecord { | rows }
 
-class DecodeJsonVariant :: Type -> Type -> RL.RowList Type -> Row Type -> Row Type -> Constraint
+class DecodeJsonVariant :: Type -> Type -> RowList.RowList Type -> Row Type -> Row Type -> Constraint
 class DecodeJsonVariant e extra rowlist row out | e extra rowlist -> row out where
   decodeJsonVariant
     :: RlRecord e extra rowlist row
@@ -756,7 +758,7 @@ class DecodeJsonVariant e extra rowlist row out | e extra rowlist -> row out whe
          -> (DecodeErrorAccumulatorFn e extra (Object Json) (Variant out) -> JsonDecoder' e extra (Object Json) (Variant out))
        )
 
-instance decodeJsonVariantNil :: DecodeJsonVariant e extra RL.Nil () () where
+instance decodeJsonVariantNil :: DecodeJsonVariant e extra RowList.Nil () () where
   decodeJsonVariant _ = \buildTailCodec errorAccumulator -> buildTailCodec errorAccumulator
 
 instance decodeJsonVariantCons ::
@@ -765,7 +767,7 @@ instance decodeJsonVariantCons ::
   , Row.Cons sym a out' out
   , IsSymbol sym
   ) =>
-  DecodeJsonVariant e extra (RL.Cons sym (Either a (JsonDecoder e extra a)) tail) codecRows out where
+  DecodeJsonVariant e extra (RowList.Cons sym (Either a (JsonDecoder e extra a)) tail) codecRows out where
   decodeJsonVariant (RlRecord r) =
     (decodeJsonVariant (RlRecord $ unsafeForget r :: RlRecord e extra tail codecRows'))
       >>> decodeVariantCase _sym (Record.get _sym r)

@@ -251,4 +251,4 @@ type JsonDecoder' e extra from to =
 
 ### Minimizing `Proxy` arguments
 
-Throughout this codebase, there are newtypes like `RLRecord` or `RowListObject`. These newtypes remove the need to pass `Proxy` args to a type class function to help guide type inference. Rather, that information is passed via the newtype but uses one less curried function to do so.
+Throughout this codebase, there are newtypes like `RLRecord` or `RowListObject` that are typically used in `Record` or `Variant`-related type clases. These newtypes remove the need to pass `Proxy` args to a type class function to help guide type inference. Rather, that information is passed via the newtype. This makes the code a bit harder to read because there is additional wrapping and unwrapping going on, but the result is one less curried function.

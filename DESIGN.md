@@ -21,8 +21,8 @@ data JsonDecodeError
   -- | Expected type A but got some other type that isn't specified
   = TypeMismatch String
 
-  | --  | Catch all "got something other than what we were trying to decode" |
-  | --- | ------------------------------------------------------------------ |Decoded the 'tag' to determine the contructor but it wasn't one of this type's constructors
+  | --  | Catch all "got something other than what we were trying to decode": |
+  | --- | ------------------------------------------------------------------- |Decoded the 'tag' to determine the contructor but it wasn't one of this type's constructors
   | --  | - Decoded a `Void` which is impossible |
   | --- | -------------------------------------- |Decoded a "collection" type and something failed in it
   | UnexpectedValue Json
@@ -123,22 +123,22 @@ Thus, we go from:
 -- Same as just `l`, so no reason to define this helper function...
 altKeepFirstError :: Either err a -> Either err a -> Either err a
 altKeepFirstError l _ = case l of
-  Left _ -> l
   Right a -> l
+  Left _ -> l
 
 -- Ignore previous errors and use the last one
 altKeepLastError :: Either err a -> Either err a -> Either err a
 altKeepLastError l r = case l of
-  Left _ -> r
   Right a -> l
+  Left _ -> r
 
 -- Store all errors
 altAccumulate :: Either err a -> Either err a -> Either err a
 altAccumulate l r = case l of
+  Right a -> l
   Left e1 -> case r of
     Left e2 -> Left $ e1 <> e2
     Right a -> r
-  Right a -> l
 ```
 
 ## Minimizing `Proxy` arguments

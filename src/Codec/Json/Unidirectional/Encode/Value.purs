@@ -37,6 +37,7 @@ module Codec.Json.Unidirectional.Encode.Value
   , encodeRequiredProps
   , encodeOptionalProps
   , encodeVariant
+  , encodeVariantEmpty
   , encodeVariantPrim
   , encodeVariantCase
   , class InsertRequiredPropEncoders

@@ -48,6 +48,7 @@ module Codec.Json.Unidirectional.Decode.Value
   , decodeRequiredProps
   , decodeOptionalProps
   , decodeVariant
+  , decodeVariantEmpty
   , decodeVariantPrim
   , decodeVariantCase
   , class InsertRequiredPropDecoders

@@ -41,6 +41,7 @@ module Codec.Json.Bidirectional.Value
   , set
   , nonEmptySet
   , codePoint
+  , fix
   , RlJCodec
   , class InsertRequiredPropCodecs
   , insertRequiredPropCodecs
@@ -54,7 +55,7 @@ module Codec.Json.Bidirectional.Value
 import Prelude
 
 import Codec.Codec (Codec(..), codec, codec', decoder, encoder, (>~>), (~))
-import Codec.Decoder (altAccumulate)
+import Codec.Decoder (DecoderFn, altAccumulate)
 import Codec.Decoder.Qualified as Decoder
 import Codec.Json.Errors.DecodeMessages (arrayNotEmptyFailure, numToIntConversionFailure, stringNotEmptyFailure, stringToCharConversionFailure)
 import Codec.Json.JsonCodec (JIndexedCodec, JPropCodec, JsonCodec, JsonCodec', mkJsonCodec, refinedValue)
@@ -492,6 +493,11 @@ set codecValue = dimap to from $ array codecValue
 nonEmptySet :: forall e extra a. Ord a => JsonCodec e extra a -> JsonCodec e extra (NonEmptySet a)
 nonEmptySet codecValue =
   set codecValue >~> refinedValue (note "Received empty set" <<< NonEmptySet.fromSet) (NonEmptySet.toSet)
+
+fix :: forall e extra a. (JsonCodec e extra a -> JsonCodec e extra a) -> JsonCodec e extra a
+fix f = codec'
+  (decoder $ f (fix f))
+  (mkFn2 \extra a -> fst $ runFn2 (encoder $ f (fix f)) extra a)
 
 newtype RlJCodec :: Type -> Type -> RL.RowList Type -> Row Type -> Type
 newtype RlJCodec e extra rl row = RlJCodec { | row }

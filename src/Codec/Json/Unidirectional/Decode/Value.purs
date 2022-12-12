@@ -36,6 +36,7 @@ module Codec.Json.Unidirectional.Decode.Value
   , decodeSet
   , decodeNonEmptySet
   , decodeCodePoint
+  , decodeFix
   , PropDecoder
   , RLRecordDecoder
   , RLRecordDecoderBuilder
@@ -620,6 +621,9 @@ decodeVariantCase _sym eacodec = \buildTailDecoder errorAccumulator -> Decoder.d
     :: DecodeErrorAccumulatorFn e extra (Object Json) (Variant row)
     -> DecodeErrorAccumulatorFn e extra (Object Json) (Variant tail)
   coerceA = unsafeCoerce
+
+decodeFix :: forall e extra from a. (JsonDecoder' e extra from a -> JsonDecoder' e extra from a) -> JsonDecoder' e extra from a
+decodeFix f = f (decodeFix f)
 
 newtype PropDecoder err extra a = PropDecoder
   { onMissingField :: JsonDecoder' err extra (Object Json) a

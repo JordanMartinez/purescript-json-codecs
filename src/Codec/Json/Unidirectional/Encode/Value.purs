@@ -27,6 +27,7 @@ module Codec.Json.Unidirectional.Encode.Value
   , encodeSet
   , encodeNonEmptySet
   , encodeCodePoint
+  , encodeFix
   , RLRecordEncoder
   , RLRecordEncoderBuilder
   , encodeRecord
@@ -61,6 +62,7 @@ import Data.Array.NonEmpty as NEA
 import Data.Either (Either(..), either)
 import Data.Foldable (foldl)
 import Data.FoldableWithIndex (foldlWithIndex)
+import Data.Function.Uncurried (Fn2, mkFn2, runFn2)
 import Data.Identity (Identity(..))
 import Data.Int (toNumber)
 import Data.List (List)
@@ -328,6 +330,9 @@ encodeVariantCase _sym eacodec tailEncoder = do
     (\v' -> tailEncoder v')
   where
   label = reflectSymbol _sym
+
+encodeFix :: forall extra a. (Fn2 extra a Json -> Fn2 extra a Json) -> Fn2 extra a Json
+encodeFix f = mkFn2 \extra a -> runFn2 (f (encodeFix f)) extra a
 
 class InsertRequiredPropEncoders :: RowList.RowList Type -> Row Type -> RowList.RowList Type -> Row Type -> RowList.RowList Type -> Row Type -> Constraint
 class InsertRequiredPropEncoders propsRl props oldRl oldRows newRl newRows | propsRl props oldRl oldRows -> newRl newRows where

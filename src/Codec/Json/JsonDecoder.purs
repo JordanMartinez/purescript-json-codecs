@@ -3,14 +3,14 @@ module Codec.Json.JsonDecoder where
 import Prelude
 
 import Codec.Decoder (DecoderFn(..))
+import Codec.Json.Types (JsonErrorHandlers(..), JsonOffset, TypeHint(..))
 import Data.Argonaut.Core (Json)
 import Data.Array as Array
 import Data.Bifunctor (lmap)
 import Data.Either (Either(..))
-import Data.Function.Uncurried (mkFn5, runFn5)
+import Data.Function.Uncurried (mkFn5, runFn2, runFn3, runFn5)
 import Data.Newtype (un, unwrap)
 import Data.Validation.Semigroup (V(..), invalid)
-import Codec.Json.Types (JsonErrorHandlers(..), JsonOffset, TypeHint(..))
 
 -- | Overview of values:
 -- | - Json - the JSON value currently being decoded at this point
@@ -34,23 +34,23 @@ onError mapErrs (DecoderFn f) = DecoderFn $ mkFn5 \path appendFn handlers extra 
 
 failWithMissingField :: forall e extra from a. String -> JsonDecoder' e extra from a
 failWithMissingField str = DecoderFn $ mkFn5 \path _ (JsonErrorHandlers h) _ _ ->
-  invalid $ h.onMissingField path str
+  invalid $ runFn2 h.onMissingField path str
 
 failWithMissingIndex :: forall e extra from a. Int -> JsonDecoder' e extra from a
 failWithMissingIndex idx = DecoderFn $ mkFn5 \path _ (JsonErrorHandlers h) _ _ ->
-  invalid $ h.onMissingIndex path idx
+  invalid $ runFn2 h.onMissingIndex path idx
 
 failWithUnrefinableValue :: forall e extra from a. String -> JsonDecoder' e extra from a
 failWithUnrefinableValue msg = DecoderFn $ mkFn5 \path _ (JsonErrorHandlers h) _ _ ->
-  invalid $ h.onUnrefinableValue path msg
+  invalid $ runFn2 h.onUnrefinableValue path msg
 
 failWithStructureError :: forall e extra from a. String -> JsonDecoder' e extra from a
 failWithStructureError msg = DecoderFn $ mkFn5 \path _ (JsonErrorHandlers h) _ _ ->
-  invalid $ h.onStructureError path msg
+  invalid $ runFn2 h.onStructureError path msg
 
 addHint :: forall e extra from a. TypeHint -> JsonDecoder' e extra from a -> JsonDecoder' e extra from a
 addHint hint (DecoderFn f) = DecoderFn $ mkFn5 \path appendFn handlers@(JsonErrorHandlers h) extra json ->
-  lmap (h.addHint path hint) $ runFn5 f path appendFn handlers extra json
+  lmap (\x -> runFn3 h.addHint path hint x) $ runFn5 f path appendFn handlers extra json
 
 addTypeHint :: forall e extra from a. String -> JsonDecoder' e extra from a -> JsonDecoder' e extra from a
 addTypeHint = addHint <<< TyName

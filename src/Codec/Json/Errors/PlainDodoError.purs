@@ -2,43 +2,44 @@ module Codec.Json.Errors.PlainDodoError where
 
 import Prelude
 
-import Data.Argonaut.Core (Json)
-import Data.Either (Either)
-import Dodo (Doc, plainText, twoSpaces)
-import Dodo as D
 import Codec.Json.Errors.PrimitiveJsonError (printMissingField, printMissingIndex, printTypeMismatchErr)
 import Codec.Json.JsonDecoder (JsonDecoder, runJsonDecoder)
 import Codec.Json.Types (JsonErrorHandlers(..), JsonOffset, TypeHint, printJsonOffsetPath, printTypeHint)
+import Data.Argonaut.Core (Json)
+import Data.Either (Either)
+import Data.Function.Uncurried (mkFn2, mkFn3)
+import Dodo (Doc, plainText, twoSpaces)
+import Dodo as D
 
 handlersPde :: JsonErrorHandlers (Doc Void)
 handlersPde = JsonErrorHandlers
-  { onTypeMismatch: \path exp act ->
+  { onTypeMismatch: mkFn3 \path exp act ->
       D.lines
         [ D.text $ printTypeMismatchErr exp act
         , docifyPath path
         ]
-  , onMissingField: \path field ->
+  , onMissingField: mkFn2 \path field ->
       D.lines
         [ D.text $ printMissingField field
         , docifyPath path
         ]
-  , onMissingIndex: \path idx ->
+  , onMissingIndex: mkFn2 \path idx ->
       D.lines
         [ D.text $ printMissingIndex idx
         , docifyPath path
         ]
-  , onUnrefinableValue: \path msg ->
+  , onUnrefinableValue: mkFn2 \path msg ->
       D.lines
         [ D.text msg
         , docifyPath path
         ]
-  , onStructureError: \path msg ->
+  , onStructureError: mkFn2 \path msg ->
       D.lines
         [ D.text msg
         , docifyPath path
         ]
   , includeJsonOffset: true
-  , addHint: \path hint err ->
+  , addHint: mkFn3 \path hint err ->
       D.lines
         [ docifyHint hint path
         , D.indent err

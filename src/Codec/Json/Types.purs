@@ -5,6 +5,7 @@ import Prelude
 import Data.Argonaut.Core (Json)
 import Data.Array (foldMap)
 import Data.Array as Array
+import Data.Function.Uncurried (Fn2, Fn3)
 import Data.String (Pattern(..), contains)
 import Foreign.Object (Object)
 import Foreign.Object as Object
@@ -76,11 +77,11 @@ printTypeHint = case _ of
   Field f -> "while decoding the value under the label, " <> f
 
 newtype JsonErrorHandlers e = JsonErrorHandlers
-  { onTypeMismatch :: Array JsonOffset -> ExpectedJsonType -> ActualJsonType -> e
-  , onMissingField :: Array JsonOffset -> String -> e
-  , onMissingIndex :: Array JsonOffset -> Int -> e
-  , onUnrefinableValue :: Array JsonOffset -> String -> e
-  , onStructureError :: Array JsonOffset -> String -> e
+  { onTypeMismatch :: Fn3 (Array JsonOffset) ExpectedJsonType ActualJsonType e
+  , onMissingField :: Fn2 (Array JsonOffset) String e
+  , onMissingIndex :: Fn2 (Array JsonOffset) Int e
+  , onUnrefinableValue :: Fn2 (Array JsonOffset) String e
+  , onStructureError :: Fn2 (Array JsonOffset) String e
   , includeJsonOffset :: Boolean
-  , addHint :: Array JsonOffset -> TypeHint -> e -> e
+  , addHint :: Fn3 (Array JsonOffset) TypeHint e e
   }

@@ -4,6 +4,9 @@ import Prelude
 
 import Codec.Codec (Codec, Codec', codec', decoder, encoder)
 import Codec.Decoder (DecoderFn(..))
+import Codec.Json.JsonDecoder (JsonDecoder)
+import Codec.Json.JsonDecoder as JsonDecoder
+import Codec.Json.Types (JsonErrorHandlers(..), JsonOffset)
 import Data.Argonaut.Core (Json)
 import Data.Either (Either(..))
 import Data.Function.Uncurried (mkFn2, mkFn5, runFn2)
@@ -11,9 +14,6 @@ import Data.List (List)
 import Data.Tuple (Tuple, fst)
 import Data.Validation.Semigroup (V(..), invalid)
 import Foreign.Object (Object)
-import Codec.Json.JsonDecoder (JsonDecoder)
-import Codec.Json.JsonDecoder as JsonDecoder
-import Codec.Json.Types (JsonErrorHandlers(..), JsonOffset)
 
 -- | Overview of values:
 -- | - e - the custom Json decoding error
@@ -63,7 +63,7 @@ refinedValue refine unrefine =
     ( DecoderFn $ mkFn5 \path _ (JsonErrorHandlers h) _ a ->
         case refine a of
           Left msg ->
-            invalid $ h.onUnrefinableValue path msg
+            invalid $ runFn2 h.onUnrefinableValue path msg
           Right b ->
             V $ Right b
     )

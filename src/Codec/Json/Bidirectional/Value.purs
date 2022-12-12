@@ -55,7 +55,7 @@ module Codec.Json.Bidirectional.Value
 import Prelude
 
 import Codec.Codec (Codec(..), codec, codec', decoder, encoder, (>~>), (~))
-import Codec.Decoder (DecoderFn, altAccumulate)
+import Codec.Decoder (altAccumulate)
 import Codec.Decoder.Qualified as Decoder
 import Codec.Json.Errors.DecodeMessages (arrayNotEmptyFailure, numToIntConversionFailure, stringNotEmptyFailure, stringToCharConversionFailure)
 import Codec.Json.JsonCodec (JIndexedCodec, JPropCodec, JsonCodec, JsonCodec', mkJsonCodec, refinedValue)

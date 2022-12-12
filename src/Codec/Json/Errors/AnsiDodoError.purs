@@ -2,44 +2,45 @@ module Codec.Json.Errors.AnsiDodoError where
 
 import Prelude
 
-import Data.Argonaut.Core (Json)
-import Data.Either (Either)
-import Dodo (Doc, twoSpaces)
-import Dodo as D
-import Dodo.Ansi (Color(..), GraphicsParam, ansiGraphics, foreground)
 import Codec.Json.Errors.PrimitiveJsonError (printMissingField, printMissingIndex, printTypeMismatchErr)
 import Codec.Json.JsonDecoder (JsonDecoder, runJsonDecoder)
 import Codec.Json.Types (JsonErrorHandlers(..), JsonOffset, TypeHint(..), printJsonOffsetPath)
+import Data.Argonaut.Core (Json)
+import Data.Either (Either)
+import Data.Function.Uncurried (mkFn2, mkFn3)
+import Dodo (Doc, twoSpaces)
+import Dodo as D
+import Dodo.Ansi (Color(..), GraphicsParam, ansiGraphics, foreground)
 
 handlersAde :: JsonErrorHandlers (Doc GraphicsParam)
 handlersAde = JsonErrorHandlers
-  { onTypeMismatch: \path exp act ->
+  { onTypeMismatch: mkFn3 \path exp act ->
       D.lines
         [ foreground BrightRed $ D.text $ printTypeMismatchErr exp act
         , docifyPath path
         ]
-  , onMissingField: \path field ->
+  , onMissingField: mkFn2 \path field ->
       D.lines
         [ foreground BrightRed $ D.text $ printMissingField field
         , docifyPath path
         ]
-  , onMissingIndex: \path idx ->
+  , onMissingIndex: mkFn2 \path idx ->
       D.lines
         [ foreground BrightRed $ D.text $ printMissingIndex idx
         , docifyPath path
         ]
-  , onUnrefinableValue: \path msg ->
+  , onUnrefinableValue: mkFn2 \path msg ->
       D.lines
         [ foreground BrightRed $ D.text msg
         , docifyPath path
         ]
-  , onStructureError: \path msg ->
+  , onStructureError: mkFn2 \path msg ->
       D.lines
         [ foreground BrightRed $ D.text msg
         , docifyPath path
         ]
   , includeJsonOffset: true
-  , addHint: \path hint err ->
+  , addHint: mkFn3 \path hint err ->
       D.lines
         [ docifyHint hint path
         , D.indent err

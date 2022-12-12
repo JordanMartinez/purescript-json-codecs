@@ -2,21 +2,22 @@ module Codec.Json.Errors.NoError where
 
 import Prelude
 
-import Data.Argonaut.Core (Json)
-import Data.Either (hush)
-import Data.Maybe (Maybe)
 import Codec.Json.JsonDecoder (JsonDecoder, runJsonDecoder)
 import Codec.Json.Types (JsonErrorHandlers(..))
+import Data.Argonaut.Core (Json)
+import Data.Either (hush)
+import Data.Function.Uncurried (mkFn2, mkFn3)
+import Data.Maybe (Maybe)
 
 handlersNone :: JsonErrorHandlers Unit
 handlersNone = JsonErrorHandlers
-  { onTypeMismatch: \_ _ _ -> unit
-  , onMissingField: \_ _ -> unit
-  , onMissingIndex: \_ _ -> unit
-  , onUnrefinableValue: \_ _ -> unit
-  , onStructureError: \_ _ -> unit
+  { onTypeMismatch: mkFn3 \_ _ _ -> unit
+  , onMissingField: mkFn2 \_ _ -> unit
+  , onMissingIndex: mkFn2 \_ _ -> unit
+  , onUnrefinableValue: mkFn2 \_ _ -> unit
+  , onStructureError: mkFn2 \_ _ -> unit
   , includeJsonOffset: false
-  , addHint: \_ _ _ -> unit
+  , addHint: mkFn3 \_ _ _ -> unit
   }
 
 runJsonDecoderNone :: forall a. Json -> JsonDecoder Unit Unit a -> Maybe a

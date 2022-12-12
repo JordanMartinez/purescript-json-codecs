@@ -2,17 +2,18 @@ module Codec.Json.Errors.PrimitiveJsonError where
 
 import Prelude
 
+import Codec.Json.Errors.Tree (TreeError(..))
+import Codec.Json.JsonDecoder (JsonDecoder, runJsonDecoder)
+import Codec.Json.Types (ActualJsonType, ExpectedJsonType, JsonErrorHandlers(..), JsonOffset, TypeHint, printActualJsonType, printExpectedJsonType, printJsonOffsetPath, printTypeHint)
 import Data.Argonaut.Core (Json)
 import Data.Array as Array
 import Data.Array.NonEmpty as NEA
 import Data.Bifoldable (bifoldMap)
 import Data.Either (Either(..))
+import Data.Function.Uncurried (mkFn2, mkFn3)
 import Data.Monoid (power)
 import Data.Newtype (class Newtype, over, unwrap)
 import Data.These (These(..))
-import Codec.Json.Errors.Tree (TreeError(..))
-import Codec.Json.JsonDecoder (JsonDecoder, runJsonDecoder)
-import Codec.Json.Types (ActualJsonType, ExpectedJsonType, JsonErrorHandlers(..), JsonOffset, TypeHint, printActualJsonType, printExpectedJsonType, printJsonOffsetPath, printTypeHint)
 
 data JsonLeafError
   = TypeMismatch ExpectedJsonType ActualJsonType
@@ -52,13 +53,13 @@ derive newtype instance Semigroup PrimitiveJsonError
 
 pjeHandlers :: JsonErrorHandlers PrimitiveJsonError
 pjeHandlers = JsonErrorHandlers
-  { onTypeMismatch: \path exp -> PrimitiveJsonError <<< TreeError <<< Right <<< { path, error: _ } <<< TypeMismatch exp
-  , onMissingField: \path -> PrimitiveJsonError <<< TreeError <<< Right <<< { path, error: _ } <<< MissingField
-  , onMissingIndex: \path -> PrimitiveJsonError <<< TreeError <<< Right <<< { path, error: _ } <<< MissingIndex
-  , onUnrefinableValue: \path -> PrimitiveJsonError <<< TreeError <<< Right <<< { path, error: _ } <<< UnrefinableValue
-  , onStructureError: \path -> PrimitiveJsonError <<< TreeError <<< Right <<< { path, error: _ } <<< StructureError
+  { onTypeMismatch: mkFn3 \path exp -> PrimitiveJsonError <<< TreeError <<< Right <<< { path, error: _ } <<< TypeMismatch exp
+  , onMissingField: mkFn2 \path -> PrimitiveJsonError <<< TreeError <<< Right <<< { path, error: _ } <<< MissingField
+  , onMissingIndex: mkFn2 \path -> PrimitiveJsonError <<< TreeError <<< Right <<< { path, error: _ } <<< MissingIndex
+  , onUnrefinableValue: mkFn2 \path -> PrimitiveJsonError <<< TreeError <<< Right <<< { path, error: _ } <<< UnrefinableValue
+  , onStructureError: mkFn2 \path -> PrimitiveJsonError <<< TreeError <<< Right <<< { path, error: _ } <<< StructureError
   , includeJsonOffset: true
-  , addHint: \path hint -> over PrimitiveJsonError case _ of
+  , addHint: mkFn3 \path hint -> over PrimitiveJsonError case _ of
       TreeError (Left (That x)) -> TreeError $ Left $ Both { path, hint } x
       x -> TreeError $ Left $ Both { path, hint } $ NEA.singleton x
   }

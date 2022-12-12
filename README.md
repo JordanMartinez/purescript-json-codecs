@@ -1,6 +1,6 @@
 # purescript-json-codecs
 
-A JSON codec library that supports value-based and configurable typeclass-based json codecs
+A bidirectional and unidirectional value-based and runtime-configurable typeclass-based JSON codec library. Essentially, [`argonaut-codec`](https://pursuit.purescript.org/packages/purescript-argonaut-codecs) and [`codec-argonaut`](https://pursuit.purescript.org/packages/purescript-codec-argonaut) in one library with clear imports, flexible error types, error accumulation, and better performance (claim unproven but hopefully true).
 
 ## Design
 
@@ -26,7 +26,9 @@ Provide a single library for both versions of codecs and both directions of code
       - [x] configurable decoder
       - [x] configurable encoder
     - [x] value-based
-  - [ ] bidirectional (encode/decode must be bidirectional) - **WIP**
+  - [x] bidirectional (encode/decode must be bidirectional)
+  - [ ] write docs
+  - [ ] add more decode context for bidirectional codecs
   - [ ] for migrating JSON using old/outdated codecs easily - **WIP**
 
 Provide record syntax I enjoy using

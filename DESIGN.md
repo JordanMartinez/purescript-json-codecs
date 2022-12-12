@@ -235,7 +235,7 @@ This gives us the following type:
 
 Simplifying the `Fn5`, we get:
 ```purs
-Fn5 (Array JsonOffset) (e -> e -> e) (JsonErrorHandlers err) extra Json (V err a)
+Fn5 (Array JsonOffset) (Fn2 e e e) (JsonErrorHandlers err) extra Json (V err a)
 ```
 
 which is the type for `DecoderFn`:
@@ -244,7 +244,9 @@ newtype DecoderFn path appendFn handlers extra from to =
   DecoderFn (Fn5 path appendFn handlers extra from to)
 
 type JsonDecoder' e extra from to =
-  DecoderFn (Array JsonOffset) (e -> e -> e) (JsonErrorHandlers e) extra from to
+  DecoderFn (Array JsonOffset) (Fn2 e e e) (JsonErrorHandlers e) extra from to
+
+type JsonDecoder e extra to = JsonDecoder' e extra Json to
 ```
 
 ## Other library notes

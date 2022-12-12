@@ -5,7 +5,6 @@ import Prelude
 import Codec.Decoder (DecoderFn(..))
 import Codec.Json.Types (JsonErrorHandlers(..), JsonOffset, TypeHint(..))
 import Data.Argonaut.Core (Json)
-import Data.Array as Array
 import Data.Bifunctor (lmap)
 import Data.Either (Either(..))
 import Data.Function.Uncurried (mkFn2, mkFn5, runFn2, runFn3, runFn5)
@@ -26,7 +25,7 @@ type JsonDecoder' e extra from to = DecoderFn (Array JsonOffset) (JsonErrorHandl
 addOffset :: forall e extra from a. JsonOffset -> Json -> JsonDecoder' e extra Json a -> JsonDecoder' e extra from a
 addOffset offset json (DecoderFn f) = DecoderFn $
   mkFn5 \path appendFn handlers@(JsonErrorHandlers h) extra _ ->
-    runFn5 f (if h.includeJsonOffset then Array.snoc path offset else path) appendFn handlers extra json
+    runFn5 f (runFn2 h.addJsonOffset path offset) appendFn handlers extra json
 
 onError :: forall e extra from a. (Array JsonOffset -> e -> e) -> JsonDecoder' e extra from a -> JsonDecoder' e extra from a
 onError mapErrs (DecoderFn f) = DecoderFn $ mkFn5 \path appendFn handlers extra json ->

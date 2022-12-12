@@ -180,7 +180,7 @@ decodeIndex' idx (DecoderFn onMissingIndex) (DecoderFn decodeElem) =
       Nothing ->
         runFn5 onMissingIndex path appendFn handlers extra arr
       Just elemJson ->
-        runFn5 decodeElem (if h.includeJsonOffset then Array.snoc path (AtIndex idx) else path) appendFn handlers extra elemJson
+        runFn5 decodeElem (runFn2 h.addJsonOffset path (AtIndex idx)) appendFn handlers extra elemJson
 
 decodeIndex''
   :: forall e extra from a
@@ -195,7 +195,7 @@ decodeIndex'' arr idx onMissingIndex (DecoderFn decodeElem) =
       onMissingIndex
     Just elemJson ->
       DecoderFn $ mkFn5 \path appendFn handlers@(JsonErrorHandlers h) extra _ ->
-        runFn5 decodeElem (if h.includeJsonOffset then Array.snoc path (AtIndex idx) else path) appendFn handlers extra elemJson
+        runFn5 decodeElem (runFn2 h.addJsonOffset path (AtIndex idx)) appendFn handlers extra elemJson
 
 decodeIndices
   :: forall e extra a
@@ -205,7 +205,7 @@ decodeIndices (DecoderFn decodeElem) = Decoder.do
   arr <- identity
   forWithIndex arr \idx elemJson ->
     DecoderFn $ mkFn5 \path appendFn handlers@(JsonErrorHandlers h) extra _ ->
-      runFn5 decodeElem (if h.includeJsonOffset then Array.snoc path (AtIndex idx) else path) appendFn handlers extra elemJson
+      runFn5 decodeElem (runFn2 h.addJsonOffset path (AtIndex idx)) appendFn handlers extra elemJson
 
 decodeJObject :: forall e extra. JsonDecoder e extra (Object Json)
 decodeJObject = DecoderFn $ mkFn5 \pathSoFar _ (JsonErrorHandlers h) _ json ->
@@ -230,7 +230,7 @@ decodeField' field (DecoderFn onMissingField) (DecoderFn decodeElem) =
       Nothing ->
         runFn5 onMissingField path appendFn handlers extra obj
       Just fieldJson ->
-        runFn5 decodeElem (if h.includeJsonOffset then Array.snoc path (AtKey field) else path) appendFn handlers extra fieldJson
+        runFn5 decodeElem (runFn2 h.addJsonOffset path (AtKey field)) appendFn handlers extra fieldJson
 
 decodeField''
   :: forall e extra from a
@@ -245,7 +245,7 @@ decodeField'' obj field onMissingField (DecoderFn decodeElem) =
       onMissingField
     Just fieldJson ->
       DecoderFn $ mkFn5 \path appendFn handlers@(JsonErrorHandlers h) extra _ ->
-        runFn5 decodeElem (if h.includeJsonOffset then Array.snoc path (AtKey field) else path) appendFn handlers extra fieldJson
+        runFn5 decodeElem (runFn2 h.addJsonOffset path (AtKey field)) appendFn handlers extra fieldJson
 
 decodeFields
   :: forall e extra a
@@ -255,7 +255,7 @@ decodeFields (DecoderFn decodeElem) = Decoder.do
   obj <- identity
   forWithIndex obj \key elemJson ->
     DecoderFn $ mkFn5 \path appendFn handlers@(JsonErrorHandlers h) extra _ ->
-      runFn5 decodeElem (if h.includeJsonOffset then Array.snoc path (AtKey key) else path) appendFn handlers extra elemJson
+      runFn5 decodeElem (runFn2 h.addJsonOffset path (AtKey key)) appendFn handlers extra elemJson
 
 decodeVoid :: forall err extra. JsonDecoder err extra Void
 decodeVoid = addTypeHint "Void" $ failWithUnrefinableValue "Decoding a value to Void is impossible"

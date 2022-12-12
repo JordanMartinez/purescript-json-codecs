@@ -58,7 +58,7 @@ pjeHandlers = JsonErrorHandlers
   , onMissingIndex: mkFn2 \path -> PrimitiveJsonError <<< TreeError <<< Right <<< { path, error: _ } <<< MissingIndex
   , onUnrefinableValue: mkFn2 \path -> PrimitiveJsonError <<< TreeError <<< Right <<< { path, error: _ } <<< UnrefinableValue
   , onStructureError: mkFn2 \path -> PrimitiveJsonError <<< TreeError <<< Right <<< { path, error: _ } <<< StructureError
-  , includeJsonOffset: true
+  , addJsonOffset: mkFn2 \a b -> Array.snoc a b
   , addHint: mkFn3 \path hint -> over PrimitiveJsonError case _ of
       TreeError (Left (That x)) -> TreeError $ Left $ Both { path, hint } x
       x -> TreeError $ Left $ Both { path, hint } $ NEA.singleton x

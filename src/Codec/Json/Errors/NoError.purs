@@ -16,7 +16,7 @@ handlersNone = JsonErrorHandlers
   , onMissingIndex: mkFn2 \_ _ -> unit
   , onUnrefinableValue: mkFn2 \_ _ -> unit
   , onStructureError: mkFn2 \_ _ -> unit
-  , includeJsonOffset: false
+  , addJsonOffset: mkFn2 \a _ -> a
   , addHint: mkFn3 \_ _ _ -> unit
   }
 

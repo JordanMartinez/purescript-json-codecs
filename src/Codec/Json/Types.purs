@@ -82,6 +82,6 @@ newtype JsonErrorHandlers e = JsonErrorHandlers
   , onMissingIndex :: Fn2 (Array JsonOffset) Int e
   , onUnrefinableValue :: Fn2 (Array JsonOffset) String e
   , onStructureError :: Fn2 (Array JsonOffset) String e
-  , includeJsonOffset :: Boolean
+  , addJsonOffset :: Fn2 (Array JsonOffset) JsonOffset (Array JsonOffset)
   , addHint :: Fn3 (Array JsonOffset) TypeHint e e
   }

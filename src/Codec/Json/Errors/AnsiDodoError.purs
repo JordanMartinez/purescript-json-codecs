@@ -6,6 +6,7 @@ import Codec.Json.Errors.PrimitiveJsonError (printMissingField, printMissingInde
 import Codec.Json.JsonDecoder (JsonDecoder, runJsonDecoder)
 import Codec.Json.Types (JsonErrorHandlers(..), JsonOffset, TypeHint(..), printJsonOffsetPath)
 import Data.Argonaut.Core (Json)
+import Data.Array as Array
 import Data.Either (Either)
 import Data.Function.Uncurried (mkFn2, mkFn3)
 import Dodo (Doc, twoSpaces)
@@ -39,7 +40,7 @@ handlersAde = JsonErrorHandlers
         [ foreground BrightRed $ D.text msg
         , docifyPath path
         ]
-  , includeJsonOffset: true
+  , addJsonOffset: mkFn2 \a b -> Array.snoc a b
   , addHint: mkFn3 \path hint err ->
       D.lines
         [ docifyHint hint path

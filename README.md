@@ -27,9 +27,10 @@ Provide a single library for both versions of codecs and both directions of code
       - [x] configurable encoder
     - [x] value-based
   - [x] bidirectional (encode/decode must be bidirectional)
-  - [ ] write docs
-  - [ ] add more decode context for bidirectional codecs
-  - [ ] for migrating JSON using old/outdated codecs easily - **WIP**
+     - [x] class-based
+      - [x] configurable decoder
+      - [x] configurable encoder
+    - [x] value-based
 
 Provide record syntax I enjoy using
   - See examples below

@@ -3,7 +3,7 @@ module Codec.Decoder where
 import Prelude
 
 import Data.Either (Either(..))
-import Data.Function.Uncurried (Fn5, mkFn5, runFn5)
+import Data.Function.Uncurried (Fn2, Fn5, mkFn5, runFn2, runFn5)
 import Data.Newtype (class Newtype, unwrap)
 import Data.Validation.Semigroup (V(..), andThen, invalid)
 
@@ -26,7 +26,7 @@ import Data.Validation.Semigroup (V(..), andThen, invalid)
 -- |    `Fn1 from (V e to)` -> `Fn4 path handler extra from (V e to)`
 -- | - and the `Semigroup`'s `append`/`<>` has been inlined to reduce type class dictionary overhead
 -- |    `Fn4 path handler extra from (V e to)` -> `Fn5 path appendFn handler extra from (V e to)`
-newtype DecoderFn path handlers e extra from to = DecoderFn (Fn5 path (e -> e -> e) handlers extra from (V e to))
+newtype DecoderFn path handlers e extra from to = DecoderFn (Fn5 path (Fn2 e e e) handlers extra from (V e to))
 
 derive instance Newtype (DecoderFn path handlers e extra from to) _
 
@@ -37,7 +37,7 @@ instance functorDecoderFn :: Functor (DecoderFn path handlers e extra from) wher
 instance applyDecoderFn :: Apply (DecoderFn path handlers e extra from) where
   apply (DecoderFn ff) (DecoderFn fa) = DecoderFn $ mkFn5 \path appendFn handlers extra from ->
     case runFn5 ff path appendFn handlers extra from, runFn5 fa path appendFn handlers extra from of
-      V (Left e1), V (Left e2) -> V (Left $ appendFn e1 e2)
+      V (Left e1), V (Left e2) -> V (Left $ runFn2 appendFn e1 e2)
       V (Left e1), _ -> V (Left e1)
       _, V (Left e2) -> V (Left e2)
       V (Right f'), V (Right a') -> V (Right (f' a'))
@@ -66,7 +66,7 @@ altAccumulate :: forall path handlers e extra from a. DecoderFn path handlers e 
 altAccumulate (DecoderFn f1) (DecoderFn f2) = DecoderFn $ mkFn5 \path appendFn handlers extra from ->
   case unwrap $ runFn5 f1 path appendFn handlers extra from of
     Left e -> case unwrap $ runFn5 f2 path appendFn handlers extra from of
-      Left e2 -> invalid $ appendFn e e2
+      Left e2 -> invalid $ runFn2 appendFn e e2
       Right a -> V $ Right a
     Right a -> V $ Right a
 

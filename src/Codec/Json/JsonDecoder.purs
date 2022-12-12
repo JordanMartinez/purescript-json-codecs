@@ -8,7 +8,7 @@ import Data.Argonaut.Core (Json)
 import Data.Array as Array
 import Data.Bifunctor (lmap)
 import Data.Either (Either(..))
-import Data.Function.Uncurried (mkFn5, runFn2, runFn3, runFn5)
+import Data.Function.Uncurried (mkFn2, mkFn5, runFn2, runFn3, runFn5)
 import Data.Newtype (un, unwrap)
 import Data.Validation.Semigroup (V(..), invalid)
 
@@ -73,7 +73,7 @@ altAccumulate :: forall e extra from a. DecodeErrorAccumulatorFn e extra from a
 altAccumulate (DecoderFn f1) (DecoderFn f2) = DecoderFn $ mkFn5 \path appendFn handlers extra json ->
   case unwrap $ runFn5 f1 path appendFn handlers extra json of
     Left e -> case unwrap $ runFn5 f2 path appendFn handlers extra json of
-      Left e2 -> invalid $ appendFn e e2
+      Left e2 -> invalid $ runFn2 appendFn e e2
       Right a -> V $ Right a
     Right a -> V $ Right a
 
@@ -94,4 +94,4 @@ runJsonDecoder
   -> JsonDecoder e extra a
   -> Either e a
 runJsonDecoder handlers appendFn extra json (DecoderFn fn) =
-  un V $ runFn5 fn [] appendFn handlers extra json
+  un V $ runFn5 fn [] (mkFn2 appendFn) handlers extra json

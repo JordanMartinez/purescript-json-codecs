@@ -41,7 +41,6 @@ module Codec.Json.Unidirectional.Decode.Value
   , RLRecordDecoder
   , RLRecordDecoderBuilder
   , decodeRecord
-  , decodeRecord'
   , decodeRecordPrim
   , buildRecordDecoder
   , decodeRequiredProp
@@ -168,11 +167,14 @@ decodeJArray = DecoderFn $ mkFn5 \pathSoFar _ (JsonErrorHandlers h) _ json ->
     (invalid <<< runFn3 h.onTypeMismatch pathSoFar ExpectedArray <<< ActualObject)
     json
 
+-- | Decode the value at the given index or fail if it doesn't exist.
 decodeIndex :: forall e extra a. Int -> JsonDecoder e extra a -> JsonDecoder' e extra (Array Json) a
 decodeIndex idx = decodeIndex' idx do
   DecoderFn $ mkFn5 \pathSoFar _ (JsonErrorHandlers h) _ _ ->
     invalid $ runFn2 h.onMissingIndex pathSoFar idx
 
+-- | Given an index and a fallback decoder (`JsonDecoder'` arg), 
+-- | decode the value at the given index using the main decoder (`JsonDecoder` arg).
 decodeIndex' :: forall e extra a. Int -> JsonDecoder' e extra (Array Json) a -> JsonDecoder e extra a -> JsonDecoder' e extra (Array Json) a
 decodeIndex' idx (DecoderFn onMissingIndex) (DecoderFn decodeElem) =
   DecoderFn $ mkFn5 \path appendFn handlers@(JsonErrorHandlers h) extra arr ->
@@ -197,6 +199,12 @@ decodeIndex'' arr idx onMissingIndex (DecoderFn decodeElem) =
       DecoderFn $ mkFn5 \path appendFn handlers@(JsonErrorHandlers h) extra _ ->
         runFn5 decodeElem (runFn2 h.addJsonOffset path (AtIndex idx)) appendFn handlers extra elemJson
 
+-- | One cannot use `Traversable` when implementing a `DecoderFn` because
+-- | the `Semigroup` instance for the error type is stored in the `DecoderFn` itself and
+-- | the compiler doesn't know that.
+-- |
+-- | So, this gets around that limitation when one wants to traverse over an array and 
+-- | decode each of its elements with the given decoder.
 decodeIndices
   :: forall e extra a
    . JsonDecoder e extra a
@@ -218,11 +226,14 @@ decodeJObject = DecoderFn $ mkFn5 \pathSoFar _ (JsonErrorHandlers h) _ json ->
     (V <<< Right)
     json
 
+-- | Decode the value at the given key or fail if it doesn't exist.
 decodeField :: forall e extra a. String -> JsonDecoder e extra a -> JsonDecoder' e extra (Object Json) a
 decodeField field = decodeField' field do
   DecoderFn $ mkFn5 \pathSoFar _ (JsonErrorHandlers h) _ _ ->
     invalid $ runFn2 h.onMissingField pathSoFar field
 
+-- | Given a key and a fallback decoder (`JsonDecoder'` arg), 
+-- | decode the value at the given key using the main decoder (`JsonDecoder` arg).
 decodeField' :: forall e extra a. String -> JsonDecoder' e extra (Object Json) a -> JsonDecoder e extra a -> JsonDecoder' e extra (Object Json) a
 decodeField' field (DecoderFn onMissingField) (DecoderFn decodeElem) =
   DecoderFn $ mkFn5 \path appendFn handlers@(JsonErrorHandlers h) extra obj ->
@@ -247,6 +258,12 @@ decodeField'' obj field onMissingField (DecoderFn decodeElem) =
       DecoderFn $ mkFn5 \path appendFn handlers@(JsonErrorHandlers h) extra _ ->
         runFn5 decodeElem (runFn2 h.addJsonOffset path (AtKey field)) appendFn handlers extra fieldJson
 
+-- | One cannot use `Traversable` when implementing a `DecoderFn` because
+-- | the `Semigroup` instance for the error type is stored in the `DecoderFn` itself and
+-- | the compiler doesn't know that.
+-- |
+-- | So, this gets around that limitation when one wants to traverse over an object and its keys and 
+-- | decode each with the given decoder.
 decodeFields
   :: forall e extra a
    . JsonDecoder e extra a
@@ -263,6 +280,7 @@ decodeVoid = addTypeHint "Void" $ failWithUnrefinableValue "Decoding a value to 
 decodeUnitFromNull :: forall err extra. JsonDecoder err extra Unit
 decodeUnitFromNull = decodeJNull
 
+-- | A decoder that always succeeds, no matter what the underlying JSON is.
 decodeUnitFromAny :: forall e extra. JsonDecoder e extra Unit
 decodeUnitFromAny = pure unit
 
@@ -500,15 +518,8 @@ decodeRecord
   => DecodeRowList err extra decoderRl { | decoderRows } { | outputRows }
   => { | props }
   -> JsonDecoder err extra { | outputRows }
-decodeRecord props =
-  decodeRecord' (buildRecordDecoder $ decodeRequiredProps props)
-
-decodeRecord'
-  :: forall err extra rl decoderRows outputRows
-   . DecodeRowList err extra rl { | decoderRows } { | outputRows }
-  => RLRecordDecoder err extra rl { | decoderRows }
-  -> JsonDecoder err extra { | outputRows }
-decodeRecord' propDecoders = decodeRecordPrim (decodeRowList propDecoders)
+decodeRecord props = decodeRecordPrim $ decodeRowList $
+  (buildRecordDecoder $ decodeRequiredProps props)
 
 decodeRecordPrim
   :: forall err extra outputRows

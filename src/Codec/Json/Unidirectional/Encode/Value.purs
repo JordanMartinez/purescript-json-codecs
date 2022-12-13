@@ -31,7 +31,7 @@ module Codec.Json.Unidirectional.Encode.Value
   , RLRecordEncoder
   , RLRecordEncoderBuilder
   , encodeRecord
-  , encodeRecord'
+  , encodeRecordPrim
   , buildRecordEncoder
   , encodeRequiredProp
   , encodeOptionalProp
@@ -233,15 +233,15 @@ encodeRecord
   -> { | inputRows }
   -> Json
 encodeRecord propEncoders input =
-  encodeRecord' (buildRecordEncoder $ encodeRequiredProps propEncoders :: RLRecordEncoder newRl newRows) input
+  encodeRecordPrim (buildRecordEncoder $ encodeRequiredProps propEncoders :: RLRecordEncoder newRl newRows) input
 
-encodeRecord'
+encodeRecordPrim
   :: forall encodeRows encodeRl inputRows
    . EncodeRowList encodeRl encodeRows inputRows
   => RLRecordEncoder encodeRl encodeRows
   -> { | inputRows }
   -> Json
-encodeRecord' propEncoders = encodeJObject <<< encodeRowList propEncoders
+encodeRecordPrim propEncoders = encodeJObject <<< encodeRowList propEncoders
 
 buildRecordEncoder
   :: forall encodeRows encodeRl

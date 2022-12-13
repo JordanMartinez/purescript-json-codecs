@@ -1,3 +1,15 @@
+-- | Codecs in this module follow a naming convention:
+-- | - the `j` prefix indicates a primitive JSON codec
+-- |    (e.g. `null`, `number`, `boolean`, `string``, `array`, and `object`)
+-- | - the type's name is used to refer to the codec for that type except in two cases:
+-- |    - when the name clashes with a commonly used function/value, the `Codec` suffix is added:
+-- |        - `identity` for `Identity` becomes `identityCodec`
+-- |        - `void` for `Void` becomes `voidCodec`
+-- |        - `map` for `Map` becomes `mapCodec`
+-- |    - when a buildler-like API is needed, the `Prim` suffix is added
+-- |        - `object` and `objectPrim`
+-- |        - `record` and `recordPrim`
+-- |        - `variant` and `variantPrim`
 module Codec.Json.Bidirectional.Value
   ( json
   , voidCodec
@@ -92,7 +104,7 @@ import Data.String (CodePoint, codePointAt)
 import Data.String as String
 import Data.String.CodeUnits (charAt)
 import Data.String.CodeUnits as SCU
-import Data.String.NonEmpty.Internal (NonEmptyString(..))
+import Data.String.NonEmpty.Internal (NonEmptyString)
 import Data.String.NonEmpty.Internal as NonEmptyString
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.These (These(..))
@@ -201,7 +213,7 @@ nonEmptyString :: forall e extra. JsonCodec e extra NonEmptyString
 nonEmptyString =
   string >~> refinedValue
     (NonEmptyString.fromString >>> note stringNotEmptyFailure)
-    (\(NonEmptyString s) -> s)
+    (NonEmptyString.toString)
 
 codePoint :: forall e extra. JsonCodec e extra CodePoint
 codePoint =
@@ -222,6 +234,18 @@ nonEmptyArray aCodec =
     (NEA.fromArray >>> note arrayNotEmptyFailure)
     NEA.toArray
 
+-- | Codec for records where all fields are required and
+-- | the JSON object's order of fields doesn't matter
+-- | when using this codec to encode a value to JSON.
+-- | If some fields are optional or the order matters,
+-- | see `recordPrim`.
+-- |
+-- | ```
+-- | record
+-- |   { requiredFieldName1: pje $ string
+-- |   , requiredFieldName2: pje $ array int
+-- |   }
+-- | ```
 record
   :: forall e extra rl codecs to
    . RL.RowToList codecs rl
@@ -230,6 +254,30 @@ record
   -> JsonCodec e extra { | to }
 record codecs = recordPrim (requiredProps codecs)
 
+-- | Codec builder for records where the field order matters
+-- | when encoding JSON, and the underlying JSON object
+-- | may contain optional fields. If order doesn't matter and
+-- | all fields are required, see `record`.
+-- |
+-- | ```
+-- | -- Order of fields is based on alphabetical ordering of labels
+-- | recordPrim $
+-- |   requiredProps
+-- |     { requiredFieldName1: pje $ string
+-- |     , requiredFieldName2: pje $ array int
+-- |     }
+-- |   >>> optionalProps
+-- |     { optionalFieldName1: pje $ string
+-- |     , optionalFieldName2: pje $ array int
+-- |     }
+-- |
+-- | -- Order of fields is based on order below
+-- | recordPrim $
+-- |   requiredProp (Proxy :: _ "requiredFieldName1") (pje $ string)
+-- |   >>> optionalProp (Proxy :: _ "optionalFieldName2") (pje $ array int)
+-- |   >>> optionalProp (Proxy :: _ "optionalFieldName1") (pje $ string)
+-- |   >>> requiredProp (Proxy :: _ "requiredFieldName2") (pje $ array int)
+-- | ```
 recordPrim :: forall e extra a. (JPropCodec e extra {} -> JPropCodec e extra a) -> JsonCodec e extra a
 recordPrim buildRecordCodec = jobject >~> codec'
   (decoder propCodec)
@@ -244,6 +292,7 @@ recordPrim buildRecordCodec = jobject >~> codec'
   recordEmpty :: JPropCodec e extra {}
   recordEmpty = Codec (pure {}) (mkFn2 \_ a -> Tuple Nil a)
 
+-- | See `recordPrim`
 requiredProp
   :: forall e extra sym a r r'
    . IsSymbol sym
@@ -271,6 +320,7 @@ requiredProp _sym codecA codecR = Codec dec enc
   unsafeForget :: Record r' → Record r
   unsafeForget = unsafeCoerce
 
+-- | See `recordPrim`
 requiredProps
   :: forall e extra rl codecs from to
    . RL.RowToList codecs rl
@@ -280,6 +330,7 @@ requiredProps
 requiredProps codecs =
   insertRequiredPropCodecs (RlJCodec codecs :: RlJCodec e extra rl codecs)
 
+-- | See `recordPrim`
 optionalProp
   :: forall e extra sym a r r'
    . IsSymbol sym
@@ -305,6 +356,7 @@ optionalProp _sym codecA codecR = Codec dec enc
   unsafeForget :: Record r' → Record r
   unsafeForget = unsafeCoerce
 
+-- | See `recordPrim`
 optionalProps
   :: forall e extra rl codecs from to
    . RL.RowToList codecs rl
@@ -314,6 +366,16 @@ optionalProps
 optionalProps codecs =
   insertOptionalPropCodecs (RlJCodec codecs :: RlJCodec e extra rl codecs)
 
+-- | Codec for `Variant` where the order of the handlers
+-- | (e.g. which tag is checked first) does not matter.
+-- | If that is not the case, see `variantPrim`.
+-- |
+-- | ```
+-- | variant
+-- |   { tag1: pje $ string
+-- |   , tag2: pje $ array int
+-- |   }
+-- | ```
 variant
   :: forall e extra rows rl out
    . RL.RowToList rows rl
@@ -323,9 +385,21 @@ variant
   -> JsonCodec e extra (Variant out)
 variant errAcc r = variantPrim errAcc (variantJsonCodec (RlRecord r :: RlRecord e extra rl rows))
 
+-- | This is probably not what you want. See `variantPrim`.
+-- | This is only exported if one needs it.
 variantEmpty :: forall e extra from. JsonCodec' e extra from (Variant ())
 variantEmpty = codec' (failWithUnrefinableValue "All variant decoders failed to decode") (mkFn2 \_ v -> case_ v)
 
+-- | Codec for `Variant` where the order of the handlers
+-- | (e.g. which tag is checked first) DOES matter.
+-- | If that is not the case and you want simpler syntax,
+-- | see `variant`.
+-- |
+-- | ```
+-- | variantPrim $
+-- |   variantCase (Proxy :: _ "tag2") (pje $ array int)
+-- |   >>> variantCase (Proxy :: _ "tag1") (pje $ string)
+-- | ```
 variantPrim
   :: forall e extra rows
    . DecodeErrorAccumulatorFn e extra (Object Json) (Variant rows)
@@ -339,6 +413,7 @@ variantPrim
   -> JsonCodec e extra (Variant rows)
 variantPrim accErrs buildCodec = jobject >~> (buildCodec (\_ -> variantEmpty) accErrs)
 
+-- | See `variantPrim`.
 variantCase
   :: forall e extra sym a tail row
    . IsSymbol sym

@@ -11,14 +11,7 @@ import Data.Function.Uncurried (mkFn2, mkFn5, runFn2, runFn3, runFn5)
 import Data.Newtype (un, unwrap)
 import Data.Validation.Semigroup (V(..), invalid)
 
--- | Overview of values:
--- | - Json - the JSON value currently being decoded at this point
--- | - Array JsonOffset - the position within the larger JSON that the current JSON is located
--- | - JsonErrorHandlers e - runtime-configured way to handling errors
--- | - extra - top-down custom data one may need for writing a decoder. This is where
--- |           local overrides for typeclass instances can be provided.
--- |           If this value isn't needed, you should set this to `Unit`.
--- | - V e a - an Either-like monad that accumulates errors using the `append` function in the handlers arg.
+-- | Same as `JsonDecoder'` but the `from` type variable is hard-coded to `Json`.
 type JsonDecoder e extra a = DecoderFn (Array JsonOffset) (JsonErrorHandlers e) e extra Json a
 type JsonDecoder' e extra from to = DecoderFn (Array JsonOffset) (JsonErrorHandlers e) e extra from to
 

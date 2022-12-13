@@ -256,3 +256,9 @@ Locally-overridden decoded value:
 , tupleMultiOverride: (Tuple "1 + 1 == 2" "left")
 }
 ```
+
+## License
+
+- [`codec`](https://github.com/garyb/purescript-codec) - Copyright (c) 2019 Gary Burgess (MIT)
+- [`codec-argonaut`](https://github.com/garyb/purescript-codec-argonaut/) - Copyright (c) 2017 Gary Burgess (MIT)
+- [`argonaut-codec`](https://github.com/purescript-contrib/purescript-argonaut-codecs) - Copyright (c) 2020 PureScript Contrib (MIT)

@@ -10,7 +10,7 @@ import Dodo (Doc)
 import Effect (Effect)
 import Effect.Class.Console (log)
 import Foreign.Object as Object
-import Codec.Json.Errors.PlainDodoError (pde, printPlainDodoError, runJsonDecoderPDE)
+import Codec.Json.Errors.PlainDodoError (pdeD, printPlainDodoError, runJsonDecoderPDE)
 import Codec.Json.JsonDecoder (JsonDecoder)
 import Codec.Json.Unidirectional.Decode.Value (decodeBoolean, decodeNumber, decodeString, decodeArray, decodeInt, decodeObject, decodeRecord)
 import Codec.Json.Unidirectional.Encode.Value (encodeBoolean, encodeArray, encodeInt, encodeNumber, encodeObject, encodeRecord, encodeString, encodeUnitToNull)
@@ -40,13 +40,13 @@ runDecoderPDE msg example decoder =
 decodeRecIncorrectlyPDE :: JsonDecoder (Doc Void) Unit _
 decodeRecIncorrectlyPDE =
   decodeRecord
-    { boolean: pde decodeString
-    , number: pde decodeBoolean
-    , string: pde decodeNumber
-    , int: pde decodeString
-    , object: pde decodeInt
-    , array: pde $ decodeObject decodeString
-    , record: pde $ decodeArray decodeInt
+    { boolean: pdeD decodeString
+    , number: pdeD decodeBoolean
+    , string: pdeD decodeNumber
+    , int: pdeD decodeString
+    , object: pdeD decodeInt
+    , array: pdeD $ decodeObject decodeString
+    , record: pdeD $ decodeArray decodeInt
     }
 
 exampleInt :: Json

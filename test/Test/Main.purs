@@ -10,6 +10,7 @@ import Test.Codec.Json.Unidirectional.PrimitiveJsonError as PJE
 import Test.Codec.Json.Unidirectional.Typeclass.Normal as TypeclassNormal
 import Test.Codec.Json.Unidirectional.Typeclass.LocalOverrides.Decoding as TypeclassLocalOverridesDecoding
 import Test.Codec.Json.Unidirectional.Typeclass.LocalOverrides.Encoding as TypeclassLocalOverridesEncoding
+import Test.Codec.Json.Bidirectional.AnsiDodoError as BiADE
 
 main :: Effect Unit
 main = sequence_
@@ -19,4 +20,5 @@ main = sequence_
   , TypeclassNormal.runOutput
   , TypeclassLocalOverridesDecoding.runOutput
   , TypeclassLocalOverridesEncoding.runOutput
+  , BiADE.runOutput
   ]

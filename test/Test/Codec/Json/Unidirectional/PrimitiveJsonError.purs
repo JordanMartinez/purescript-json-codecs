@@ -9,7 +9,7 @@ import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Class.Console (log)
 import Foreign.Object as Object
-import Codec.Json.Errors.PrimitiveJsonError (PrimitiveJsonError, pje, printPrimitiveJsonError, runJsonDecoderPJE)
+import Codec.Json.Errors.PrimitiveJsonError (PrimitiveJsonError, pjeD, printPrimitiveJsonError, runJsonDecoderPJE)
 import Codec.Json.JsonDecoder (JsonDecoder)
 import Codec.Json.Unidirectional.Decode.Value (decodeBoolean, decodeNumber, decodeString, decodeArray, decodeInt, decodeObject, decodeRecord)
 import Codec.Json.Unidirectional.Encode.Value (encodeBoolean, encodeArray, encodeInt, encodeNumber, encodeObject, encodeRecord, encodeString, encodeUnitToNull)
@@ -39,13 +39,13 @@ runDecoderPJE msg example decoder =
 decodeRecIncorrectlyPJE :: JsonDecoder PrimitiveJsonError Unit _
 decodeRecIncorrectlyPJE =
   decodeRecord
-    { boolean: pje decodeString
-    , number: pje decodeBoolean
-    , string: pje decodeNumber
-    , int: pje decodeString
-    , object: pje decodeInt
-    , array: pje $ decodeObject decodeString
-    , record: pje $ decodeArray decodeInt
+    { boolean: pjeD decodeString
+    , number: pjeD decodeBoolean
+    , string: pjeD decodeNumber
+    , int: pjeD decodeString
+    , object: pjeD decodeInt
+    , array: pjeD $ decodeObject decodeString
+    , record: pjeD $ decodeArray decodeInt
     }
 
 exampleInt :: Json

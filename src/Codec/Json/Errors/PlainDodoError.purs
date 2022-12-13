@@ -3,7 +3,8 @@ module Codec.Json.Errors.PlainDodoError where
 import Prelude
 
 import Codec.Json.Errors.PrimitiveJsonError (printMissingField, printMissingIndex, printTypeMismatchErr)
-import Codec.Json.JsonDecoder (JsonDecoder, runJsonDecoder)
+import Codec.Json.JsonCodec (JsonCodec')
+import Codec.Json.JsonDecoder (JsonDecoder, JsonDecoder', runJsonDecoder)
 import Codec.Json.Types (JsonErrorHandlers(..), JsonOffset, ctorHintMsg, fieldHintMsg, printJsonOffsetPath, subtermHintMsg, typeHintMsg)
 import Data.Argonaut.Core (Json)
 import Data.Array as Array
@@ -72,8 +73,8 @@ runJsonDecoderPDE = runJsonDecoderPDE' unit
 runJsonDecoderPDE' :: forall a extra. extra -> Json -> JsonDecoder (Doc Void) extra a -> Either (Doc Void) a
 runJsonDecoderPDE' = runJsonDecoder handlersPde (\l r -> l <> D.break <> D.break <> r)
 
-pde :: forall a. JsonDecoder (Doc Void) Unit a -> JsonDecoder (Doc Void) Unit a
-pde = identity
+pdeD :: forall from to. JsonDecoder' (Doc Void) Unit from to -> JsonDecoder' (Doc Void) Unit from to
+pdeD = identity
 
-pde' :: forall a extra. JsonDecoder (Doc Void) extra a -> JsonDecoder (Doc Void) extra a
-pde' = identity
+pdeC :: forall from to. JsonCodec' (Doc Void) Unit from to -> JsonCodec' (Doc Void) Unit from to
+pdeC = identity

@@ -2,7 +2,8 @@ module Codec.Json.Errors.NoError where
 
 import Prelude
 
-import Codec.Json.JsonDecoder (JsonDecoder, runJsonDecoder)
+import Codec.Json.JsonCodec (JsonCodec')
+import Codec.Json.JsonDecoder (JsonDecoder, JsonDecoder', runJsonDecoder)
 import Codec.Json.Types (JsonErrorHandlers(..))
 import Data.Argonaut.Core (Json)
 import Data.Either (hush)
@@ -29,8 +30,8 @@ runJsonDecoderNone = runJsonDecoderNone' unit
 runJsonDecoderNone' :: forall a extra. extra -> Json -> JsonDecoder Unit extra a -> Maybe a
 runJsonDecoderNone' extra json = hush <<< runJsonDecoder handlersNone (\_ _ -> unit) extra json
 
-noErr :: forall a. JsonDecoder Unit Unit a -> JsonDecoder Unit Unit a
-noErr = identity
+noErrD :: forall from to. JsonDecoder' Unit Unit from to -> JsonDecoder' Unit Unit from to
+noErrD = identity
 
-noErr' :: forall a extra. JsonDecoder Unit extra a -> JsonDecoder Unit extra a
-noErr' = identity
+noErrC :: forall from to. JsonCodec' Unit Unit from to -> JsonCodec' Unit Unit from to
+noErrC = identity

@@ -11,7 +11,7 @@ import Dodo.Ansi (GraphicsParam)
 import Effect (Effect)
 import Effect.Class.Console (log)
 import Foreign.Object as Object
-import Codec.Json.Errors.AnsiDodoError (ade, printAnsiDodoError, runJsonDecoderADE)
+import Codec.Json.Errors.AnsiDodoError (adeD, printAnsiDodoError, runJsonDecoderADE)
 import Codec.Json.JsonDecoder (JsonDecoder)
 import Codec.Json.Unidirectional.Decode.Value (decodeBoolean, decodeNumber, decodeString, decodeArray, decodeInt, decodeObject, decodeRecord)
 import Codec.Json.Unidirectional.Encode.Value (encodeBoolean, encodeArray, encodeInt, encodeNumber, encodeObject, encodeRecord, encodeString, encodeUnitToNull)
@@ -81,11 +81,11 @@ exampleRec =
 decodeRecIncorrectlyADE :: JsonDecoder (Doc GraphicsParam) Unit _
 decodeRecIncorrectlyADE =
   decodeRecord
-    { boolean: ade decodeString
-    , number: ade decodeBoolean
-    , string: ade decodeNumber
-    , int: ade decodeString
-    , object: ade decodeInt
-    , array: ade $ decodeObject decodeString
-    , record: ade $ decodeArray decodeInt
+    { boolean: adeD decodeString
+    , number: adeD decodeBoolean
+    , string: adeD decodeNumber
+    , int: adeD decodeString
+    , object: adeD decodeInt
+    , array: adeD $ decodeObject decodeString
+    , record: adeD $ decodeArray decodeInt
     }

@@ -1,0 +1,53 @@
+name: CI
+
+# Run CI when a PR is opened against the branch `master`
+# and when one pushes a commit to `master`.
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+# Run CI on all 3 latest OSes
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: purescript-contrib/setup-purescript@main
+        with:
+          purescript: "0.15.7"
+          purs-tidy: "0.8.2"
+          spago: "0.20.9"
+          psa: "0.7.2"
+
+      - name: Cache PureScript dependencies
+        uses: actions/cache@v2
+        with:
+          key: ${{ runner.os }}-spago-${{ hashFiles('**/*.dhall') }}
+          path: |
+            .spago
+            output
+
+      - name: Set up Node toolchain
+        uses: actions/setup-node@v2
+        with:
+          node-version: "16"
+
+      # Compile the library/project
+      #   censor-lib: ignore warnings emitted by dependencies
+      #   strict: convert warnings into errors
+      # Note: `purs-args` actually forwards these args to `psa`
+      - name: Build the project
+        run: |
+          spago build --purs-args "--censor-lib --strict"
+
+      - name: Run tests
+        run: |
+          spago test
+
+      - name: Check Formatting
+        run: |
+          purs-tidy check src test

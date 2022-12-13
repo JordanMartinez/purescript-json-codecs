@@ -213,7 +213,7 @@ bazEncoder = encodeJson
 
 ### Typeclass-based codec where some instances are implemented via runtime-configured implementations
 
-See [Decoding.purs](./test/Test/Codec/Json/Unidirectional/Typeclass/LocalOverrides/Decoding.purs.purs), which as of the time of writing, outputs:
+See [Decoding.purs](./test/Test/Codec/Json/Unidirectional/Typeclass/LocalOverrides/Decoding.purs), which as of the time of writing, outputs:
 
 ```
 ### Typeclass (Local Overrides) Output:

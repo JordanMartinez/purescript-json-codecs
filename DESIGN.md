@@ -263,7 +263,7 @@ decodeRecord
 `?Help` will have the type: `{ label :: forall error extra. JsonDecoder error extra String }` instead of `forall error extra. { label :: JsonDecoder error extra String }`. Since `label` is polymorphic, the type classes used to make this syntax work (via `RowToList` machinery) will fail to compile until `error` and `extra` are defined.
 
 There are two workarounds to this issue:
-- annotate each label's codec by hand (e.g. `{ label: decodeString :: JsonDecoder PrimitiveJsonError Unit String }`). This is problematic because it gets tediuos. Moreover, it's not refactor-resistant.
+- annotate each label's codec by hand (e.g. `{ label: decodeString :: JsonDecoder PrimitiveJsonError Unit String }`). This is problematic because it gets tedious. Moreover, it's not refactor-resistant.
 - annotate each label's codec using an identity function that hard-codes these two type variables for us (e.g. `{ label: someFunction $ decodeString }`).
 
 This library uses the second approach. Using `PrimitiveJsonError` as an example, we define two functions named after an abbreviation of the error type and a suffix that indicate the context in which it should be used:

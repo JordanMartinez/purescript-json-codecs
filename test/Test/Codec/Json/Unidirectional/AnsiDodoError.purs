@@ -1,4 +1,4 @@
-module Test.Json.Unidirectional.AnsiDodoError where
+module Test.Codec.Json.Unidirectional.AnsiDodoError where
 
 import Prelude
 

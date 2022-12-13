@@ -1,4 +1,4 @@
-module Test.Json.Unidirectional.Typeclass.LocalOverrides.Decoding where
+module Test.Codec.Json.Unidirectional.Typeclass.LocalOverrides.Decoding where
 
 import Prelude
 

@@ -1,4 +1,4 @@
-module Test.Json.Unidirectional.Typeclass.Normal where
+module Test.Codec.Json.Unidirectional.Typeclass.Normal where
 
 import Prelude
 

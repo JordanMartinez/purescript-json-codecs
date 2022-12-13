@@ -1,4 +1,4 @@
-module Test.Json.Unidirectional.PrimitiveJsonError where
+module Test.Codec.Json.Unidirectional.PrimitiveJsonError where
 
 import Prelude
 

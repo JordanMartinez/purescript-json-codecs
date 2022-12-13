@@ -170,8 +170,8 @@ encodeTuple encodeA encodeB (Tuple a b) =
 encodeThese :: forall a b. (a -> Json) -> (b -> Json) -> These a b -> Json
 encodeThese encodeA encodeB =
   these
-    (tagged "This" <<< encodeJObject <<< Object.singleton "value" <<< encodeA)
-    (tagged "That" <<< encodeJObject <<< Object.singleton "value" <<< encodeB)
+    (tagged "This" <<< encodeA)
+    (tagged "That" <<< encodeB)
     ( \a b -> tagged "Both" $ encodeJObject $ Object.fromFoldable
         [ Tuple "this" $ encodeA a
         , Tuple "that" $ encodeB b

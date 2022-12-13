@@ -4,7 +4,7 @@ import Prelude
 
 import Codec.Json.Errors.PrimitiveJsonError (printMissingField, printMissingIndex, printTypeMismatchErr)
 import Codec.Json.JsonDecoder (JsonDecoder, runJsonDecoder)
-import Codec.Json.Types (JsonErrorHandlers(..), JsonOffset, TypeHint, printJsonOffsetPath, printTypeHint)
+import Codec.Json.Types (JsonErrorHandlers(..), JsonOffset, ctorHintMsg, fieldHintMsg, printJsonOffsetPath, subtermHintMsg, typeHintMsg)
 import Data.Argonaut.Core (Json)
 import Data.Array as Array
 import Data.Either (Either)
@@ -40,21 +40,27 @@ handlersPde = JsonErrorHandlers
         , docifyPath path
         ]
   , addJsonOffset: mkFn2 \a b -> Array.snoc a b
-  , addHint: mkFn3 \path hint err ->
-      D.lines
-        [ docifyHint hint path
-        , D.indent err
-        ]
+  , addTypeHint: mkFn3 \path hint err ->
+      docifyHint path (D.text $ typeHintMsg hint) err
+  , addCtorHint: mkFn3 \path hint err ->
+      docifyHint path (D.text $ ctorHintMsg hint) err
+  , addSubtermHint: mkFn3 \path hint err ->
+      docifyHint path (D.text $ subtermHintMsg hint) err
+  , addFieldHint: mkFn3 \path hint err ->
+      docifyHint path (D.text $ fieldHintMsg hint) err
   }
 
 docifyPath :: Array JsonOffset -> Doc Void
 docifyPath path = D.space <> D.space <> D.text "at path:" <> D.space <> (D.text $ printJsonOffsetPath path)
 
-docifyHint :: TypeHint -> Array JsonOffset -> Doc Void
-docifyHint hint path =
+docifyHint :: Array JsonOffset -> Doc Void -> Doc Void -> Doc Void
+docifyHint path msg err =
   D.lines
-    [ D.text $ printTypeHint hint
-    , docifyPath path
+    [ D.lines
+        [ msg
+        , docifyPath path
+        ]
+    , D.indent err
     ]
 
 printPlainDodoError :: Doc Void -> String

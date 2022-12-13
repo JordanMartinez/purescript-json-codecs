@@ -4,7 +4,7 @@ import Prelude
 
 import Codec.Json.Errors.Tree (TreeError(..))
 import Codec.Json.JsonDecoder (JsonDecoder, runJsonDecoder)
-import Codec.Json.Types (ActualJsonType, ExpectedJsonType, JsonErrorHandlers(..), JsonOffset, TypeHint, printActualJsonType, printExpectedJsonType, printJsonOffsetPath, printTypeHint)
+import Codec.Json.Types (ActualJsonType, ExpectedJsonType, JsonErrorHandlers(..), JsonOffset, ctorHintMsg, fieldHintMsg, printActualJsonType, printExpectedJsonType, printJsonOffsetPath, subtermHintMsg, typeHintMsg)
 import Data.Argonaut.Core (Json)
 import Data.Array as Array
 import Data.Array.NonEmpty as NEA
@@ -42,6 +42,21 @@ printMissingIndex :: Int -> String
 printMissingIndex idx =
   "Failed to decode a value under the index `" <> show idx <> "` because the element did not exist."
 
+data TypeHint
+  = TyName String
+  | CtorName String
+  | Subterm Int
+  | Field String
+
+derive instance Eq TypeHint
+
+printTypeHint :: TypeHint -> String
+printTypeHint = case _ of
+  TyName s -> typeHintMsg s
+  CtorName s -> ctorHintMsg s
+  Subterm i -> subtermHintMsg i
+  Field f -> fieldHintMsg f
+
 newtype PrimitiveJsonError = PrimitiveJsonError
   ( TreeError
       { path :: Array JsonOffset, hint :: TypeHint }
@@ -59,9 +74,18 @@ pjeHandlers = JsonErrorHandlers
   , onUnrefinableValue: mkFn2 \path -> PrimitiveJsonError <<< TreeError <<< Right <<< { path, error: _ } <<< UnrefinableValue
   , onStructureError: mkFn2 \path -> PrimitiveJsonError <<< TreeError <<< Right <<< { path, error: _ } <<< StructureError
   , addJsonOffset: mkFn2 \a b -> Array.snoc a b
-  , addHint: mkFn3 \path hint -> over PrimitiveJsonError case _ of
-      TreeError (Left (That x)) -> TreeError $ Left $ Both { path, hint } x
-      x -> TreeError $ Left $ Both { path, hint } $ NEA.singleton x
+  , addTypeHint: mkFn3 \path h -> over PrimitiveJsonError case _ of
+      TreeError (Left (That x)) -> TreeError $ Left $ Both { path, hint: TyName h } x
+      x -> TreeError $ Left $ Both { path, hint: TyName h } $ NEA.singleton x
+  , addCtorHint: mkFn3 \path h -> over PrimitiveJsonError case _ of
+      TreeError (Left (That x)) -> TreeError $ Left $ Both { path, hint: CtorName h } x
+      x -> TreeError $ Left $ Both { path, hint: CtorName h } $ NEA.singleton x
+  , addSubtermHint: mkFn3 \path h -> over PrimitiveJsonError case _ of
+      TreeError (Left (That x)) -> TreeError $ Left $ Both { path, hint: Subterm h } x
+      x -> TreeError $ Left $ Both { path, hint: Subterm h } $ NEA.singleton x
+  , addFieldHint: mkFn3 \path h -> over PrimitiveJsonError case _ of
+      TreeError (Left (That x)) -> TreeError $ Left $ Both { path, hint: Field h } x
+      x -> TreeError $ Left $ Both { path, hint: Field h } $ NEA.singleton x
   }
 
 printPrimitiveJsonError :: PrimitiveJsonError -> String

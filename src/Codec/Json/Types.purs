@@ -61,20 +61,17 @@ printJsonOffset = case _ of
 printJsonOffsetPath :: Array JsonOffset -> String
 printJsonOffsetPath = append "ROOT" <<< foldMap printJsonOffset
 
-data TypeHint
-  = TyName String
-  | CtorName String
-  | Subterm Int
-  | Field String
+typeHintMsg :: String -> String
+typeHintMsg = append "while decoding the type, "
 
-derive instance Eq TypeHint
+ctorHintMsg :: String -> String
+ctorHintMsg = append "while decoding the constructor, "
 
-printTypeHint :: TypeHint -> String
-printTypeHint = case _ of
-  TyName s -> "while decoding the type, " <> s
-  CtorName s -> "while decoding the constructor, " <> s
-  Subterm i -> "while decoding the subterm at index, " <> show i
-  Field f -> "while decoding the value under the label, " <> f
+subtermHintMsg :: Int -> String
+subtermHintMsg = append "while decoding the subterm at index, " <<< show
+
+fieldHintMsg :: String -> String
+fieldHintMsg = append "while decoding the value under the label, "
 
 newtype JsonErrorHandlers e = JsonErrorHandlers
   { onTypeMismatch :: Fn3 (Array JsonOffset) ExpectedJsonType ActualJsonType e
@@ -83,5 +80,8 @@ newtype JsonErrorHandlers e = JsonErrorHandlers
   , onUnrefinableValue :: Fn2 (Array JsonOffset) String e
   , onStructureError :: Fn2 (Array JsonOffset) String e
   , addJsonOffset :: Fn2 (Array JsonOffset) JsonOffset (Array JsonOffset)
-  , addHint :: Fn3 (Array JsonOffset) TypeHint e e
+  , addTypeHint :: Fn3 (Array JsonOffset) String e e
+  , addCtorHint :: Fn3 (Array JsonOffset) String e e
+  , addSubtermHint :: Fn3 (Array JsonOffset) Int e e
+  , addFieldHint :: Fn3 (Array JsonOffset) String e e
   }

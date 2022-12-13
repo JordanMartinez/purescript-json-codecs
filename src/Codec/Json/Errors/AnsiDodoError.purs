@@ -4,7 +4,7 @@ import Prelude
 
 import Codec.Json.Errors.PrimitiveJsonError (printMissingField, printMissingIndex, printTypeMismatchErr)
 import Codec.Json.JsonDecoder (JsonDecoder, runJsonDecoder)
-import Codec.Json.Types (JsonErrorHandlers(..), JsonOffset, TypeHint(..), printJsonOffsetPath)
+import Codec.Json.Types (JsonErrorHandlers(..), JsonOffset, ctorHintMsg, fieldHintMsg, printJsonOffsetPath, subtermHintMsg, typeHintMsg)
 import Data.Argonaut.Core (Json)
 import Data.Array as Array
 import Data.Either (Either)
@@ -41,29 +41,28 @@ handlersAde = JsonErrorHandlers
         , docifyPath path
         ]
   , addJsonOffset: mkFn2 \a b -> Array.snoc a b
-  , addHint: mkFn3 \path hint err ->
-      D.lines
-        [ docifyHint hint path
-        , D.indent err
-        ]
+  , addTypeHint: mkFn3 \path hint err ->
+      docifyHint path (D.text $ typeHintMsg hint) err
+  , addCtorHint: mkFn3 \path hint err ->
+      docifyHint path (D.text $ ctorHintMsg hint) err
+  , addSubtermHint: mkFn3 \path hint err ->
+      docifyHint path (D.text $ subtermHintMsg hint) err
+  , addFieldHint: mkFn3 \path hint err ->
+      docifyHint path (D.text $ fieldHintMsg hint) err
   }
 
 docifyPath :: Array JsonOffset -> Doc GraphicsParam
 docifyPath path = D.space <> D.space <> D.text "at path:" <> D.space <> (foreground Cyan $ D.text $ printJsonOffsetPath path)
 
-docifyHint :: TypeHint -> Array JsonOffset -> Doc GraphicsParam
-docifyHint hint path =
+docifyHint :: Array JsonOffset -> Doc GraphicsParam -> Doc GraphicsParam -> Doc GraphicsParam
+docifyHint path msg err =
   D.lines
-    [ printHint hint
-    , docifyPath path
+    [ D.lines
+        [ msg
+        , docifyPath path
+        ]
+    , D.indent err
     ]
-  where
-  printHint :: TypeHint -> Doc GraphicsParam
-  printHint = case _ of
-    TyName s -> D.text "while decoding the type, " <> (foreground BrightYellow $ D.text s)
-    CtorName s -> D.text "while decoding the constructor, " <> (foreground BrightYellow $ D.text s)
-    Subterm i -> D.text "while decoding the subterm at index, " <> (foreground BrightYellow $ D.text $ show i)
-    Field f -> D.text "while decoding the value under the label, " <> (foreground BrightYellow $ D.text f)
 
 printAnsiDodoError :: Doc GraphicsParam -> String
 printAnsiDodoError = D.print ansiGraphics twoSpaces

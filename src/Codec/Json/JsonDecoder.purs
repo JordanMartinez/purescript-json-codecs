@@ -3,7 +3,7 @@ module Codec.Json.JsonDecoder where
 import Prelude
 
 import Codec.Decoder (DecoderFn(..))
-import Codec.Json.Types (JsonErrorHandlers(..), JsonOffset, TypeHint(..))
+import Codec.Json.Types (JsonErrorHandlers(..), JsonOffset)
 import Data.Argonaut.Core (Json)
 import Data.Bifunctor (lmap)
 import Data.Either (Either(..))
@@ -47,21 +47,21 @@ failWithStructureError :: forall e extra from a. String -> JsonDecoder' e extra 
 failWithStructureError msg = DecoderFn $ mkFn5 \path _ (JsonErrorHandlers h) _ _ ->
   invalid $ runFn2 h.onStructureError path msg
 
-addHint :: forall e extra from a. TypeHint -> JsonDecoder' e extra from a -> JsonDecoder' e extra from a
-addHint hint (DecoderFn f) = DecoderFn $ mkFn5 \path appendFn handlers@(JsonErrorHandlers h) extra json ->
-  lmap (\x -> runFn3 h.addHint path hint x) $ runFn5 f path appendFn handlers extra json
-
 addTypeHint :: forall e extra from a. String -> JsonDecoder' e extra from a -> JsonDecoder' e extra from a
-addTypeHint = addHint <<< TyName
+addTypeHint hint (DecoderFn f) = DecoderFn $ mkFn5 \path appendFn handlers@(JsonErrorHandlers h) extra json ->
+  lmap (\x -> runFn3 h.addTypeHint path hint x) $ runFn5 f path appendFn handlers extra json
 
 addCtorHint :: forall e extra from a. String -> JsonDecoder' e extra from a -> JsonDecoder' e extra from a
-addCtorHint = addHint <<< CtorName
+addCtorHint hint (DecoderFn f) = DecoderFn $ mkFn5 \path appendFn handlers@(JsonErrorHandlers h) extra json ->
+  lmap (\x -> runFn3 h.addCtorHint path hint x) $ runFn5 f path appendFn handlers extra json
 
 addSubtermHint :: forall e extra from a. Int -> JsonDecoder' e extra from a -> JsonDecoder' e extra from a
-addSubtermHint = addHint <<< Subterm
+addSubtermHint hint (DecoderFn f) = DecoderFn $ mkFn5 \path appendFn handlers@(JsonErrorHandlers h) extra json ->
+  lmap (\x -> runFn3 h.addSubtermHint path hint x) $ runFn5 f path appendFn handlers extra json
 
 addFieldHint :: forall e extra from a. String -> JsonDecoder' e extra from a -> JsonDecoder' e extra from a
-addFieldHint = addHint <<< Field
+addFieldHint hint (DecoderFn f) = DecoderFn $ mkFn5 \path appendFn handlers@(JsonErrorHandlers h) extra json ->
+  lmap (\x -> runFn3 h.addFieldHint path hint x) $ runFn5 f path appendFn handlers extra json
 
 -- | A function that determines how to accumulate errors (if any)
 -- | - `altAccumulate`

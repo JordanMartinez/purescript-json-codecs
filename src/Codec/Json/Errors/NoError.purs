@@ -17,7 +17,10 @@ handlersNone = JsonErrorHandlers
   , onUnrefinableValue: mkFn2 \_ _ -> unit
   , onStructureError: mkFn2 \_ _ -> unit
   , addJsonOffset: mkFn2 \a _ -> a
-  , addHint: mkFn3 \_ _ _ -> unit
+  , addTypeHint: mkFn3 \_ _ _ -> unit
+  , addCtorHint: mkFn3 \_ _ _ -> unit
+  , addSubtermHint: mkFn3 \_ _ _ -> unit
+  , addFieldHint: mkFn3 \_ _ _ -> unit
   }
 
 runJsonDecoderNone :: forall a. Json -> JsonDecoder Unit Unit a -> Maybe a

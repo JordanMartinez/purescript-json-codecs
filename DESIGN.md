@@ -266,7 +266,7 @@ There are two workarounds to this issue:
 - annotate each label's codec by hand (e.g. `{ label: decodeString :: JsonDecoder PrimitiveJsonError Unit String }`). This is problematic because it gets tedious. Moreover, it's not refactor-resistant.
 - annotate each label's codec using an identity function that hard-codes these two type variables for us (e.g. `{ label: someFunction $ decodeString }`).
 
-This library uses the second approach. Using `PrimitiveJsonError` as an example, we define two functions named after an abbreviation of the error type and a suffix that indicate the context in which it should be used:
+This library uses the second approach. Using `PrimitiveJsonError` as an example, we define two functions named after an abbreviation of the error type followed by a suffix that indicates the context in which it should be used:
 
 ```purs
 -- for unidirectional decoding, hence the 'D' suffix.

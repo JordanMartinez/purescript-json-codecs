@@ -4,6 +4,8 @@ import Prelude
 
 import Data.Newtype (class Newtype)
 
+-- | Used in type class-based codecs to indicate that a record field
+-- | may or may not exist.
 newtype Optional a = Optional a
 
 derive instance Eq a => Eq (Optional a)
@@ -13,8 +15,7 @@ instance Show a => Show (Optional a) where
 
 derive instance Newtype (Optional a) _
 
--- | For the `DecodeJson` typeclass, enables local overrides
--- | for types with kind `Type`
+-- | Enables local overrides for types with kind `Type`
 newtype K0 :: Symbol -> Type -> Type
 newtype K0 sym a = K0 a
 
@@ -25,8 +26,7 @@ instance Show a => Show (K0 sym a) where
 
 derive instance Newtype (K0 sym a) _
 
--- | For the `DecodeJson` typeclass, enables local overrides
--- | for types with kind `Type -> Type`
+-- | Enables local overrides for types with kind `Type -> Type`
 newtype K1 :: Symbol -> Type -> Type
 newtype K1 sym a = K1 a
 
@@ -37,8 +37,7 @@ instance Show a => Show (K1 sym a) where
 
 derive instance Newtype (K1 sym a) _
 
--- | For the `DecodeJson` typeclass, enables local overrides
--- | for types with kind `Type -> Type -> Type`
+-- | Enables local overrides for types with kind `Type -> Type -> Type`
 newtype K2 :: Symbol -> Type -> Type
 newtype K2 sym a = K2 a
 
@@ -49,8 +48,7 @@ instance Show a => Show (K2 sym a) where
 
 derive instance Newtype (K2 sym a) _
 
--- | For the `DecodeJson` typeclass, enables local overrides
--- | for types with kind `Type -> Type -> Type -> Type`
+-- | Enables local overrides for types with kind `Type -> Type -> Type -> Type`
 newtype K3 :: Symbol -> Type -> Type
 newtype K3 sym a = K3 a
 

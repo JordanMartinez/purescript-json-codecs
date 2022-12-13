@@ -63,6 +63,9 @@ addSubtermHint = addHint <<< Subterm
 addFieldHint :: forall e extra from a. String -> JsonDecoder' e extra from a -> JsonDecoder' e extra from a
 addFieldHint = addHint <<< Field
 
+-- | A function that determines how to accumulate errors (if any)
+-- | - `altAccumulate`
+-- | - `altLast`
 type DecodeErrorAccumulatorFn e extra from to =
   JsonDecoder' e extra from to -> JsonDecoder' e extra from to -> JsonDecoder' e extra from to
 

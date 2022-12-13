@@ -221,7 +221,8 @@ This gives us the following type:
 - { pathSoFar :: Array JsonOffset
 - , appendFn :: e -> e -> e
 - , handlers :: JsonErrorHandlers err
-- , extra :: extra, json :: Json 
+- , extra :: extra
+- , json :: Json 
 - } 
 - (V err) a
 +Fn5
@@ -250,6 +251,45 @@ type JsonDecoder e extra to = JsonDecoder' e extra Json to
 ```
 
 ## Other library notes
+
+### Polymorphic Records Cause Issues
+
+The downside of enabling custom type errors and runtime-configurable type class instances is the additional type varables, `error` and `extra`, that remain undefined in a literal record. In other words, in the example below...
+```purs
+decodeRecord
+  ({ label: decodeString } :: ?Help)
+```
+
+`?Help` will have the type: `{ label :: forall error extra. JsonDecoder error extra String }` instead of `forall error extra. { label :: JsonDecoder error extra String }`. Since `label` is polymorphic, the type classes used to make this syntax work (via `RowToList` machinery) will fail to compile until `error` and `extra` are defined.
+
+There are two workarounds to this issue:
+- annotate each label's codec by hand (e.g. `{ label: decodeString :: JsonDecoder PrimitiveJsonError Unit String }`). This is problematic because it gets tediuos. Moreover, it's not refactor-resistant.
+- annotate each label's codec using an identity function that hard-codes these two type variables for us (e.g. `{ label: someFunction $ decodeString }`).
+
+This library uses the second approach. Using `PrimitiveJsonError` as an example, we define two functions named after an abbreviation of the error type and a suffix that indicate the context in which it should be used:
+
+```purs
+-- for unidirectional decoding, hence the 'D' suffix.
+pjeD
+  :: forall from to
+   . JsonDecoder' PrimitiveJsonError Unit from to
+  -> JsonDecoder' PrimitiveJsonError Unit from to
+pjeD = identity
+
+-- for bidirectional codecs, hence the 'C' suffix.
+pjeC
+  :: forall from to
+   . JsonCodec' PrimitiveJsonError Unit from to
+  -> JsonCodec' PrimitiveJsonError Unit from to
+pjeC = identity
+```
+
+Each error type provided by this library implements two functions like this. Now, we can still have nice record syntax without needing to write verbose annotations:
+
+```purs
+record
+  { label: pjeD decodeString }
+```
 
 ### Minimizing `Proxy` arguments
 

@@ -136,19 +136,19 @@ Same as `Doc Void` but with colors:
 fooDecoder :: JsonDecoder (Doc GraphicsParam) _
 fooDecoder =
   decodeRecord
-    { a: ade $ decodeRecord
-        { foo: ade $ decodeBoolean }
-    , b: ade $ decodeEither decodeInt $ decodeArray decodeString
-    , c: ade $ decodeMaybeTagged decodeString
+    { a: adeD $ decodeRecord
+        { foo: adeD $ decodeBoolean }
+    , b: adeD $ decodeEither decodeInt $ decodeArray decodeString
+    , c: adeD $ decodeMaybeTagged decodeString
     }
 
 fooEncoder :: _ -> Json
 fooEncoder =
   encodeRecord
-    { a: ade $ encodeRecord
-        { foo: ade $ encodeBoolean }
-    , b: ade $ encodeEither encodeInt $ encodeArray encodeString
-    , c: ade $ encodeMaybeTagged encodeString
+    { a: encodeRecord
+        { foo: encodeBoolean }
+    , b: encodeEither encodeInt $ encodeArray encodeString
+    , c: encodeMaybeTagged encodeString
     }
 ```
 
@@ -166,30 +166,30 @@ This decodes to
 -}
 barDecoder :: JsonDecoder (Doc GraphicsParam) _
 barDecoder =
-  decodeRecord' $ buildRecordDecoder $
+  decodeRecordPrim $ buildRecordDecoder $
     decodeRequiredProps
-      { a: ade $ decodeRecord
-          { foo: ade $ decodeBoolean }
-      , b: ade $ decodeEither decodeInt $ decodeArray decodeString
-      , c: ade $ decodeMaybeTagged decodeString
+      { a: adeD $ decodeRecord
+          { foo: adeD $ decodeBoolean }
+      , b: adeD $ decodeEither decodeInt $ decodeArray decodeString
+      , c: adeD $ decodeMaybeTagged decodeString
       }
     >>> decodeOptionalProps
-      { optionalA: ade decodeInt
-      , optionalB: ade decodeString
+      { optionalA: adeD decodeInt
+      , optionalB: adeD decodeString
       }
 
 barEncoder :: Jsonencoder (Doc GraphicsParam) _
 barEncoder =
-  encodeRecord' $ buildRecordencoder $
+  encodeRecordPrim $ buildRecordencoder $
     encodeRequiredProps
-      { a: ade $ encodeRecord
-          { foo: ade $ encodeBoolean }
-      , b: ade $ encodeEither encodeInt $ encodeArray encodeString
-      , c: ade $ encodeMaybeTagged encodeString
+      { a: encodeRecord
+          { foo: encodeBoolean }
+      , b: encodeEither encodeInt $ encodeArray encodeString
+      , c: encodeMaybeTagged encodeString
       }
     >>> encodeOptionalProps
-      { optionalA: ade $ encodeInt
-      , optionalB: ade $ encodeString
+      { optionalA: encodeInt
+      , optionalB: encodeString
       }
 ```
 
@@ -213,7 +213,7 @@ bazEncoder = encodeJson
 
 ### Typeclass-based codec where some instances are implemented via runtime-configured implementations
 
-See [Decoding.purs](./test/Test/Json/Unidirectional/Typeclass/LocalOverrides/Decoding.purs.purs), which as of the time of writing, outputs:
+See [Decoding.purs](./test/Test/Codec/Json/Unidirectional/Typeclass/LocalOverrides/Decoding.purs.purs), which as of the time of writing, outputs:
 
 ```
 ### Typeclass (Local Overrides) Output:

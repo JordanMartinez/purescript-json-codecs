@@ -3,7 +3,7 @@ module Codec.Json.Errors.PrimitiveJsonError where
 import Prelude
 
 import Codec.Json.Errors.Tree (TreeError(..))
-import Codec.Json.JsonCodec (JsonCodec')
+import Codec.Json.JsonCodec (JsonCodec, JsonCodec', decode)
 import Codec.Json.JsonDecoder (JsonDecoder, JsonDecoder', runJsonDecoder)
 import Codec.Json.Types (ActualJsonType, ExpectedJsonType, JsonErrorHandlers(..), JsonOffset, ctorHintMsg, fieldHintMsg, printActualJsonType, printExpectedJsonType, printJsonOffsetPath, subtermHintMsg, typeHintMsg)
 import Data.Argonaut.Core (Json)
@@ -115,6 +115,12 @@ runJsonDecoderPJE = runJsonDecoderPJE' unit
 
 runJsonDecoderPJE' :: forall a extra. extra -> Json -> JsonDecoder PrimitiveJsonError extra a -> Either PrimitiveJsonError a
 runJsonDecoderPJE' = runJsonDecoder pjeHandlers (<>)
+
+decodePJE :: forall a. Json -> JsonCodec PrimitiveJsonError Unit a -> Either PrimitiveJsonError a
+decodePJE = decodePJE' unit
+
+decodePJE' :: forall a extra. extra -> Json -> JsonCodec PrimitiveJsonError extra a -> Either PrimitiveJsonError a
+decodePJE' = decode pjeHandlers (<>)
 
 pjeD :: forall from to. JsonDecoder' PrimitiveJsonError Unit from to -> JsonDecoder' PrimitiveJsonError Unit from to
 pjeD = identity

@@ -3,8 +3,8 @@ module Test.Codec.Json.Bidirectional.AnsiDodoError where
 import Prelude
 
 import Codec.Json.Bidirectional.Value as Codec
-import Codec.Json.Errors.AnsiDodoError (adeC, handlersAde, printAnsiDodoError)
-import Codec.Json.JsonCodec (JsonCodec, decode, encode)
+import Codec.Json.Errors.AnsiDodoError (adeC, decodeAde, printAnsiDodoError)
+import Codec.Json.JsonCodec (JsonCodec, encode)
 import Data.Argonaut.Core (stringifyWithIndent)
 import Data.Array as Array
 import Data.Either (Either(..), either, hush)
@@ -15,7 +15,6 @@ import Data.Set as Set
 import Data.These (These(..))
 import Data.Tuple (Tuple(..))
 import Dodo (Doc)
-import Dodo as Doc
 import Dodo.Ansi (GraphicsParam)
 import Effect (Effect)
 import Effect.Class.Console (log)
@@ -38,7 +37,7 @@ runCodec
 runCodec msg input codec = do
   let
     inputJson = encode unit input codec
-    decodeVal j = decode handlersAde (\l r -> l <> Doc.break <> Doc.break <> r) unit j codec
+    decodeVal j = decodeAde j codec
   log $ "\n" <> msg <> " (bidirectional):"
   log $ "\n  Input:  " <> show input
   log $ "\n  Json:   " <> stringifyWithIndent 2 inputJson

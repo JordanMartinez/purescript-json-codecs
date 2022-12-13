@@ -3,7 +3,7 @@ module Codec.Json.Errors.AnsiDodoError where
 import Prelude
 
 import Codec.Json.Errors.PrimitiveJsonError (printMissingField, printMissingIndex, printTypeMismatchErr)
-import Codec.Json.JsonCodec (JsonCodec')
+import Codec.Json.JsonCodec (JsonCodec', JsonCodec, decode)
 import Codec.Json.JsonDecoder (JsonDecoder, JsonDecoder', runJsonDecoder)
 import Codec.Json.Types (JsonErrorHandlers(..), JsonOffset, ctorHintMsg, fieldHintMsg, printJsonOffsetPath, subtermHintMsg, typeHintMsg)
 import Data.Argonaut.Core (Json)
@@ -73,6 +73,12 @@ runJsonDecoderADE = runJsonDecoderADE' unit
 
 runJsonDecoderADE' :: forall a extra. extra -> Json -> JsonDecoder (Doc GraphicsParam) extra a -> Either (Doc GraphicsParam) a
 runJsonDecoderADE' = runJsonDecoder handlersAde (\l r -> l <> D.break <> D.break <> r)
+
+decodeAde :: forall a. Json -> JsonCodec (Doc GraphicsParam) Unit a -> Either (Doc GraphicsParam) a
+decodeAde = decodeAde' unit
+
+decodeAde' :: forall a extra. extra -> Json -> JsonCodec (Doc GraphicsParam) extra a -> Either (Doc GraphicsParam) a
+decodeAde' = decode handlersAde (\l r -> l <> D.break <> D.break <> r)
 
 adeD :: forall from to. JsonDecoder' (Doc GraphicsParam) Unit from to -> JsonDecoder' (Doc GraphicsParam) Unit from to
 adeD = identity

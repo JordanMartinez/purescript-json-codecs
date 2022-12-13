@@ -53,6 +53,11 @@ encode
 encode extra a codec =
   fst $ runFn2 (encoder codec) extra a
 
+-- | ```
+-- | import Data.String.NonEmpty as NES
+-- |
+-- | string >~> refinedValue (note "Received empty string" <<< NES.fromString) (NES.toString)
+-- | ```
 refinedValue
   :: forall decodeError extra decodeFromEncodeTo decodeToEncodeFrom
    . (decodeFromEncodeTo -> Either String decodeToEncodeFrom)

@@ -124,37 +124,40 @@ decodeJNull = DecoderFn $ mkFn5 \pathSoFar _ (JsonErrorHandlers h) _ json ->
     json
 
 decodeBoolean :: forall e extra. JsonDecoder e extra Boolean
-decodeBoolean = DecoderFn $ mkFn5 \pathSoFar _ (JsonErrorHandlers h) _ json ->
-  caseJson
-    (const $ invalid $ runFn3 h.onTypeMismatch pathSoFar ExpectedBoolean ActualNull)
-    (V <<< Right)
-    (invalid <<< runFn3 h.onTypeMismatch pathSoFar ExpectedBoolean <<< ActualNumber)
-    (invalid <<< runFn3 h.onTypeMismatch pathSoFar ExpectedBoolean <<< ActualString)
-    (invalid <<< runFn3 h.onTypeMismatch pathSoFar ExpectedBoolean <<< ActualArray)
-    (invalid <<< runFn3 h.onTypeMismatch pathSoFar ExpectedBoolean <<< ActualObject)
-    json
+decodeBoolean = addTypeHintD "Boolean" do
+  DecoderFn $ mkFn5 \pathSoFar _ (JsonErrorHandlers h) _ json ->
+    caseJson
+      (const $ invalid $ runFn3 h.onTypeMismatch pathSoFar ExpectedBoolean ActualNull)
+      (V <<< Right)
+      (invalid <<< runFn3 h.onTypeMismatch pathSoFar ExpectedBoolean <<< ActualNumber)
+      (invalid <<< runFn3 h.onTypeMismatch pathSoFar ExpectedBoolean <<< ActualString)
+      (invalid <<< runFn3 h.onTypeMismatch pathSoFar ExpectedBoolean <<< ActualArray)
+      (invalid <<< runFn3 h.onTypeMismatch pathSoFar ExpectedBoolean <<< ActualObject)
+      json
 
 decodeNumber :: forall e extra. JsonDecoder e extra Number
-decodeNumber = DecoderFn $ mkFn5 \pathSoFar _ (JsonErrorHandlers h) _ json ->
-  caseJson
-    (const $ invalid $ runFn3 h.onTypeMismatch pathSoFar ExpectedNumber ActualNull)
-    (invalid <<< runFn3 h.onTypeMismatch pathSoFar ExpectedNumber <<< ActualBoolean)
-    (V <<< Right)
-    (invalid <<< runFn3 h.onTypeMismatch pathSoFar ExpectedNumber <<< ActualString)
-    (invalid <<< runFn3 h.onTypeMismatch pathSoFar ExpectedNumber <<< ActualArray)
-    (invalid <<< runFn3 h.onTypeMismatch pathSoFar ExpectedNumber <<< ActualObject)
-    json
+decodeNumber = addTypeHintD "Number" do
+  DecoderFn $ mkFn5 \pathSoFar _ (JsonErrorHandlers h) _ json ->
+    caseJson
+      (const $ invalid $ runFn3 h.onTypeMismatch pathSoFar ExpectedNumber ActualNull)
+      (invalid <<< runFn3 h.onTypeMismatch pathSoFar ExpectedNumber <<< ActualBoolean)
+      (V <<< Right)
+      (invalid <<< runFn3 h.onTypeMismatch pathSoFar ExpectedNumber <<< ActualString)
+      (invalid <<< runFn3 h.onTypeMismatch pathSoFar ExpectedNumber <<< ActualArray)
+      (invalid <<< runFn3 h.onTypeMismatch pathSoFar ExpectedNumber <<< ActualObject)
+      json
 
 decodeString :: forall e extra. JsonDecoder e extra String
-decodeString = DecoderFn $ mkFn5 \pathSoFar _ (JsonErrorHandlers h) _ json ->
-  caseJson
-    (const $ invalid $ runFn3 h.onTypeMismatch pathSoFar ExpectedString ActualNull)
-    (invalid <<< runFn3 h.onTypeMismatch pathSoFar ExpectedString <<< ActualBoolean)
-    (invalid <<< runFn3 h.onTypeMismatch pathSoFar ExpectedString <<< ActualNumber)
-    (V <<< Right)
-    (invalid <<< runFn3 h.onTypeMismatch pathSoFar ExpectedString <<< ActualArray)
-    (invalid <<< runFn3 h.onTypeMismatch pathSoFar ExpectedString <<< ActualObject)
-    json
+decodeString = addTypeHintD "String" do
+  DecoderFn $ mkFn5 \pathSoFar _ (JsonErrorHandlers h) _ json ->
+    caseJson
+      (const $ invalid $ runFn3 h.onTypeMismatch pathSoFar ExpectedString ActualNull)
+      (invalid <<< runFn3 h.onTypeMismatch pathSoFar ExpectedString <<< ActualBoolean)
+      (invalid <<< runFn3 h.onTypeMismatch pathSoFar ExpectedString <<< ActualNumber)
+      (V <<< Right)
+      (invalid <<< runFn3 h.onTypeMismatch pathSoFar ExpectedString <<< ActualArray)
+      (invalid <<< runFn3 h.onTypeMismatch pathSoFar ExpectedString <<< ActualObject)
+      json
 
 decodeJArray :: forall e extra. JsonDecoder e extra (Array Json)
 decodeJArray = DecoderFn $ mkFn5 \pathSoFar _ (JsonErrorHandlers h) _ json ->

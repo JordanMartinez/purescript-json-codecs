@@ -1,5 +1,6 @@
 module Codec.Json.Unidirectional.Decode.Value
-  ( decodeVoid
+  ( decodeRefined
+  , decodeVoid
   , decodeJNull
   , decodeUnitFromNull
   , decodeUnitFromAny
@@ -73,13 +74,14 @@ import Data.Argonaut.Core (Json, caseJson)
 import Data.Array as Array
 import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Array.NonEmpty as NEA
-import Data.Either (Either(..))
+import Data.Either (Either(..), note)
 import Data.Function.Uncurried (mkFn5, runFn2, runFn3, runFn5)
 import Data.Identity (Identity(..))
 import Data.Int as Int
-import Data.List (List(..))
+import Data.List (List)
 import Data.List as List
-import Data.List.Types (NonEmptyList(..))
+import Data.List.NonEmpty as NEL
+import Data.List.Types (NonEmptyList)
 import Data.Map (Map)
 import Data.Map as Map
 import Data.Maybe (Maybe(..))
@@ -111,6 +113,25 @@ import Record.Builder as Builder
 import Safe.Coerce (coerce)
 import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
+
+-- | ```
+-- | import Data.String.NonEmpty as NES
+-- |
+-- | decodeRefined (note "Received empty string" <<< NES.fromString) decodeString
+-- | ```
+decodeRefined
+  :: forall e extra from mid to
+   . (mid -> Either String to)
+  -> JsonDecoder' e extra from mid
+  -> JsonDecoder' e extra from to
+decodeRefined refine (DecoderFn fn) = DecoderFn $ mkFn5 \path appendFn handlers@(JsonErrorHandlers h) extra from ->
+  case runFn5 fn path appendFn handlers extra from of
+    V (Right a) -> case refine a of
+      Left msg ->
+        invalid $ runFn2 h.onUnrefinableValue path msg
+      Right b ->
+        V $ Right b
+    V (Left x) -> V (Left x)
 
 decodeJNull :: forall e extra. JsonDecoder e extra Unit
 decodeJNull = DecoderFn $ mkFn5 \pathSoFar _ (JsonErrorHandlers h) _ json ->
@@ -291,34 +312,19 @@ decodeInt
   :: forall err extra
    . JsonDecoder err extra Int
 decodeInt = addTypeHintD "Int" Decoder.do
-  n <- decodeNumber
-  case Int.fromNumber n of
-    Nothing ->
-      failWithUnrefinableValue $ numToIntConversionFailure n
-    Just i ->
-      pure i
+  decodeRefined (\n -> note (numToIntConversionFailure n) $ Int.fromNumber n) decodeNumber
 
 decodeChar
   :: forall err extra
    . JsonDecoder err extra Char
 decodeChar = addTypeHintD "Char" Decoder.do
-  s <- decodeString
-  case charAt 0 s of
-    Nothing ->
-      failWithUnrefinableValue $ stringToCharConversionFailure s
-    Just c ->
-      pure c
+  decodeRefined (\s -> note (stringToCharConversionFailure s) $ charAt 0 s) decodeString
 
 decodeNonEmptyString
   :: forall err extra
    . JsonDecoder err extra NonEmptyString
 decodeNonEmptyString = addTypeHintD "NonEmptyString" Decoder.do
-  s <- decodeString
-  case NonEmptyString.fromString s of
-    Nothing ->
-      failWithUnrefinableValue stringNotEmptyFailure
-    Just nes ->
-      pure nes
+  decodeRefined (note stringNotEmptyFailure <<< NonEmptyString.fromString) decodeString
 
 decodeArray
   :: forall err extra a
@@ -334,10 +340,7 @@ decodeNonEmptyArray
    . JsonDecoder err extra a
   -> JsonDecoder err extra (NonEmptyArray a)
 decodeNonEmptyArray decodeElem = addTypeHintD "NonEmptyArray" Decoder.do
-  arr <- decodeArray decodeElem
-  case NEA.fromArray arr of
-    Nothing -> failWithUnrefinableValue arrayNotEmptyFailure
-    Just a -> pure a
+  decodeRefined (note arrayNotEmptyFailure <<< NEA.fromArray) $ decodeArray decodeElem
 
 decodeObject
   :: forall err extra a
@@ -455,12 +458,7 @@ decodeNonEmptyList
    . JsonDecoder err extra a
   -> JsonDecoder err extra (NonEmptyList a)
 decodeNonEmptyList decodeA = addTypeHintD "NonEmptyList" Decoder.do
-  ls <- decodeList decodeA
-  case ls of
-    Nil ->
-      failWithUnrefinableValue "Received empty list"
-    Cons h t ->
-      pure $ NonEmptyList $ NonEmpty h t
+  decodeRefined (note "Received empty list" <<< NEL.fromList) $ decodeList decodeA
 
 decodeMap
   :: forall err extra k v
@@ -495,23 +493,13 @@ decodeNonEmptySet
   => JsonDecoder err extra a
   -> JsonDecoder err extra (NonEmptySet a)
 decodeNonEmptySet decodeA = addTypeHintD "NonEmptySet" Decoder.do
-  s <- decodeSet decodeA
-  case NonEmptySet.fromSet s of
-    Nothing ->
-      failWithUnrefinableValue "Received empty set"
-    Just nes ->
-      pure nes
+  decodeRefined (note "Received empty set" <<< NonEmptySet.fromSet) $ decodeSet decodeA
 
 decodeCodePoint
   :: forall err extra
    . JsonDecoder err extra CodePoint
 decodeCodePoint = addTypeHintD "CodePoint" Decoder.do
-  s <- decodeString
-  case codePointAt 0 s of
-    Nothing ->
-      failWithUnrefinableValue $ "Could not get code point from String: " <> s
-    Just cp ->
-      pure cp
+  decodeRefined (\s -> note ("Could not get code point from String: " <> show s) $ codePointAt 0 s) decodeString
 
 decodeRecord
   :: forall err extra propsRl props decoderRl decoderRows outputRows

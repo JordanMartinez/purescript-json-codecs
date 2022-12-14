@@ -61,17 +61,17 @@ printJsonOffset = case _ of
 printJsonOffsetPath :: Array JsonOffset -> String
 printJsonOffsetPath = append "ROOT" <<< foldMap printJsonOffset
 
-typeHintMsg :: String -> String
-typeHintMsg = append "while decoding the type, "
+typeHintMsg :: String
+typeHintMsg = "while decoding the type, "
 
-ctorHintMsg :: String -> String
-ctorHintMsg = append "while decoding the constructor, "
+ctorHintMsg :: String
+ctorHintMsg = "while decoding the constructor, "
 
-subtermHintMsg :: Int -> String
-subtermHintMsg = append "while decoding the subterm at index, " <<< show
+subtermHintMsg :: String
+subtermHintMsg = "while decoding the subterm at index, "
 
-fieldHintMsg :: String -> String
-fieldHintMsg = append "while decoding the value under the label, "
+fieldHintMsg :: String
+fieldHintMsg = "while decoding the value under the label, "
 
 newtype JsonErrorHandlers e = JsonErrorHandlers
   { onTypeMismatch :: Fn3 (Array JsonOffset) ExpectedJsonType ActualJsonType e

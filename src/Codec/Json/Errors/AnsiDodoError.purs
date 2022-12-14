@@ -19,49 +19,46 @@ handlersAde = JsonErrorHandlers
   { onTypeMismatch: mkFn3 \path exp act ->
       D.lines
         [ foreground BrightRed $ D.text $ printTypeMismatchErr exp act
-        , docifyPath path
+        , D.space <> D.space <> docifyPath path
         ]
   , onMissingField: mkFn2 \path field ->
       D.lines
         [ foreground BrightRed $ D.text $ printMissingField field
-        , docifyPath path
+        , D.space <> D.space <> docifyPath path
         ]
   , onMissingIndex: mkFn2 \path idx ->
       D.lines
         [ foreground BrightRed $ D.text $ printMissingIndex idx
-        , docifyPath path
+        , D.space <> D.space <> docifyPath path
         ]
   , onUnrefinableValue: mkFn2 \path msg ->
       D.lines
         [ foreground BrightRed $ D.text msg
-        , docifyPath path
+        , D.space <> D.space <> docifyPath path
         ]
   , onStructureError: mkFn2 \path msg ->
       D.lines
         [ foreground BrightRed $ D.text msg
-        , docifyPath path
+        , D.space <> D.space <> docifyPath path
         ]
   , addJsonOffset: mkFn2 \a b -> Array.snoc a b
   , addTypeHint: mkFn3 \path hint err ->
-      docifyHint path (D.text $ typeHintMsg hint) err
+      docifyHint path (D.text typeHintMsg <> (foreground BrightYellow $ D.text hint)) err
   , addCtorHint: mkFn3 \path hint err ->
-      docifyHint path (D.text $ ctorHintMsg hint) err
+      docifyHint path (D.text ctorHintMsg <> (foreground BrightYellow $ D.text hint)) err
   , addSubtermHint: mkFn3 \path hint err ->
-      docifyHint path (D.text $ subtermHintMsg hint) err
+      docifyHint path (D.text subtermHintMsg <> (foreground BrightYellow $ D.text $ show hint)) err
   , addFieldHint: mkFn3 \path hint err ->
-      docifyHint path (D.text $ fieldHintMsg hint) err
+      docifyHint path (D.text fieldHintMsg <> (foreground BrightYellow $ D.text hint)) err
   }
 
 docifyPath :: Array JsonOffset -> Doc GraphicsParam
-docifyPath path = D.space <> D.space <> D.text "at path:" <> D.space <> (foreground Cyan $ D.text $ printJsonOffsetPath path)
+docifyPath path = (foreground White $ D.text "at path:" <> D.space) <> (foreground Cyan $ D.text $ printJsonOffsetPath path)
 
 docifyHint :: Array JsonOffset -> Doc GraphicsParam -> Doc GraphicsParam -> Doc GraphicsParam
 docifyHint path msg err =
   D.lines
-    [ D.lines
-        [ msg
-        , docifyPath path
-        ]
+    [ msg <> D.text ", " <> docifyPath path
     , D.indent err
     ]
 

@@ -189,7 +189,7 @@ fieldOptional key propCodec = codec
   )
 
 object :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (Object a)
-object aCodec =
+object aCodec = addTypeHintC "Object" do
   jobject >~> codec'
     (decodeFields (decoder aCodec))
     ( mkFn2 \extra fa -> do
@@ -283,13 +283,14 @@ record codecs = recordPrim (requiredProps codecs)
 -- |   >>> requiredProp (Proxy :: _ "requiredFieldName2") (pje $ array int)
 -- | ```
 recordPrim :: forall e extra a. (JPropCodec e extra {} -> JPropCodec e extra a) -> JsonCodec e extra a
-recordPrim buildRecordCodec = jobject >~> codec'
-  (decoder propCodec)
-  ( mkFn2 \extra a ->
-      Object.fromFoldable
-        $ fst
-        $ runFn2 (encoder propCodec) extra a
-  )
+recordPrim buildRecordCodec = addTypeHintC "Record" do
+  jobject >~> codec'
+    (decoder propCodec)
+    ( mkFn2 \extra a ->
+        Object.fromFoldable
+          $ fst
+          $ runFn2 (encoder propCodec) extra a
+    )
   where
   propCodec = buildRecordCodec recordEmpty
 
@@ -415,7 +416,8 @@ variantPrim
           )
      )
   -> JsonCodec e extra (Variant rows)
-variantPrim accErrs buildCodec = jobject >~> (buildCodec (\_ -> variantEmpty) accErrs)
+variantPrim accErrs buildCodec = addTypeHintC "Variant" do
+  jobject >~> (buildCodec (\_ -> variantEmpty) accErrs)
 
 -- | See `variantPrim`.
 variantCase

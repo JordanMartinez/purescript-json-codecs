@@ -599,7 +599,8 @@ decodeVariantPrim
           )
      )
   -> JsonDecoder e extra (Variant rows)
-decodeVariantPrim accErrs buildCodec = decodeJObject >>> (buildCodec (\_ -> decodeVariantEmpty) accErrs)
+decodeVariantPrim accErrs buildCodec = addTypeHint "Variant" Decoder.do
+  decodeJObject >>> (buildCodec (\_ -> decodeVariantEmpty) accErrs)
 
 decodeVariantCase
   :: forall e extra sym a tail row

@@ -19,6 +19,7 @@ module Codec.Json.Bidirectional.Value
   , number
   , int
   , char
+  , codePoint
   , string
   , nonEmptyString
   , jarray
@@ -47,12 +48,12 @@ module Codec.Json.Bidirectional.Value
   , tuple
   , these
   , nonEmpty
+  , nonEmpty'
   , list
   , nonEmptyList
   , mapCodec
   , set
   , nonEmptySet
-  , codePoint
   , fix
   , RlJCodec
   , class InsertRequiredPropCodecs
@@ -70,7 +71,7 @@ import Codec.Codec (Codec(..), codec, codec', decoder, encoder, (>~>), (~))
 import Codec.Decoder (altAccumulate)
 import Codec.Decoder.Qualified as Decoder
 import Codec.Json.Errors.DecodeMessages (arrayNotEmptyFailure, numToIntConversionFailure, stringNotEmptyFailure, stringToCharConversionFailure)
-import Codec.Json.JsonCodec (JIndexedCodec, JPropCodec, JsonCodec, JsonCodec', mkJsonCodec, refinedValue)
+import Codec.Json.JsonCodec (JIndexedCodec, JPropCodec, JsonCodec, JsonCodec', addCtorHintC, addSubtermHintC, addTypeHintC, mkJsonCodec, refinedValue)
 import Codec.Json.JsonDecoder (DecodeErrorAccumulatorFn, failWithStructureError, failWithUnrefinableValue)
 import Codec.Json.Unidirectional.Decode.Value (decodeBoolean, decodeField, decodeField', decodeFields, decodeIndex, decodeIndices, decodeJArray, decodeJNull, decodeJObject, decodeNumber, decodeString, decodeVoid)
 import Codec.Json.Unidirectional.Encode.Value (encodeJArray, encodeBoolean, encodeNumber, encodeJObject, encodeString, encodeUnitToNull, encodeVoid)
@@ -197,30 +198,33 @@ object aCodec =
     )
 
 unitCodec :: forall e extra. JsonCodec e extra Unit
-unitCodec = unit <$ jnull
+unitCodec = addTypeHintC "Unit" do
+  unit <$ jnull
 
 int :: forall e extra. JsonCodec e extra Int
-int = number >~> refinedValue
-  (\n -> Int.fromNumber n # note (numToIntConversionFailure n))
-  Int.toNumber
+int = addTypeHintC "Int" do
+  number >~> refinedValue
+    (\n -> Int.fromNumber n # note (numToIntConversionFailure n))
+    Int.toNumber
 
 char :: forall e extra. JsonCodec e extra Char
-char = string >~> refinedValue
-  (\s -> charAt 0 s # note (stringToCharConversionFailure s))
-  SCU.singleton
+char = addTypeHintC "Char" do
+  string >~> refinedValue
+    (\s -> charAt 0 s # note (stringToCharConversionFailure s))
+    SCU.singleton
 
 nonEmptyString :: forall e extra. JsonCodec e extra NonEmptyString
-nonEmptyString =
+nonEmptyString = addTypeHintC "NonEmptyString" do
   string >~> refinedValue
     (NonEmptyString.fromString >>> note stringNotEmptyFailure)
     (NonEmptyString.toString)
 
 codePoint :: forall e extra. JsonCodec e extra CodePoint
-codePoint =
+codePoint = addTypeHintC "CodePoint" do
   string >~> refinedValue (\s -> note ("Invalid code point for string: " <> show s) $ codePointAt 0 s) String.singleton
 
 array :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (Array a)
-array aCodec =
+array aCodec = addTypeHintC "Array" do
   jarray >~> codec'
     (decodeIndices (decoder aCodec))
     ( mkFn2 \extra fa -> do
@@ -229,7 +233,7 @@ array aCodec =
     )
 
 nonEmptyArray :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (NonEmptyArray a)
-nonEmptyArray aCodec =
+nonEmptyArray aCodec = addTypeHintC "NonEmptyArray" do
   array aCodec >~> refinedValue
     (NEA.fromArray >>> note arrayNotEmptyFailure)
     NEA.toArray
@@ -463,21 +467,23 @@ variantCase _sym eacodec = \buildTailCodec errorAccumulator -> do
   coerceA = unsafeCoerce
 
 nullable :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (Nullable a)
-nullable aCodec = codec'
-  (altAccumulate (decoder (Nullable.toNullable Nothing <$ jnull)) (decoder (Nullable.toNullable <<< Just <$> aCodec)))
-  ( mkFn2 \extra a -> case Nullable.toMaybe a of
-      Just a' -> fst $ runFn2 (encoder aCodec) extra a'
-      Nothing -> fst $ runFn2 (encoder jnull) extra unit
-  )
+nullable aCodec = addTypeHintC "Nullable" do
+  codec'
+    (altAccumulate (decoder (Nullable.toNullable Nothing <$ jnull)) (decoder (Nullable.toNullable <<< Just <$> aCodec)))
+    ( mkFn2 \extra a -> case Nullable.toMaybe a of
+        Just a' -> fst $ runFn2 (encoder aCodec) extra a'
+        Nothing -> fst $ runFn2 (encoder jnull) extra unit
+    )
 
 identityCodec :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (Identity a)
-identityCodec = coerce
+identityCodec = addTypeHintC "Identity" <<< coerce
 
 maybe :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (Maybe a)
-maybe codecA = dimap toVariant fromVariant
-  $ variantPrim altAccumulate
-  $ variantCase _just (Right codecA)
-      >>> variantCase _nothing (Left unit)
+maybe codecA = addTypeHintC "Maybe" do
+  dimap toVariant fromVariant
+    $ variantPrim altAccumulate
+    $ variantCase _just (Right $ addCtorHintC "Just" $ codecA)
+        >>> variantCase _nothing (Left unit)
   where
   _just = Proxy :: Proxy "Just"
   _nothing = Proxy :: Proxy "Nothing"
@@ -491,10 +497,11 @@ maybe codecA = dimap toVariant fromVariant
     }
 
 either :: forall e extra a b. JsonCodec e extra a -> JsonCodec e extra b -> JsonCodec e extra (Either a b)
-either codecA codecB = dimap toVariant fromVariant
-  $ variantPrim altAccumulate
-  $ variantCase _left (Right codecA)
-      >>> variantCase _right (Right codecB)
+either codecA codecB = addTypeHintC "Either" do
+  dimap toVariant fromVariant
+    $ variantPrim altAccumulate
+    $ variantCase _left (Right $ addCtorHintC "Left" $ codecA)
+        >>> variantCase _right (Right $ addCtorHintC "Right" $ codecB)
   where
   _left = Proxy :: Proxy "Left"
   _right = Proxy :: Proxy "Right"
@@ -508,17 +515,24 @@ either codecA codecB = dimap toVariant fromVariant
     }
 
 tuple :: forall e extra a b. JsonCodec e extra a -> JsonCodec e extra b -> JsonCodec e extra (Tuple a b)
-tuple codecA codecB = indexedArray $
-  Tuple
-    <$> fst ~ index 0 codecA
-    <*> snd ~ index 1 codecB
+tuple codecA codecB = addTypeHintC "Tuple" do
+  indexedArray $
+    Tuple
+      <$> (addSubtermHintC 0 $ fst ~ index 0 codecA)
+      <*> (addSubtermHintC 1 $ snd ~ index 1 codecB)
 
 these :: forall e extra a b. JsonCodec e extra a -> JsonCodec e extra b -> JsonCodec e extra (These a b)
-these codecA codecB = dimap toVariant fromVariant
-  $ variantPrim altAccumulate
-  $ variantCase _this (Right codecA)
-      >>> variantCase _that (Right codecB)
-      >>> variantCase _both (Right $ record { this: codecA, that: codecB })
+these codecA codecB = addTypeHintC "These" do
+  dimap toVariant fromVariant
+    $ variantPrim altAccumulate
+    $ variantCase _this (Right $ addCtorHintC "This" $ codecA)
+        >>> variantCase _that (Right $ addCtorHintC "That" $ codecB)
+        >>> variantCase _both
+          ( Right $ addCtorHintC "Both" $ record
+              { this: addSubtermHintC 0 codecA
+              , that: addSubtermHintC 1 codecB
+              }
+          )
   where
   _this = Proxy :: Proxy "This"
   _that = Proxy :: Proxy "That"
@@ -534,39 +548,46 @@ these codecA codecB = dimap toVariant fromVariant
     , "Both": \{ this, that } -> Both this that
     }
 
-nonEmpty :: forall e extra f a. JsonCodec e extra a -> JsonCodec e extra (f a) -> JsonCodec e extra (NonEmpty f a)
-nonEmpty codecA codecFA = dimap to from $
-  record
-    { head: codecA
-    , tail: codecFA
-    }
+nonEmpty :: forall e extra f a. JsonCodec e extra a -> (JsonCodec e extra a -> JsonCodec e extra (f a)) -> JsonCodec e extra (NonEmpty f a)
+nonEmpty codecA codecF = nonEmpty' codecA (codecF codecA)
+
+nonEmpty' :: forall e extra f a. JsonCodec e extra a -> JsonCodec e extra (f a) -> JsonCodec e extra (NonEmpty f a)
+nonEmpty' codecA codecFA = addTypeHintC "NonEmpty" do
+  dimap to from $
+    record
+      { head: addSubtermHintC 0 codecA
+      , tail: addSubtermHintC 1 codecFA
+      }
   where
   to (NonEmpty a fa) = { head: a, tail: fa }
   from { head, tail } = NonEmpty head tail
 
 list :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (List a)
-list codecA = dimap Array.fromFoldable List.fromFoldable
-  $ array codecA
+list codecA = addTypeHintC "List" do
+  dimap Array.fromFoldable List.fromFoldable
+    $ array codecA
 
 nonEmptyList :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (NonEmptyList a)
-nonEmptyList codecA =
+nonEmptyList codecA = addTypeHintC "NonEmptyList" do
   list codecA >~> refinedValue (note "Received empty list" <<< NEL.fromList) NEL.toList
 
 mapCodec :: forall e extra k v. Ord k => JsonCodec e extra k -> JsonCodec e extra v -> JsonCodec e extra (Map k v)
-mapCodec codecKey codecValue = dimap to from
-  $ array (record { key: codecKey, value: codecValue })
+mapCodec codecKey codecValue = addTypeHintC "Map" do
+  dimap to from
+    $ array (record { key: codecKey, value: codecValue })
   where
   to = foldlWithIndex (\key acc value -> Array.snoc acc { key, value }) []
   from = Array.foldl (\m { key, value } -> Map.insert key value m) Map.empty
 
 set :: forall e extra a. Ord a => JsonCodec e extra a -> JsonCodec e extra (Set a)
-set codecValue = dimap to from $ array codecValue
+set codecValue = addTypeHintC "Set" do
+  dimap to from $ array codecValue
   where
   to = Set.toUnfoldable
   from = Array.foldl (flip Set.insert) Set.empty
 
 nonEmptySet :: forall e extra a. Ord a => JsonCodec e extra a -> JsonCodec e extra (NonEmptySet a)
-nonEmptySet codecValue =
+nonEmptySet codecValue = addTypeHintC "NonEmptySet" do
   set codecValue >~> refinedValue (note "Received empty set" <<< NonEmptySet.fromSet) (NonEmptySet.toSet)
 
 fix :: forall e extra a. (JsonCodec e extra a -> JsonCodec e extra a) -> JsonCodec e extra a

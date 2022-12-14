@@ -116,3 +116,10 @@ infixr 8 composeFlipped as >~>
 -- |     <*> snd ~ sndCodec
 -- | ```
 infixl 5 lcmap as ~
+
+mapDecodeError
+  :: forall decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput decodeOutputEncodeAccumulator
+   . (DecoderFn decodePath decodeHandlers decodeError extra decodeInput decodeOutputEncodeAccumulator -> DecoderFn decodePath decodeHandlers decodeError extra decodeInput decodeOutputEncodeAccumulator)
+  -> Codec decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput decodeOutputEncodeAccumulator
+  -> Codec decodePath decodeHandlers decodeError extra decodeInput encodeOutput encodeInput decodeOutputEncodeAccumulator
+mapDecodeError mapErr (Codec dec enc) = Codec (mapErr dec) enc

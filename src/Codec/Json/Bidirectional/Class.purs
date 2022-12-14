@@ -21,7 +21,7 @@ import Prelude
 
 import Codec.Codec (Codec(..), decoder, encoder)
 import Codec.Decoder (DecoderFn(..), altAccumulate)
-import Codec.Json.Bidirectional.Value (array, boolean, codePoint, either, int, json, list, mapCodec, maybe, nonEmpty, nonEmptyArray, nonEmptyList, nonEmptySet, nonEmptyString, nullable, number, object, recordPrim, requiredProp, set, string, these, tuple, unitCodec, variantCase, variantPrim, voidCodec)
+import Codec.Json.Bidirectional.Value (array, boolean, codePoint, either, int, json, list, mapCodec, maybe, nonEmpty', nonEmptyArray, nonEmptyList, nonEmptySet, nonEmptyString, nullable, number, object, recordPrim, requiredProp, set, string, these, tuple, unitCodec, variantCase, variantPrim, voidCodec)
 import Codec.Json.JsonCodec (JPropCodec, JsonCodec', JsonCodec)
 import Codec.Json.JsonDecoder (DecodeErrorAccumulatorFn)
 import Codec.Json.Newtypes (K0(..), K1(..), K2(..), K3(..), Optional(..))
@@ -112,7 +112,7 @@ instance (CodecJson e extra a, CodecJson e extra b) => CodecJson e extra (These 
   codecJson = these codecJson codecJson
 
 instance (CodecJson e extra a, CodecJson e extra (f a)) => CodecJson e extra (NonEmpty f a) where
-  codecJson = nonEmpty codecJson codecJson
+  codecJson = nonEmpty' codecJson codecJson
 
 instance (CodecJson e extra a) => CodecJson e extra (List a) where
   codecJson = list codecJson

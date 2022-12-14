@@ -2,9 +2,9 @@ module Codec.Json.JsonCodec where
 
 import Prelude
 
-import Codec.Codec (Codec, Codec', codec', decoder, encoder)
+import Codec.Codec (Codec, Codec', codec', decoder, encoder, mapDecodeError)
 import Codec.Decoder (DecoderFn(..))
-import Codec.Json.JsonDecoder (JsonDecoder)
+import Codec.Json.JsonDecoder (JsonDecoder, addCtorHint, addFieldHint, addSubtermHint, addTypeHint)
 import Codec.Json.JsonDecoder as JsonDecoder
 import Codec.Json.Types (JsonErrorHandlers(..), JsonOffset)
 import Data.Argonaut.Core (Json)
@@ -52,6 +52,34 @@ encode
   -> Json
 encode extra a codec =
   fst $ runFn2 (encoder codec) extra a
+
+addTypeHintC
+  :: forall e extra a b c d
+   . String
+  -> Codec (Array JsonOffset) (JsonErrorHandlers e) e extra a b c d
+  -> Codec (Array JsonOffset) (JsonErrorHandlers e) e extra a b c d
+addTypeHintC hint = mapDecodeError (addTypeHint hint)
+
+addCtorHintC
+  :: forall e extra a b c d
+   . String
+  -> Codec (Array JsonOffset) (JsonErrorHandlers e) e extra a b c d
+  -> Codec (Array JsonOffset) (JsonErrorHandlers e) e extra a b c d
+addCtorHintC hint = mapDecodeError (addCtorHint hint)
+
+addSubtermHintC
+  :: forall e extra a b c d
+   . Int
+  -> Codec (Array JsonOffset) (JsonErrorHandlers e) e extra a b c d
+  -> Codec (Array JsonOffset) (JsonErrorHandlers e) e extra a b c d
+addSubtermHintC hint = mapDecodeError (addSubtermHint hint)
+
+addFieldHintC
+  :: forall e extra a b c d
+   . String
+  -> Codec (Array JsonOffset) (JsonErrorHandlers e) e extra a b c d
+  -> Codec (Array JsonOffset) (JsonErrorHandlers e) e extra a b c d
+addFieldHintC hint = mapDecodeError (addFieldHint hint)
 
 -- | ```
 -- | import Data.String.NonEmpty as NES

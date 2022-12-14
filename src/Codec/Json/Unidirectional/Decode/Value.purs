@@ -67,7 +67,7 @@ import Prelude
 import Codec.Decoder (DecoderFn(..))
 import Codec.Decoder.Qualified as Decoder
 import Codec.Json.Errors.DecodeMessages (arrayNotEmptyFailure, numToIntConversionFailure, stringNotEmptyFailure, stringToCharConversionFailure)
-import Codec.Json.JsonDecoder (DecodeErrorAccumulatorFn, JsonDecoder, JsonDecoder', addCtorHint, addOffset, addSubtermHint, addTypeHint, altAccumulate, failWithMissingField, failWithStructureError, failWithUnrefinableValue)
+import Codec.Json.JsonDecoder (DecodeErrorAccumulatorFn, JsonDecoder, JsonDecoder', addCtorHintD, addOffset, addSubtermHintD, addTypeHintD, altAccumulate, failWithMissingField, failWithStructureError, failWithUnrefinableValue)
 import Codec.Json.Types (ActualJsonType(..), ExpectedJsonType(..), JsonErrorHandlers(..), JsonOffset(..))
 import Data.Argonaut.Core (Json, caseJson)
 import Data.Array as Array
@@ -275,10 +275,10 @@ decodeFields (DecoderFn decodeElem) = Decoder.do
       runFn5 decodeElem (runFn2 h.addJsonOffset path (AtKey key)) appendFn handlers extra elemJson
 
 decodeVoid :: forall err extra. JsonDecoder err extra Void
-decodeVoid = addTypeHint "Void" $ failWithUnrefinableValue "Decoding a value to Void is impossible"
+decodeVoid = addTypeHintD "Void" $ failWithUnrefinableValue "Decoding a value to Void is impossible"
 
 decodeUnitFromNull :: forall err extra. JsonDecoder err extra Unit
-decodeUnitFromNull = addTypeHint "Unit" decodeJNull
+decodeUnitFromNull = addTypeHintD "Unit" decodeJNull
 
 -- | A decoder that always succeeds, no matter what the underlying JSON is.
 decodeUnitFromAny :: forall e extra. JsonDecoder e extra Unit
@@ -287,7 +287,7 @@ decodeUnitFromAny = pure unit
 decodeInt
   :: forall err extra
    . JsonDecoder err extra Int
-decodeInt = addTypeHint "Int" Decoder.do
+decodeInt = addTypeHintD "Int" Decoder.do
   n <- decodeNumber
   case Int.fromNumber n of
     Nothing ->
@@ -298,7 +298,7 @@ decodeInt = addTypeHint "Int" Decoder.do
 decodeChar
   :: forall err extra
    . JsonDecoder err extra Char
-decodeChar = addTypeHint "Char" Decoder.do
+decodeChar = addTypeHintD "Char" Decoder.do
   s <- decodeString
   case charAt 0 s of
     Nothing ->
@@ -309,7 +309,7 @@ decodeChar = addTypeHint "Char" Decoder.do
 decodeNonEmptyString
   :: forall err extra
    . JsonDecoder err extra NonEmptyString
-decodeNonEmptyString = addTypeHint "NonEmptyString" Decoder.do
+decodeNonEmptyString = addTypeHintD "NonEmptyString" Decoder.do
   s <- decodeString
   case NonEmptyString.fromString s of
     Nothing ->
@@ -321,7 +321,7 @@ decodeArray
   :: forall err extra a
    . JsonDecoder err extra a
   -> JsonDecoder err extra (Array a)
-decodeArray decodeElem = addTypeHint "Array" Decoder.do
+decodeArray decodeElem = addTypeHintD "Array" Decoder.do
   arr <- decodeJArray
   forWithIndex arr \i j2 ->
     addOffset (AtIndex i) j2 decodeElem
@@ -330,7 +330,7 @@ decodeNonEmptyArray
   :: forall err extra a
    . JsonDecoder err extra a
   -> JsonDecoder err extra (NonEmptyArray a)
-decodeNonEmptyArray decodeElem = addTypeHint "NonEmptyArray" Decoder.do
+decodeNonEmptyArray decodeElem = addTypeHintD "NonEmptyArray" Decoder.do
   arr <- decodeArray decodeElem
   case NEA.fromArray arr of
     Nothing -> failWithUnrefinableValue arrayNotEmptyFailure
@@ -340,7 +340,7 @@ decodeObject
   :: forall err extra a
    . JsonDecoder err extra a
   -> JsonDecoder err extra (Object a)
-decodeObject decodeElem = addTypeHint "Object" Decoder.do
+decodeObject decodeElem = addTypeHintD "Object" Decoder.do
   obj <- decodeJObject
   forWithIndex obj \field j2 ->
     addOffset (AtKey field) j2 decodeElem
@@ -349,23 +349,23 @@ decodeNullable
   :: forall err extra a
    . JsonDecoder err extra a
   -> JsonDecoder err extra (Nullable a)
-decodeNullable decodeA = addTypeHint "Nullable" Decoder.do
+decodeNullable decodeA = addTypeHintD "Nullable" Decoder.do
   altAccumulate (null <$ decodeJNull) (notNull <$> decodeA)
 
 decodeIdentity
   :: forall err extra a
    . JsonDecoder err extra a
   -> JsonDecoder err extra (Identity a)
-decodeIdentity = addTypeHint "Identity" <<< coerce
+decodeIdentity = addTypeHintD "Identity" <<< coerce
 
 decodeMaybeTagged
   :: forall err extra a
    . JsonDecoder err extra a
   -> JsonDecoder err extra (Maybe a)
-decodeMaybeTagged decodeElem = addTypeHint "Maybe" $ decodeJObject >>> Decoder.do
+decodeMaybeTagged decodeElem = addTypeHintD "Maybe" $ decodeJObject >>> Decoder.do
   tag <- decodeField "tag" decodeString
   case tag of
-    "Just" -> addCtorHint "Just" do
+    "Just" -> addCtorHintD "Just" do
       Just <$> decodeField "value" decodeElem
     "Nothing" ->
       pure Nothing
@@ -376,7 +376,7 @@ decodeMaybeNullable
   :: forall err extra a
    . JsonDecoder err extra a
   -> JsonDecoder err extra (Maybe a)
-decodeMaybeNullable decodeElem = addTypeHint "Maybe" Decoder.do
+decodeMaybeNullable decodeElem = addTypeHintD "Maybe" Decoder.do
   toMaybe <$> decodeNullable decodeElem
 
 decodeEither
@@ -384,12 +384,12 @@ decodeEither
    . JsonDecoder err extra a
   -> JsonDecoder err extra b
   -> JsonDecoder err extra (Either a b)
-decodeEither decodeLeft decodeRight = addTypeHint "Either" $ decodeJObject >>> Decoder.do
+decodeEither decodeLeft decodeRight = addTypeHintD "Either" $ decodeJObject >>> Decoder.do
   tag <- decodeField "tag" decodeString
   case tag of
-    "Left" -> addCtorHint "Left" do
+    "Left" -> addCtorHintD "Left" do
       Left <$> decodeField "value" decodeLeft
-    "Right" -> addCtorHint "Right" do
+    "Right" -> addCtorHintD "Right" do
       Right <$> decodeField "value" decodeRight
     unknownTag ->
       failWithStructureError $ "Tag was not 'Left' or 'Right': " <> unknownTag
@@ -399,13 +399,13 @@ decodeTuple
    . JsonDecoder err extra a
   -> JsonDecoder err extra b
   -> JsonDecoder err extra (Tuple a b)
-decodeTuple decodeA decodeB = addTypeHint "Tuple" Decoder.do
+decodeTuple decodeA decodeB = addTypeHintD "Tuple" Decoder.do
   arr <- decodeJArray
   case arr of
     [ a, b ] -> do
       Tuple
-        <$> (addSubtermHint 0 $ addOffset (AtIndex 0) a decodeA)
-        <*> (addSubtermHint 1 $ addOffset (AtIndex 1) b decodeB)
+        <$> (addSubtermHintD 0 $ addOffset (AtIndex 0) a decodeA)
+        <*> (addSubtermHintD 1 $ addOffset (AtIndex 1) b decodeB)
     _ ->
       failWithStructureError $ "Expected array with 2 elements, but array had length of " <> show (Array.length arr)
 
@@ -414,17 +414,17 @@ decodeThese
    . JsonDecoder err extra a
   -> JsonDecoder err extra b
   -> JsonDecoder err extra (These a b)
-decodeThese decodeA decodeB = addTypeHint "These" $ decodeJObject >>> Decoder.do
+decodeThese decodeA decodeB = addTypeHintD "These" $ decodeJObject >>> Decoder.do
   tag <- decodeField "tag" decodeString
   case tag of
-    "This" -> addCtorHint "This" do
+    "This" -> addCtorHintD "This" do
       This <$> decodeField "value" decodeA
-    "That" -> addCtorHint "That" do
+    "That" -> addCtorHintD "That" do
       That <$> decodeField "value" decodeB
-    "Both" -> addCtorHint "This" do
+    "Both" -> addCtorHintD "This" do
       Both
-        <$> (addSubtermHint 0 $ decodeField "this" decodeA)
-        <*> (addSubtermHint 1 $ decodeField "that" decodeB)
+        <$> (addSubtermHintD 0 $ decodeField "this" decodeA)
+        <*> (addSubtermHintD 1 $ decodeField "that" decodeB)
     unknownTag ->
       failWithStructureError $ "Tag was not 'This', 'That', or 'Both': " <> unknownTag
 
@@ -433,16 +433,16 @@ decodeNonEmpty
    . JsonDecoder err extra a
   -> JsonDecoder err extra (f a)
   -> JsonDecoder err extra (NonEmpty f a)
-decodeNonEmpty decodeHead decodeTail = addTypeHint "NonEmpty" $ decodeJObject >>> Decoder.do
+decodeNonEmpty decodeHead decodeTail = addTypeHintD "NonEmpty" $ decodeJObject >>> Decoder.do
   NonEmpty
-    <$> (addSubtermHint 0 $ decodeField "head" decodeHead)
-    <*> (addSubtermHint 0 $ decodeField "tail" decodeTail)
+    <$> (addSubtermHintD 0 $ decodeField "head" decodeHead)
+    <*> (addSubtermHintD 0 $ decodeField "tail" decodeTail)
 
 decodeList
   :: forall err extra a
    . JsonDecoder err extra a
   -> JsonDecoder err extra (List a)
-decodeList decodeElem = addTypeHint "List" Decoder.do
+decodeList decodeElem = addTypeHintD "List" Decoder.do
   arr <- decodeJArray
   map List.fromFoldable $ forWithIndex arr \i a ->
     addOffset (AtIndex i) a decodeElem
@@ -451,7 +451,7 @@ decodeNonEmptyList
   :: forall err extra a
    . JsonDecoder err extra a
   -> JsonDecoder err extra (NonEmptyList a)
-decodeNonEmptyList decodeA = addTypeHint "NonEmptyList" Decoder.do
+decodeNonEmptyList decodeA = addTypeHintD "NonEmptyList" Decoder.do
   ls <- decodeList decodeA
   case ls of
     Nil ->
@@ -465,7 +465,7 @@ decodeMap
   => JsonDecoder err extra k
   -> JsonDecoder err extra v
   -> JsonDecoder err extra (Map k v)
-decodeMap decodeKey decodeValue = addTypeHint "Map" Decoder.do
+decodeMap decodeKey decodeValue = addTypeHintD "Map" Decoder.do
   arr <- decodeJArray
   map Map.fromFoldable $ forWithIndex arr \i a ->
     addOffset (AtIndex i) a Decoder.do
@@ -481,7 +481,7 @@ decodeSet
    . Ord a
   => JsonDecoder err extra a
   -> JsonDecoder err extra (Set a)
-decodeSet decodeA = addTypeHint "Set" Decoder.do
+decodeSet decodeA = addTypeHintD "Set" Decoder.do
   arr <- decodeJArray
   map Set.fromFoldable $ forWithIndex arr \i a ->
     addOffset (AtIndex i) a decodeA
@@ -491,7 +491,7 @@ decodeNonEmptySet
    . Ord a
   => JsonDecoder err extra a
   -> JsonDecoder err extra (NonEmptySet a)
-decodeNonEmptySet decodeA = addTypeHint "NonEmptySet" Decoder.do
+decodeNonEmptySet decodeA = addTypeHintD "NonEmptySet" Decoder.do
   s <- decodeSet decodeA
   case NonEmptySet.fromSet s of
     Nothing ->
@@ -502,7 +502,7 @@ decodeNonEmptySet decodeA = addTypeHint "NonEmptySet" Decoder.do
 decodeCodePoint
   :: forall err extra
    . JsonDecoder err extra CodePoint
-decodeCodePoint = addTypeHint "CodePoint" Decoder.do
+decodeCodePoint = addTypeHintD "CodePoint" Decoder.do
   s <- decodeString
   case codePointAt 0 s of
     Nothing ->
@@ -525,7 +525,7 @@ decodeRecordPrim
   :: forall err extra outputRows
    . JsonDecoder' err extra (Object Json) { | outputRows }
   -> JsonDecoder err extra { | outputRows }
-decodeRecordPrim decoder = addTypeHint "Record" Decoder.do
+decodeRecordPrim decoder = addTypeHintD "Record" Decoder.do
   decodeJObject >>> decoder
 
 buildRecordDecoder
@@ -599,7 +599,7 @@ decodeVariantPrim
           )
      )
   -> JsonDecoder e extra (Variant rows)
-decodeVariantPrim accErrs buildCodec = addTypeHint "Variant" Decoder.do
+decodeVariantPrim accErrs buildCodec = addTypeHintD "Variant" Decoder.do
   decodeJObject >>> (buildCodec (\_ -> decodeVariantEmpty) accErrs)
 
 decodeVariantCase

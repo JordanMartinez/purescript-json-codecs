@@ -67,7 +67,7 @@ import Prelude
 import Codec.Decoder (DecoderFn(..))
 import Codec.Decoder.Qualified as Decoder
 import Codec.Json.Errors.DecodeMessages (arrayNotEmptyFailure, numToIntConversionFailure, stringNotEmptyFailure, stringToCharConversionFailure)
-import Codec.Json.JsonDecoder (DecodeErrorAccumulatorFn, JsonDecoder', JsonDecoder, addCtorHint, addOffset, addSubtermHint, addTypeHint, altAccumulate, failWithMissingField, failWithStructureError, failWithUnrefinableValue)
+import Codec.Json.JsonDecoder (DecodeErrorAccumulatorFn, JsonDecoder, JsonDecoder', addCtorHint, addOffset, addSubtermHint, addTypeHint, altAccumulate, failWithMissingField, failWithStructureError, failWithUnrefinableValue)
 import Codec.Json.Types (ActualJsonType(..), ExpectedJsonType(..), JsonErrorHandlers(..), JsonOffset(..))
 import Data.Argonaut.Core (Json, caseJson)
 import Data.Array as Array
@@ -278,7 +278,7 @@ decodeVoid :: forall err extra. JsonDecoder err extra Void
 decodeVoid = addTypeHint "Void" $ failWithUnrefinableValue "Decoding a value to Void is impossible"
 
 decodeUnitFromNull :: forall err extra. JsonDecoder err extra Unit
-decodeUnitFromNull = decodeJNull
+decodeUnitFromNull = addTypeHint "Unit" decodeJNull
 
 -- | A decoder that always succeeds, no matter what the underlying JSON is.
 decodeUnitFromAny :: forall e extra. JsonDecoder e extra Unit
@@ -321,7 +321,7 @@ decodeArray
   :: forall err extra a
    . JsonDecoder err extra a
   -> JsonDecoder err extra (Array a)
-decodeArray decodeElem = Decoder.do
+decodeArray decodeElem = addTypeHint "Array" Decoder.do
   arr <- decodeJArray
   forWithIndex arr \i j2 ->
     addOffset (AtIndex i) j2 decodeElem
@@ -340,7 +340,7 @@ decodeObject
   :: forall err extra a
    . JsonDecoder err extra a
   -> JsonDecoder err extra (Object a)
-decodeObject decodeElem = Decoder.do
+decodeObject decodeElem = addTypeHint "Object" Decoder.do
   obj <- decodeJObject
   forWithIndex obj \field j2 ->
     addOffset (AtKey field) j2 decodeElem

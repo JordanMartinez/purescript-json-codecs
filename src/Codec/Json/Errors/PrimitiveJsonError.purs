@@ -37,11 +37,11 @@ printTypeMismatchErr exp act =
 
 printMissingField :: String -> String
 printMissingField str =
-  "Failed to decode a value under the field `" <> str <> "` because the field did not exist."
+  "Failed to decode a value under the field `" <> str <> "` because the field did not exist"
 
 printMissingIndex :: Int -> String
 printMissingIndex idx =
-  "Failed to decode a value under the index `" <> show idx <> "` because the element did not exist."
+  "Failed to decode a value under the index `" <> show idx <> "` because the element did not exist"
 
 data TypeHint
   = TyName String

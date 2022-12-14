@@ -44,36 +44,33 @@ Decode Int to Int:
 1
 
 Decode Int to String:
-while decoding the type, Int
-  at path: ROOT
-Expected number but got string: "foo"
-  at path: ROOT
+while decoding the type, Int, at path: ROOT
+Expected number but got string: "foo" at path: ROOT
+
 
 Decode Record to Int:
-while decoding the type, Int
-  at path: ROOT
-Expected number but got object with 7 keys
-  at path: ROOT
+while decoding the type, Int, at path: ROOT
+Expected number but got object with 7 keys at path: ROOT
+
 
 Decode Record incorrectly:
-while decoding the type, Record
-  at path: ROOT
-  Expected object but got array of length 10
-    at path: ROOT.array
-  Expected string but got boolean: true
-    at path: ROOT.boolean
-  Expected string but got number: 9.0
-    at path: ROOT.int
-  Expected boolean but got number: 1.4
-    at path: ROOT.number
-  while decoding the type, Int
-    at path: ROOT.object
-  Expected number but got object with 4 keys
-    at path: ROOT.object
-  Expected array but got object with 2 keys
-    at path: ROOT.record
-  Expected number but got string: "hello"
-    at path: ROOT.string
+while decoding the type, Record, at path: ROOT
+  Expected number but got string: "hello" at path: ROOT.string
+
+  while decoding the type, Array, at path: ROOT.record
+  Expected array but got object with 2 keys at path: ROOT.record
+
+  while decoding the type, Int, at path: ROOT.object
+  Expected number but got object with 4 keys at path: ROOT.object
+
+  Expected boolean but got number: 1.4 at path: ROOT.number
+
+  Expected string but got number: 9.0 at path: ROOT.int
+
+  Expected string but got boolean: true at path: ROOT.boolean
+
+  while decoding the type, Object, at path: ROOT.array
+  Expected object but got array of length 10 at path: ROOT.array
 ```
 
 ### `Doc Void`
@@ -83,42 +80,31 @@ Decode Int to Int:
 1
 
 Decode Int to String:
-while decoding the type, Int
-  at path: ROOT
-  Expected number but got string: "foo"
-    at path: ROOT
+while decoding the type, Int, at path: ROOT
+  Expected number but got string: "foo" at path: ROOT
 
 Decode Record to Int:
-while decoding the type, Int
-  at path: ROOT
-  Expected number but got object with 7 keys
-    at path: ROOT
+while decoding the type, Int, at path: ROOT
+  Expected number but got object with 7 keys at path: ROOT
 
 Decode Record incorrectly:
-while decoding the type, Record
-  at path: ROOT
-  Expected object but got array of length 10
-    at path: ROOT.array
+while decoding the type, Record, at path: ROOT
+  Expected number but got string: "hello" at path: ROOT.string
 
-  Expected string but got boolean: true
-    at path: ROOT.boolean
+  while decoding the type, Array, at path: ROOT.record
+    Expected array but got object with 2 keys at path: ROOT.record
 
-  Expected string but got number: 9.0
-    at path: ROOT.int
+  while decoding the type, Int, at path: ROOT.object
+    Expected number but got object with 4 keys at path: ROOT.object
 
-  Expected boolean but got number: 1.4
-    at path: ROOT.number
+  Expected boolean but got number: 1.4 at path: ROOT.number
 
-  while decoding the type, Int
-    at path: ROOT.object
-    Expected number but got object with 4 keys
-      at path: ROOT.object
+  Expected string but got number: 9.0 at path: ROOT.int
 
-  Expected array but got object with 2 keys
-    at path: ROOT.record
+  Expected string but got boolean: true at path: ROOT.boolean
 
-  Expected number but got string: "hello"
-    at path: ROOT.string
+  while decoding the type, Object, at path: ROOT.array
+    Expected object but got array of length 10 at path: ROOT.array
 ```
 
 ### `Doc GraphicsParam`

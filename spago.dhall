@@ -1,6 +1,7 @@
 { name = "my-project"
 , dependencies =
-  [ "argonaut-core"
+  [ "ansi"
+  , "argonaut-core"
   , "arrays"
   , "bifunctors"
   , "console"

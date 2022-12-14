@@ -2,6 +2,8 @@ module Codec.Json.Errors.AnsiDodoError where
 
 import Prelude
 
+import Ansi.Codes (Color(..))
+import Ansi.Codes as Ansi
 import Codec.Json.Errors.PrimitiveJsonError (printMissingField, printMissingIndex, printTypeMismatchErr)
 import Codec.Json.JsonCodec (JsonCodec', JsonCodec, decode)
 import Codec.Json.JsonDecoder (JsonDecoder, JsonDecoder', runJsonDecoder)
@@ -14,51 +16,40 @@ import Dodo (Doc, twoSpaces)
 import Dodo as D
 import Dodo.Ansi (Color(..), GraphicsParam, ansiGraphics, foreground)
 
+fgText :: Ansi.Color -> String -> Doc GraphicsParam
+fgText c t = foreground c $ D.text t
+
 handlersAde :: JsonErrorHandlers (Doc GraphicsParam)
 handlersAde = JsonErrorHandlers
   { onTypeMismatch: mkFn3 \path exp act ->
-      D.lines
-        [ foreground BrightRed $ D.text $ printTypeMismatchErr exp act
-        , D.space <> D.space <> docifyPath path
-        ]
+      (fgText BrightRed $ printTypeMismatchErr exp act) <> D.space <> docifyPath BrightCyan path
   , onMissingField: mkFn2 \path field ->
-      D.lines
-        [ foreground BrightRed $ D.text $ printMissingField field
-        , D.space <> D.space <> docifyPath path
-        ]
+      (fgText BrightRed $ printMissingField field) <> D.space <> docifyPath BrightCyan path
   , onMissingIndex: mkFn2 \path idx ->
-      D.lines
-        [ foreground BrightRed $ D.text $ printMissingIndex idx
-        , D.space <> D.space <> docifyPath path
-        ]
+      (fgText BrightRed $ printMissingIndex idx) <> D.space <> docifyPath BrightCyan path
   , onUnrefinableValue: mkFn2 \path msg ->
-      D.lines
-        [ foreground BrightRed $ D.text msg
-        , D.space <> D.space <> docifyPath path
-        ]
+      fgText BrightRed msg <> D.space <> docifyPath BrightCyan path
   , onStructureError: mkFn2 \path msg ->
-      D.lines
-        [ foreground BrightRed $ D.text msg
-        , D.space <> D.space <> docifyPath path
-        ]
+      fgText BrightRed msg <> D.space <> docifyPath BrightCyan path
   , addJsonOffset: mkFn2 \a b -> Array.snoc a b
   , addTypeHint: mkFn3 \path hint err ->
-      docifyHint path (D.text typeHintMsg <> (foreground BrightYellow $ D.text hint)) err
+      docifyHint path (D.text typeHintMsg <> (foreground Yellow $ D.text hint)) err
   , addCtorHint: mkFn3 \path hint err ->
-      docifyHint path (D.text ctorHintMsg <> (foreground BrightYellow $ D.text hint)) err
+      docifyHint path (D.text ctorHintMsg <> (foreground Yellow $ D.text hint)) err
   , addSubtermHint: mkFn3 \path hint err ->
-      docifyHint path (D.text subtermHintMsg <> (foreground BrightYellow $ D.text $ show hint)) err
+      docifyHint path (D.text subtermHintMsg <> (foreground Yellow $ D.text $ show hint)) err
   , addFieldHint: mkFn3 \path hint err ->
-      docifyHint path (D.text fieldHintMsg <> (foreground BrightYellow $ D.text hint)) err
+      docifyHint path (D.text fieldHintMsg <> (foreground Yellow $ D.text hint)) err
   }
 
-docifyPath :: Array JsonOffset -> Doc GraphicsParam
-docifyPath path = (foreground White $ D.text "at path:" <> D.space) <> (foreground Cyan $ D.text $ printJsonOffsetPath path)
+docifyPath :: Ansi.Color -> Array JsonOffset -> Doc GraphicsParam
+docifyPath pathColor path =
+  (fgText White "at path:" <> D.space) <> (foreground pathColor $ D.text $ printJsonOffsetPath path)
 
 docifyHint :: Array JsonOffset -> Doc GraphicsParam -> Doc GraphicsParam -> Doc GraphicsParam
 docifyHint path msg err =
   D.lines
-    [ msg <> D.text ", " <> docifyPath path
+    [ foreground White msg <> fgText White ", " <> docifyPath Cyan path
     , D.indent err
     ]
 

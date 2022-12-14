@@ -16,30 +16,15 @@ import Dodo as D
 handlersPde :: JsonErrorHandlers (Doc Void)
 handlersPde = JsonErrorHandlers
   { onTypeMismatch: mkFn3 \path exp act ->
-      D.lines
-        [ D.text $ printTypeMismatchErr exp act
-        , D.space <> D.space <> docifyPath path
-        ]
+      (D.text $ printTypeMismatchErr exp act) <> D.space <> docifyPath path
   , onMissingField: mkFn2 \path field ->
-      D.lines
-        [ D.text $ printMissingField field
-        , D.space <> D.space <> docifyPath path
-        ]
+      (D.text $ printMissingField field) <> D.space <> docifyPath path
   , onMissingIndex: mkFn2 \path idx ->
-      D.lines
-        [ D.text $ printMissingIndex idx
-        , D.space <> D.space <> docifyPath path
-        ]
+      (D.text $ printMissingIndex idx) <> D.space <> docifyPath path
   , onUnrefinableValue: mkFn2 \path msg ->
-      D.lines
-        [ D.text msg
-        , D.space <> D.space <> docifyPath path
-        ]
+      D.text msg <> D.space <> docifyPath path
   , onStructureError: mkFn2 \path msg ->
-      D.lines
-        [ D.text msg
-        , D.space <> D.space <> docifyPath path
-        ]
+      D.text msg <> D.space <> docifyPath path
   , addJsonOffset: mkFn2 \a b -> Array.snoc a b
   , addTypeHint: mkFn3 \path hint err ->
       docifyHint path (D.text $ typeHintMsg <> hint) err

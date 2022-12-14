@@ -53,10 +53,10 @@ derive instance Eq TypeHint
 
 printTypeHint :: TypeHint -> String
 printTypeHint = case _ of
-  TyName s -> typeHintMsg <> s <> ", "
-  CtorName s -> ctorHintMsg <> s <> ", "
-  Subterm i -> subtermHintMsg <> show i <> ", "
-  Field f -> fieldHintMsg <> f <> ", "
+  TyName s -> typeHintMsg <> s
+  CtorName s -> ctorHintMsg <> s
+  Subterm i -> subtermHintMsg <> show i
+  Field f -> fieldHintMsg <> f
 
 newtype PrimitiveJsonError = PrimitiveJsonError
   ( TreeError
@@ -95,12 +95,12 @@ printPrimitiveJsonError =
     <<< bifoldMap
       ( \{ path, hint } -> do
           let indent = indentByPathLength path
-          [ indent <> printTypeHint hint <> printPath path ]
+          [ indent <> printTypeHint hint <> ", " <> printPath path ]
       )
       ( \{ path, error } -> do
           let indent = indentByPathLength path
-          [ indent <> printJsonLeafError error
-          , indent <> "  " <> printPath path
+          [ indent <> printJsonLeafError error <> " " <> printPath path
+          , ""
           ]
       )
     <<< unwrap

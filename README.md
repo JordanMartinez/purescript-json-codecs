@@ -115,7 +115,7 @@ Same as `Doc Void` but with colors:
 
 ## Codec Examples
 
-### Value-based codec where all fields are required
+### Unidirectional Value-based codec where all fields are required
 
 ```purs
 -- Error messages are outputted with color.
@@ -138,7 +138,7 @@ fooEncoder =
     }
 ```
 
-### Value-based codec where some fields are optional
+### Unidirectional Value-based codec where some fields are optional
 
 ```purs
 {-
@@ -179,7 +179,7 @@ barEncoder =
       }
 ```
 
-### Typeclass-based codec where some fields are optional
+### Unidirectional Typeclass-based codec where some fields are optional
 
 ```purs
 type Baz =
@@ -197,7 +197,7 @@ bazEncoder :: Baz -> Json
 bazEncoder = encodeJson
 ```
 
-### Typeclass-based codec where some instances are implemented via runtime-configured implementations
+### Unidirectional Typeclass-based codec where some instances are implemented via runtime-configured implementations
 
 See [Decoding.purs](./test/Test/Codec/Json/Unidirectional/Typeclass/LocalOverrides/Decoding.purs), which as of the time of writing, outputs:
 
@@ -242,6 +242,10 @@ Locally-overridden decoded value:
 , tupleMultiOverride: (Tuple "1 + 1 == 2" "left")
 }
 ```
+
+## Bidirectional Value-based Decoding and Encoding
+
+See [test/Test/Codec/Json/Bidirectional/AnsiDodoError.purs](./test/Test/Codec/Json/Bidirectional/AnsiDodoError.purs)
 
 ## License
 

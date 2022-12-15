@@ -22,7 +22,7 @@ import Prelude
 import Codec.Codec (Codec(..), decoder, encoder, mapDecodeError)
 import Codec.Decoder (DecoderFn(..), altAccumulate)
 import Codec.Json.Bidirectional.Value (array, boolean, codePoint, either, int, json, list, mapCodec, maybe, nonEmpty', nonEmptyArray, nonEmptyList, nonEmptySet, nonEmptyString, nullable, number, object, recordPrim, requiredProp, set, string, these, tuple, unitCodec, variantCase, variantPrim, voidCodec)
-import Codec.Json.JsonCodec (JPropCodec, JsonCodec, JsonCodec')
+import Codec.Json.JsonCodec (JPropCodec, JsonCodec', JsonCodec, addCtorHintC, addTypeHintC)
 import Codec.Json.JsonDecoder (DecodeErrorAccumulatorFn)
 import Codec.Json.Newtypes (K0(..), K1(..), K2(..), K3(..), Optional(..))
 import Codec.Json.Unidirectional.Decode.Class (class VCTypeHint, VCHint(..), vcTypeHint)
@@ -31,6 +31,7 @@ import Data.Argonaut.Core (Json)
 import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Either (Either(..))
 import Data.Function.Uncurried (Fn2, mkFn2, mkFn5, runFn2, runFn5)
+import Data.Generic.Rep (Argument(..), Constructor(..), NoArguments(..), Product(..), Sum(..))
 import Data.List (List)
 import Data.List as List
 import Data.List.Types (NonEmptyList)
@@ -40,6 +41,7 @@ import Data.Maybe as Maybe
 import Data.Newtype (class Newtype, unwrap)
 import Data.NonEmpty (NonEmpty)
 import Data.Nullable (Nullable)
+import Data.Profunctor (dimap)
 import Data.Set (Set)
 import Data.Set.NonEmpty (NonEmptySet)
 import Data.String (CodePoint)
@@ -49,6 +51,7 @@ import Data.These (These)
 import Data.Tuple (Tuple(..), fst)
 import Data.Validation.Semigroup (V)
 import Data.Variant (Variant)
+import Data.Variant as V
 import Foreign.Object (Object)
 import Prim.Row as Row
 import Prim.RowList as RL
@@ -313,6 +316,38 @@ instance
         fabc = coerce k3fabc
 
       k3fabc <$ runFn2 f extra fabc
+
+instance CodecJson e extra NoArguments where
+  codecJson = dimap (const unit) (const NoArguments) unitCodec
+
+instance (CodecJson e extra a, CodecJson e extra b) => CodecJson e extra (Sum a b) where
+  codecJson = addTypeHintC "Sum"
+    $ dimap toVariant fromVariant
+    $ variantPrim altAccumulate
+    $ variantCase _inl (Tuple (addCtorHintC "Inl") $ Right codecJson)
+        >>> variantCase _inr (Tuple (addCtorHintC "Inr") $ Right codecJson)
+    where
+    toVariant = case _ of
+      Inl l -> V.inj _inl l
+      Inr r -> V.inj _inr r
+    fromVariant = V.case_
+      # V.on _inl Inl
+      # V.on _inr Inr
+    _inl = Proxy :: Proxy "Inl"
+    _inr = Proxy :: Proxy "Inr"
+
+instance (CodecJson e extra a, CodecJson e extra b) => CodecJson e extra (Product a b) where
+  codecJson = addTypeHintC "Product"
+    $ dimap (\(Product a b) -> Tuple a b) (\(Tuple a b) -> Product a b)
+    $ tuple codecJson codecJson
+
+instance (CodecJson e extra a, IsSymbol sym) => CodecJson e extra (Constructor sym a) where
+  codecJson = addTypeHintC ("Constructor (" <> (reflectSymbol (Proxy :: _ sym)) <> ")")
+    $ (coerce :: JsonCodec e extra a -> JsonCodec e extra (Constructor sym a)) codecJson
+
+instance (CodecJson e extra a) => CodecJson e extra (Argument a) where
+  codecJson = addTypeHintC "Argument"
+    $ (coerce :: JsonCodec e extra a -> JsonCodec e extra (Argument a)) codecJson
 
 newtype CJPropFn :: Type -> Type -> RL.RowList Type -> Row Type -> Type
 newtype CJPropFn e extra rl to =

@@ -20,13 +20,15 @@ module Codec.Json.Unidirectional.Decode.Class
 import Prelude
 
 import Codec.Decoder (DecoderFn(..))
-import Codec.Json.JsonDecoder (DecodeErrorAccumulatorFn, JsonDecoder, JsonDecoder', addCtorHintD, addFieldHintD, addSubtermHintD, addTypeHintD, altAccumulate, failWithMissingField)
+import Codec.Decoder.Qualified as Decoder
+import Codec.Json.JsonDecoder (DecodeErrorAccumulatorFn, JsonDecoder, JsonDecoder', addCtorHintD, addFieldHintD, addSubtermHintD, addTypeHintD, altAccumulate, failWithMissingField, failWithStructureError)
 import Codec.Json.Newtypes (K0(..), K1(..), K2(..), K3(..), Optional(..), WithCtor, WithField, WithSubterm, WithType)
-import Codec.Json.Unidirectional.Decode.Value (decodeArray, decodeBoolean, decodeChar, decodeCodePoint, decodeEither, decodeField', decodeIdentity, decodeInt, decodeList, decodeMap, decodeMaybeTagged, decodeNonEmpty, decodeNonEmptyArray, decodeNonEmptyList, decodeNonEmptySet, decodeNonEmptyString, decodeNullable, decodeNumber, decodeObject, decodeRecordPrim, decodeSet, decodeString, decodeThese, decodeTuple, decodeUnitFromNull, decodeVariantPrim, decodeVariantCase, decodeVoid)
+import Codec.Json.Unidirectional.Decode.Value (decodeArray, decodeBoolean, decodeChar, decodeCodePoint, decodeEither, decodeField, decodeField', decodeIdentity, decodeIndex, decodeInt, decodeJArray, decodeJObject, decodeList, decodeMap, decodeMaybeTagged, decodeNonEmpty, decodeNonEmptyArray, decodeNonEmptyList, decodeNonEmptySet, decodeNonEmptyString, decodeNullable, decodeNumber, decodeObject, decodeRecordPrim, decodeSet, decodeString, decodeThese, decodeTuple, decodeUnitFromNull, decodeVariantCase, decodeVariantPrim, decodeVoid)
 import Data.Argonaut.Core (Json)
 import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Either (Either(..))
 import Data.Function.Uncurried (mkFn5, runFn5)
+import Data.Generic.Rep (Argument(..), Constructor(..), NoArguments(..), Product(..), Sum(..))
 import Data.Identity (Identity)
 import Data.List (List)
 import Data.List.Types (NonEmptyList)
@@ -294,6 +296,33 @@ instance
   ) =>
   DecodeJson err extra (Variant rows) where
   decodeJson = decodeVariantPrim altAccumulate (unBvdFn (buildVariantDecoder :: BVDFn err extra rl rows))
+
+instance DecodeJson e extra NoArguments where
+  decodeJson = NoArguments <$ decodeUnitFromNull
+
+instance (DecodeJson e extra a, DecodeJson e extra b) => DecodeJson e extra (Sum a b) where
+  decodeJson = addTypeHintD "Sum" $ decodeJObject >>> Decoder.do
+    tag <- decodeField "tag" decodeString
+    case tag of
+      "Inl" -> addCtorHintD "Inl" do
+        Inl <$> decodeField "value" decodeJson
+      "Inr" -> addCtorHintD "Inl" do
+        Inr <$> decodeField "value" decodeJson
+      unknownTag ->
+        failWithStructureError $ "Tag was not 'Inl' or 'Inr': " <> unknownTag
+
+instance (DecodeJson e extra a, DecodeJson e extra b) => DecodeJson e extra (Product a b) where
+  decodeJson = addTypeHintD "Product" $ decodeJArray >>> Decoder.do
+    Product
+      <$> decodeIndex 0 decodeJson
+      <*> decodeIndex 1 decodeJson
+
+instance (DecodeJson e extra a, IsSymbol sym) => DecodeJson e extra (Constructor sym a) where
+  decodeJson = addTypeHintD ("Constructor (" <> (reflectSymbol (Proxy :: _ sym)) <> ")") Decoder.do
+    Constructor <$> decodeJson
+
+instance (DecodeJson e extra a, IsSymbol sym) => DecodeJson e extra (Argument a) where
+  decodeJson = addTypeHintD "Argument" $ Argument <$> decodeJson
 
 newtype RowListJsonObjDecoder :: Type -> Type -> RowList.RowList Type -> Row Type -> Type
 newtype RowListJsonObjDecoder err extra rl rows = RowListJsonObjDecoder (JsonDecoder' err extra (Object Json) (Builder {} { | rows }))

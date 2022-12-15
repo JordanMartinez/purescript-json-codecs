@@ -18,10 +18,13 @@ module Codec.Json.Unidirectional.Encode.Class
 
 import Prelude
 
+import Codec.Json.Newtypes (K0(..), K1(..), K2(..), K3(..), Optional)
+import Codec.Json.Unidirectional.Encode.Value (encodeArray, encodeBoolean, encodeChar, encodeCodePoint, encodeEither, encodeIdentity, encodeInt, encodeJNull, encodeJObject, encodeList, encodeMap, encodeMaybeTagged, encodeNonEmpty, encodeNonEmptyArray, encodeNonEmptyList, encodeNonEmptySet, encodeNonEmptyString, encodeNullable, encodeNumber, encodeObject, encodeSet, encodeString, encodeThese, encodeTuple, encodeUnitToNull, encodeVoid)
 import Data.Argonaut.Core (Json)
 import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Either (Either)
 import Data.Function.Uncurried (Fn2, mkFn2, runFn2)
+import Data.Generic.Rep (Argument(..), Constructor(..), NoArguments, Product(..), Sum(..))
 import Data.Identity (Identity)
 import Data.List (List)
 import Data.List.Types (NonEmptyList)
@@ -36,11 +39,9 @@ import Data.String (CodePoint)
 import Data.String.NonEmpty.Internal (NonEmptyString)
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.These (These)
-import Data.Tuple (Tuple)
+import Data.Tuple (Tuple(..))
 import Foreign.Object (Object)
 import Foreign.Object as Object
-import Codec.Json.Newtypes (K0(..), K1(..), K2(..), K3(..), Optional)
-import Codec.Json.Unidirectional.Encode.Value (encodeArray, encodeBoolean, encodeChar, encodeCodePoint, encodeEither, encodeIdentity, encodeInt, encodeList, encodeMap, encodeMaybeTagged, encodeNonEmpty, encodeNonEmptyArray, encodeNonEmptyList, encodeNonEmptySet, encodeNonEmptyString, encodeNullable, encodeNumber, encodeObject, encodeJObject, encodeSet, encodeString, encodeThese, encodeTuple, encodeUnitToNull, encodeVoid)
 import Prim.Coerce (class Coercible)
 import Prim.Row as Row
 import Prim.RowList as RowList
@@ -274,6 +275,35 @@ instance
   EncodeJson extra { | rows } where
   encodeJsonFn = mkFn2 \extra input ->
     encodeJObject $ runFn2 encodeRecordInput (RowListRecord input :: RowListRecord rl { | rows }) extra
+
+instance EncodeJson extra NoArguments where
+  encodeJsonFn = mkFn2 \_ _ -> encodeJNull
+
+instance (EncodeJson extra a, EncodeJson extra b) => EncodeJson extra (Sum a b) where
+  encodeJsonFn = mkFn2 \extra s -> case s of
+    Inl l -> runFn2 encodeJsonFn extra $ Object.fromFoldable
+      [ Tuple "tag" $ runFn2 encodeJsonFn extra "Inl"
+      , Tuple "value" $ runFn2 encodeJsonFn extra l
+      ]
+    Inr r -> runFn2 encodeJsonFn extra $ Object.fromFoldable
+      [ Tuple "tag" $ runFn2 encodeJsonFn extra "Inr"
+      , Tuple "value" $ runFn2 encodeJsonFn extra r
+      ]
+
+instance (EncodeJson extra a, EncodeJson extra b) => EncodeJson extra (Product a b) where
+  encodeJsonFn = mkFn2 \extra (Product a b) ->
+    runFn2 encodeJsonFn extra
+      [ runFn2 encodeJsonFn extra a
+      , runFn2 encodeJsonFn extra b
+      ]
+
+instance EncodeJson extra a => EncodeJson extra (Constructor sym a) where
+  encodeJsonFn = mkFn2 \extra (Constructor a) ->
+    runFn2 encodeJsonFn extra a
+
+instance EncodeJson extra a => EncodeJson extra (Argument a) where
+  encodeJsonFn = mkFn2 \extra (Argument a) ->
+    runFn2 encodeJsonFn extra a
 
 newtype RowListRecord :: RowList.RowList Type -> Type -> Type
 newtype RowListRecord rl rec = RowListRecord rec

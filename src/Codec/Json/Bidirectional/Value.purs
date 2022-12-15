@@ -402,8 +402,8 @@ variantEmpty = codec' (failWithUnrefinableValue "All variant decoders failed to 
 -- |
 -- | ```
 -- | variantPrim $
--- |   variantCase (Proxy :: _ "tag2") (pje $ array int)
--- |   >>> variantCase (Proxy :: _ "tag1") (pje $ string)
+-- |   variantCase (Proxy :: _ "tag2") (Tuple (addCtorHintC "SomeCtorWithArg") $ Right $ pje $ array int)
+-- |   >>> variantCase (Proxy :: _ "tag1") (Tuple (addCtorHintC "SomeCtorNoArg") $ Left unit)
 -- | ```
 variantPrim
   :: forall e extra rows

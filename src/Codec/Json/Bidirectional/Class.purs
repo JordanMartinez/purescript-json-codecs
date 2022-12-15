@@ -19,12 +19,13 @@ module Codec.Json.Bidirectional.Class
 
 import Prelude
 
-import Codec.Codec (Codec(..), decoder, encoder)
+import Codec.Codec (Codec(..), decoder, encoder, mapDecodeError)
 import Codec.Decoder (DecoderFn(..), altAccumulate)
 import Codec.Json.Bidirectional.Value (array, boolean, codePoint, either, int, json, list, mapCodec, maybe, nonEmpty', nonEmptyArray, nonEmptyList, nonEmptySet, nonEmptyString, nullable, number, object, recordPrim, requiredProp, set, string, these, tuple, unitCodec, variantCase, variantPrim, voidCodec)
-import Codec.Json.JsonCodec (JPropCodec, JsonCodec', JsonCodec)
+import Codec.Json.JsonCodec (JPropCodec, JsonCodec, JsonCodec')
 import Codec.Json.JsonDecoder (DecodeErrorAccumulatorFn)
 import Codec.Json.Newtypes (K0(..), K1(..), K2(..), K3(..), Optional(..))
+import Codec.Json.Unidirectional.Decode.Class (class VCTypeHint, VCHint(..), vcTypeHint)
 import Codec.Json.Unidirectional.Decode.Value (decodeField')
 import Data.Argonaut.Core (Json)
 import Data.Array.NonEmpty (NonEmptyArray)
@@ -412,11 +413,12 @@ instance
   , CodecJson e extra a
   , CodecJsonVariant e extra tail row'
   , IsSymbol sym
+  , VCTypeHint e extra (RL.Cons sym a tail) row a
   ) =>
   CodecJsonVariant e extra (RL.Cons sym a tail) row where
   codecJsonVariant = CJVariantFn
-    ( variantCase (Proxy :: Proxy sym) (Right codecJson)
+    ( variantCase (Proxy :: Proxy sym) (Tuple (mapDecodeError addHint) $ Right codecJson)
         <<< (unCJVariantFn (codecJsonVariant :: CJVariantFn e extra tail row'))
     )
-
--- Generic
+    where
+    addHint = vcTypeHint (VCHint :: VCHint e extra (RL.Cons sym a tail) row a)

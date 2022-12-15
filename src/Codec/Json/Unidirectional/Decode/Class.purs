@@ -12,13 +12,16 @@ module Codec.Json.Unidirectional.Decode.Class
   , RowListJsonObjDecoder
   , class BuildPropDecoders
   , buildPropDecoders
+  , class VCTypeHint
+  , vcTypeHint
+  , VCHint(..)
   ) where
 
 import Prelude
 
 import Codec.Decoder (DecoderFn(..))
-import Codec.Json.JsonDecoder (DecodeErrorAccumulatorFn, JsonDecoder, JsonDecoder', altAccumulate, failWithMissingField)
-import Codec.Json.Newtypes (K0(..), K1(..), K2(..), K3(..), Optional(..))
+import Codec.Json.JsonDecoder (DecodeErrorAccumulatorFn, JsonDecoder, JsonDecoder', addCtorHintD, addFieldHintD, addSubtermHintD, addTypeHintD, altAccumulate, failWithMissingField)
+import Codec.Json.Newtypes (K0(..), K1(..), K2(..), K3(..), Optional(..), WithCtor, WithField, WithSubterm, WithType)
 import Codec.Json.Unidirectional.Decode.Value (decodeArray, decodeBoolean, decodeChar, decodeCodePoint, decodeEither, decodeField', decodeIdentity, decodeInt, decodeList, decodeMap, decodeMaybeTagged, decodeNonEmpty, decodeNonEmptyArray, decodeNonEmptyList, decodeNonEmptySet, decodeNonEmptyString, decodeNullable, decodeNumber, decodeObject, decodeRecordPrim, decodeSet, decodeString, decodeThese, decodeTuple, decodeUnitFromNull, decodeVariantPrim, decodeVariantCase, decodeVoid)
 import Data.Argonaut.Core (Json)
 import Data.Array.NonEmpty (NonEmptyArray)
@@ -32,13 +35,14 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap)
 import Data.NonEmpty (NonEmpty)
 import Data.Nullable (Nullable)
+import Data.Reflectable (class Reflectable, reflectType)
 import Data.Set (Set)
 import Data.Set.NonEmpty (NonEmptySet)
 import Data.String (CodePoint)
 import Data.String.NonEmpty.Internal (NonEmptyString)
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.These (These)
-import Data.Tuple (Tuple)
+import Data.Tuple (Tuple(..))
 import Data.Validation.Semigroup (V)
 import Data.Variant (Variant)
 import Foreign.Object (Object)
@@ -363,10 +367,34 @@ instance buildVariantDecoderCons ::
   , BuildVariantDecoder e extra tail out'
   , Row.Cons sym a out' out
   , IsSymbol sym
+  , VCTypeHint e extra (RL.Cons sym a tail) out a
   ) =>
   BuildVariantDecoder e extra (RL.Cons sym a tail) out where
   buildVariantDecoder = BVDFn $
     (unBvdFn (buildVariantDecoder :: BVDFn e extra tail out'))
-      >>> decodeVariantCase _sym (Right decodeJson)
+      >>> decodeVariantCase _sym (Tuple addHint $ Right decodeJson)
     where
     _sym = Proxy :: Proxy sym
+    addHint = vcTypeHint (VCHint :: VCHint e extra (RL.Cons sym a tail) out a)
+
+data VCHint :: Type -> Type -> RL.RowList Type -> Row Type -> Type -> Type
+data VCHint e extra rl row a = VCHint
+
+class VCTypeHint :: Type -> Type -> RL.RowList Type -> Row Type -> Type -> Constraint
+class VCTypeHint e extra rl row a | e extra rl a -> row where
+  vcTypeHint
+    :: VCHint e extra rl row a
+    -> ( JsonDecoder' e extra (Object Json) (Variant row)
+         -> JsonDecoder' e extra (Object Json) (Variant row)
+       )
+
+instance (IsSymbol sym) => VCTypeHint e extra rl row (WithType sym a) where
+  vcTypeHint _ = addTypeHintD (reflectSymbol (Proxy :: Proxy sym))
+else instance (IsSymbol sym) => VCTypeHint e extra rl row (WithCtor sym a) where
+  vcTypeHint _ = addCtorHintD (reflectSymbol (Proxy :: Proxy sym))
+else instance (Reflectable int Int) => VCTypeHint e extra rl row (WithSubterm int a) where
+  vcTypeHint _ = addSubtermHintD (reflectType (Proxy :: Proxy int))
+else instance (IsSymbol sym) => VCTypeHint e extra rl row (WithField sym a) where
+  vcTypeHint _ = addFieldHintD (reflectSymbol (Proxy :: Proxy sym))
+else instance (IsSymbol sym) => VCTypeHint e extra rl row a where
+  vcTypeHint _ = identity

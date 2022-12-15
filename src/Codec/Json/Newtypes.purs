@@ -58,3 +58,35 @@ instance Show a => Show (K3 sym a) where
   show (K3 a) = "K3(" <> show a <> ")"
 
 derive instance Newtype (K3 sym a) _
+
+-- | Used in bidirectional class-based codecs to add hints to `Variant` codecs
+newtype WithType :: Symbol -> Type -> Type
+newtype WithType sym a = WithType a
+
+derive instance Eq a => Eq (WithType sym a)
+derive instance Ord a => Ord (WithType sym a)
+derive instance Newtype (WithType sym a) _
+
+-- | Used in bidirectional class-based codecs to add hints to `Variant` codecs
+newtype WithCtor :: Symbol -> Type -> Type
+newtype WithCtor sym a = WithCtor a
+
+derive instance Eq a => Eq (WithCtor sym a)
+derive instance Ord a => Ord (WithCtor sym a)
+derive instance Newtype (WithCtor sym a) _
+
+-- | Used in bidirectional class-based codecs to add hints to `Variant` codecs
+newtype WithSubterm :: Int -> Type -> Type
+newtype WithSubterm int a = WithSubterm a
+
+derive instance Eq a => Eq (WithSubterm int a)
+derive instance Ord a => Ord (WithSubterm int a)
+derive instance Newtype (WithSubterm int a) _
+
+-- | Used in bidirectional class-based codecs to add hints to `Variant` codecs
+newtype WithField :: Symbol -> Type -> Type
+newtype WithField sym a = WithField a
+
+derive instance Eq a => Eq (WithField sym a)
+derive instance Ord a => Ord (WithField sym a)
+derive instance Newtype (WithField sym a) _

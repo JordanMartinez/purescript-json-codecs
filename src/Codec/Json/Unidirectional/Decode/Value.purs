@@ -598,22 +598,23 @@ decodeVariantCase
    . IsSymbol sym
   => Row.Cons sym a tail row
   => Proxy sym
-  -> Either a (JsonDecoder e extra a)
+  -> Tuple (JsonDecoder' e extra (Object Json) (Variant row) -> JsonDecoder' e extra (Object Json) (Variant row)) (Either a (JsonDecoder e extra a))
   -> ( (DecodeErrorAccumulatorFn e extra (Object Json) (Variant tail) -> JsonDecoder' e extra (Object Json) (Variant tail))
        -> (DecodeErrorAccumulatorFn e extra (Object Json) (Variant row) -> JsonDecoder' e extra (Object Json) (Variant row))
      )
-decodeVariantCase _sym eacodec = \buildTailDecoder errorAccumulator -> Decoder.do
-  let
-    tailDecoder = buildTailDecoder $ coerceA errorAccumulator
-  tag <- decodeField "tag" decodeString
-  if tag == label then
-    case eacodec of
-      Left a -> pure (V.inj _sym a)
-      Right decoder -> V.inj _sym <$> decodeField "value" decoder
-  else
-    errorAccumulator
-      (failWithStructureError $ "Did not get expected tag, " <> show label)
-      (coerceR <$> tailDecoder)
+decodeVariantCase _sym (Tuple addHint eacodec) = \buildTailDecoder errorAccumulator ->
+  addHint Decoder.do
+    let
+      tailDecoder = buildTailDecoder $ coerceA errorAccumulator
+    tag <- decodeField "tag" decodeString
+    if tag == label then
+      case eacodec of
+        Left a -> pure (V.inj _sym a)
+        Right decoder -> V.inj _sym <$> decodeField "value" decoder
+    else
+      errorAccumulator
+        (failWithStructureError $ "Did not get expected tag, " <> show label)
+        (coerceR <$> tailDecoder)
   where
   label = reflectSymbol _sym
 
@@ -770,12 +771,12 @@ instance decodeJsonVariantNil :: DecodeJsonVariant e extra RowList.Nil () () whe
   decodeJsonVariant _ = \buildTailCodec errorAccumulator -> buildTailCodec errorAccumulator
 
 instance decodeJsonVariantCons ::
-  ( Row.Cons sym (Either a (JsonDecoder e extra a)) codecRows' codecRows
+  ( Row.Cons sym (Tuple (JsonDecoder' e extra (Object Json) (Variant out) -> JsonDecoder' e extra (Object Json) (Variant out)) (Either a (JsonDecoder e extra a))) codecRows' codecRows
   , DecodeJsonVariant e extra tail codecRows' out'
   , Row.Cons sym a out' out
   , IsSymbol sym
   ) =>
-  DecodeJsonVariant e extra (RowList.Cons sym (Either a (JsonDecoder e extra a)) tail) codecRows out where
+  DecodeJsonVariant e extra (RowList.Cons sym (Tuple (JsonDecoder' e extra (Object Json) (Variant row) -> JsonDecoder' e extra (Object Json) (Variant row)) (Either a (JsonDecoder e extra a))) tail) codecRows out where
   decodeJsonVariant (RlRecord r) =
     (decodeJsonVariant (RlRecord $ unsafeForget r :: RlRecord e extra tail codecRows'))
       >>> decodeVariantCase _sym (Record.get _sym r)

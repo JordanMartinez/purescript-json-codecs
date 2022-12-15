@@ -425,14 +425,14 @@ variantCase
    . IsSymbol sym
   => Row.Cons sym a tail row
   => Proxy sym
-  -> Either a (JsonCodec e extra a)
+  -> Tuple (JsonCodec' e extra (Object Json) (Variant row) -> JsonCodec' e extra (Object Json) (Variant row)) (Either a (JsonCodec e extra a))
   -> ( (DecodeErrorAccumulatorFn e extra (Object Json) (Variant tail) -> JsonCodec' e extra (Object Json) (Variant tail))
        -> (DecodeErrorAccumulatorFn e extra (Object Json) (Variant row) -> JsonCodec' e extra (Object Json) (Variant row))
      )
-variantCase _sym eacodec = \buildTailCodec errorAccumulator -> do
+variantCase _sym (Tuple addHint eacodec) = \buildTailCodec errorAccumulator -> do
   let
     Codec dec enc = buildTailCodec $ coerceA errorAccumulator
-  codec'
+  addHint $ codec'
     ( Decoder.do
         tag <- decodeField "tag" (decoder string)
         if tag == label then
@@ -484,8 +484,8 @@ maybe :: forall e extra a. JsonCodec e extra a -> JsonCodec e extra (Maybe a)
 maybe codecA = addTypeHintC "Maybe" do
   dimap toVariant fromVariant
     $ variantPrim altAccumulate
-    $ variantCase _just (Right $ addCtorHintC "Just" $ codecA)
-        >>> variantCase _nothing (Left unit)
+    $ variantCase _just (Tuple (addCtorHintC "Just") $ Right codecA)
+        >>> variantCase _nothing (Tuple (addCtorHintC "Nothing") $ Left unit)
   where
   _just = Proxy :: Proxy "Just"
   _nothing = Proxy :: Proxy "Nothing"
@@ -502,8 +502,8 @@ either :: forall e extra a b. JsonCodec e extra a -> JsonCodec e extra b -> Json
 either codecA codecB = addTypeHintC "Either" do
   dimap toVariant fromVariant
     $ variantPrim altAccumulate
-    $ variantCase _left (Right $ addCtorHintC "Left" $ codecA)
-        >>> variantCase _right (Right $ addCtorHintC "Right" $ codecB)
+    $ variantCase _left (Tuple (addCtorHintC "Left") $ Right codecA)
+        >>> variantCase _right (Tuple (addCtorHintC "Right") $ Right codecB)
   where
   _left = Proxy :: Proxy "Left"
   _right = Proxy :: Proxy "Right"
@@ -527,10 +527,10 @@ these :: forall e extra a b. JsonCodec e extra a -> JsonCodec e extra b -> JsonC
 these codecA codecB = addTypeHintC "These" do
   dimap toVariant fromVariant
     $ variantPrim altAccumulate
-    $ variantCase _this (Right $ addCtorHintC "This" $ codecA)
-        >>> variantCase _that (Right $ addCtorHintC "That" $ codecB)
+    $ variantCase _this (Tuple (addCtorHintC "This") $ Right codecA)
+        >>> variantCase _that (Tuple (addCtorHintC "That") $ Right codecB)
         >>> variantCase _both
-          ( Right $ addCtorHintC "Both" $ record
+          ( Tuple (addCtorHintC "Both") $ Right $ record
               { this: addSubtermHintC 0 codecA
               , that: addSubtermHintC 1 codecB
               }
@@ -661,12 +661,12 @@ instance variantJsonCodecNil :: VariantJsonCodec e extra RL.Nil () () where
   variantJsonCodec _ = \buildTailCodec errorAccumulator -> buildTailCodec errorAccumulator
 
 instance variantJsonCodecCons ::
-  ( Row.Cons sym (Either a (JsonCodec e extra a)) codecRows' codecRows
+  ( Row.Cons sym (Tuple (JsonCodec' e extra (Object Json) (Variant out) -> JsonCodec' e extra (Object Json) (Variant out)) (Either a (JsonCodec e extra a))) codecRows' codecRows
   , VariantJsonCodec e extra tail codecRows' out'
   , Row.Cons sym a out' out
   , IsSymbol sym
   ) =>
-  VariantJsonCodec e extra (RL.Cons sym (Either a (JsonCodec e extra a)) tail) codecRows out where
+  VariantJsonCodec e extra (RL.Cons sym (Tuple (JsonCodec' e extra (Object Json) (Variant out) -> JsonCodec' e extra (Object Json) (Variant out)) (Either a (JsonCodec e extra a))) tail) codecRows out where
   variantJsonCodec (RlRecord r) =
     (variantJsonCodec (RlRecord $ unsafeForget r :: RlRecord e extra tail codecRows'))
       >>> variantCase _sym (Record.get _sym r)

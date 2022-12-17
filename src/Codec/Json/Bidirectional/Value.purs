@@ -1,6 +1,6 @@
 -- | Codecs in this module follow a naming convention:
 -- | - the `j` prefix indicates a primitive JSON codec
--- |    (e.g. `null`, `number`, `boolean`, `string``, `array`, and `object`)
+-- |    (e.g. `null`, `number`, `boolean`, `string`, `array`, and `object`)
 -- | - the type's name is used to refer to the codec for that type except in two cases:
 -- |    - when the name clashes with a commonly used function/value, the `Codec` suffix is added:
 -- |        - `identity` for `Identity` becomes `identityCodec`
@@ -282,7 +282,7 @@ record codecs = recordPrim (requiredProps codecs)
 -- |   >>> optionalProp (Proxy :: _ "optionalFieldName1") (pje $ string)
 -- |   >>> requiredProp (Proxy :: _ "requiredFieldName2") (pje $ array int)
 -- | ```
-recordPrim :: forall e extra a. (JPropCodec e extra {} -> JPropCodec e extra a) -> JsonCodec e extra a
+recordPrim :: forall e extra rows. (JPropCodec e extra {} -> JPropCodec e extra (Record rows)) -> JsonCodec e extra (Record rows)
 recordPrim buildRecordCodec = addTypeHintC "Record" do
   jobject >~> codec'
     (decoder propCodec)

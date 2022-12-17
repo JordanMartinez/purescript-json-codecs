@@ -20,6 +20,7 @@ import Prelude
 
 import Codec.Json.Newtypes (K0(..), K1(..), K2(..), K3(..), Optional)
 import Codec.Json.Unidirectional.Encode.Value (encodeArray, encodeBoolean, encodeChar, encodeCodePoint, encodeEither, encodeIdentity, encodeInt, encodeJNull, encodeJObject, encodeList, encodeMap, encodeMaybeTagged, encodeNonEmpty, encodeNonEmptyArray, encodeNonEmptyList, encodeNonEmptySet, encodeNonEmptyString, encodeNullable, encodeNumber, encodeObject, encodeSet, encodeString, encodeThese, encodeTuple, encodeUnitToNull, encodeVoid)
+import Control.Monad.ST as ST
 import Data.Argonaut.Core (Json)
 import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Either (Either)
@@ -40,10 +41,15 @@ import Data.String.NonEmpty.Internal (NonEmptyString)
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.These (These)
 import Data.Tuple (Tuple(..))
+import Data.Variant (Variant)
+import Data.Variant as V
 import Foreign.Object (Object)
 import Foreign.Object as Object
+import Foreign.Object.ST as FOST
+import Foreign.Object.ST.Unsafe as FOSTU
 import Prim.Coerce (class Coercible)
 import Prim.Row as Row
+import Prim.RowList as RL
 import Prim.RowList as RowList
 import Prim.RowList as RowToList
 import Record as Record
@@ -276,6 +282,15 @@ instance
   encodeJsonFn = mkFn2 \extra input ->
     encodeJObject $ runFn2 encodeRecordInput (RowListRecord input :: RowListRecord rl { | rows }) extra
 
+instance
+  ( RowToList.RowToList rows rl
+  , EncodeVariantInput extra rl rows
+  ) =>
+  EncodeJson extra (Variant rows) where
+  encodeJsonFn = mkFn2 \extra v -> do
+    let (VFn2Builder fn) = encodeVariantInput :: VFn2Builder extra rl rows
+    encodeJObject $ runFn2 fn extra v
+
 instance EncodeJson extra NoArguments where
   encodeJsonFn = mkFn2 \_ _ -> encodeJNull
 
@@ -354,3 +369,37 @@ else instance
       value :: a
       value = Record.get _sym input
     Object.insert keyStr (runFn2 encodeJsonFn extra value) $ runFn2 encodeRecordInput (RowListRecord tail :: RowListRecord tailList { | tailRows }) extra
+
+newtype VFn2Builder :: Type -> RL.RowList Type -> Row Type -> Type
+newtype VFn2Builder extra rl out =
+  VFn2Builder (Fn2 extra (Variant out) (Object Json))
+
+class EncodeVariantInput :: Type -> RL.RowList Type -> Row Type -> Constraint
+class EncodeVariantInput extra rl out | extra rl -> out where
+  encodeVariantInput :: VFn2Builder extra rl out
+
+instance encodeVariantInputNil :: EncodeVariantInput extra RL.Nil () where
+  encodeVariantInput = VFn2Builder $ mkFn2 \_ x -> V.case_ x
+
+instance encodeVariantInputCons ::
+  ( EncodeVariantInput extra tail out'
+  , Row.Cons sym a out' out
+  , IsSymbol sym
+  , EncodeJson extra a
+  ) =>
+  EncodeVariantInput extra (RL.Cons sym a tail) out where
+  encodeVariantInput = VFn2Builder $ mkFn2 \extra v ->
+    V.on _sym
+      ( \v' -> ST.run do
+          obj <- FOST.new
+          _ <- FOST.poke "tag" (runFn2 encodeJsonFn extra (reflectSymbol _sym)) obj
+          _ <- FOST.poke "value" (runFn2 encodeJsonFn extra v') obj
+          FOSTU.unsafeFreeze obj
+      )
+      ( \v' -> do
+          let (VFn2Builder fn) = encodeVariantInput :: VFn2Builder extra tail out'
+          runFn2 fn extra v'
+      )
+      v
+    where
+    _sym = Proxy :: Proxy sym

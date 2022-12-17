@@ -1,3 +1,6 @@
+-- | Defines the handlers and other utilities for when you want
+-- | to inspect each error produced by the decoder.
+-- | This is as similar to `JsonDecodeError` as one can get.
 module Codec.Json.Errors.PrimitiveJsonError where
 
 import Prelude

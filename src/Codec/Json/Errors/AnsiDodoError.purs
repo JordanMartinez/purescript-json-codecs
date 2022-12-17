@@ -1,3 +1,5 @@
+-- | Defines the handlers and other utilities for when you want
+-- | a `Doc`-based error with colors.
 module Codec.Json.Errors.AnsiDodoError where
 
 import Prelude
@@ -15,6 +17,26 @@ import Dodo (Doc, twoSpaces)
 import Dodo as D
 import Dodo.Ansi (Color(..), GraphicsParam, ansiGraphics, foreground)
 
+-- | Defines what color to use with each part of the error message.
+-- | Given an error message below, the number below each character
+-- | indicates the color used for that text when rendering an
+-- | `AnsiDodoError` using `handlersAde'`.:
+-- | ```
+-- | while decoding the type, Type, at path: ROOT.foo
+-- | 444444444444444444444444455554444444444466666666
+-- |
+-- |   received empty string at path: ROOT.foo
+-- |   111111111111111111111222222222233333333
+-- | 
+-- | Colors in parenthesis after label indicate the color
+-- | found in `defaultAnsiDodoErrorColors`.
+-- | 1 = errorMessage (BrightRed)
+-- | 2 = errorText (White)
+-- | 3 = errorPath (BrightCyan)
+-- | 4 = hintText (White)
+-- | 5 = hintType/hintCtor/hintSubterm/hintField (Yellow)
+-- | 6 = hintPath (Cyan)
+-- | ````
 type AnsiDodoErrorColors =
   { errorMessage :: Ansi.Color
   , errorText :: Ansi.Color
@@ -27,6 +49,7 @@ type AnsiDodoErrorColors =
   , hintPath :: Ansi.Color
   }
 
+-- | See `AnsiDodoErrorColors`' docs
 defaultAnsiDodoErrorColors :: AnsiDodoErrorColors
 defaultAnsiDodoErrorColors =
   { errorMessage: BrightRed

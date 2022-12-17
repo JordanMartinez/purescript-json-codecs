@@ -1,3 +1,5 @@
+-- | Defines the handlers and other utilities for when you do not want
+-- | any error when a JSON decoder fails.
 module Codec.Json.Errors.NoError where
 
 import Prelude

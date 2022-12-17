@@ -1,3 +1,5 @@
+-- | Defines the handlers and other utilities for when you want
+-- | a `Doc`-based error without colors.
 module Codec.Json.Errors.PlainDodoError where
 
 import Prelude

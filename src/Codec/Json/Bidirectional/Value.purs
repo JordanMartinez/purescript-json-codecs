@@ -550,9 +550,13 @@ these codecA codecB = addTypeHintC "These" do
     , "Both": \{ this, that } -> Both this that
     }
 
+-- | Slightly simpler version of `nonEmpty'`. Rather than writing,
+-- | `nonEmpty' int (array int)`, one can use this function and just write
+-- | `nonEmpty int array`.
 nonEmpty :: forall e extra f a. JsonCodec e extra a -> (JsonCodec e extra a -> JsonCodec e extra (f a)) -> JsonCodec e extra (NonEmpty f a)
 nonEmpty codecA codecF = nonEmpty' codecA (codecF codecA)
 
+-- | Slightly more verbose version of `nonEmpty`.
 nonEmpty' :: forall e extra f a. JsonCodec e extra a -> JsonCodec e extra (f a) -> JsonCodec e extra (NonEmpty f a)
 nonEmpty' codecA codecFA = addTypeHintC "NonEmpty" do
   dimap to from $

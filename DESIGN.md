@@ -219,7 +219,7 @@ This gives us the following type:
 ```diff
 -ReaderT
 - { pathSoFar :: Array JsonOffset
-- , appendFn :: e -> e -> e
+- , appendFn :: err -> err -> err
 - , handlers :: JsonErrorHandlers err
 - , extra :: extra
 - , json :: Json 
@@ -227,7 +227,7 @@ This gives us the following type:
 - (V err) a
 +Fn5
 + (Array JsonOffset)
-+ (Fn2 e e e)
++ (Fn2 err err err)
 + (JsonErrorHandlers err)         
 + extra
 + Json 
@@ -236,7 +236,7 @@ This gives us the following type:
 
 Simplifying the `Fn5`, we get:
 ```purs
-Fn5 (Array JsonOffset) (Fn2 e e e) (JsonErrorHandlers err) extra Json (V err a)
+Fn5 (Array JsonOffset) (Fn2 err err err) (JsonErrorHandlers err) extra Json (V err a)
 ```
 
 which is the type for `DecoderFn`:

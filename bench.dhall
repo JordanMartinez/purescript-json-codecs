@@ -1,12 +1,15 @@
 { name = "my-project"
 , dependencies =
   [ "argonaut-codecs"
+  , "argonaut-core"
   , "arrays"
   , "benchotron"
   , "codec"
   , "codec-argonaut"
   , "effect"
   , "foldable-traversable"
+  , "foreign"
+  , "foreign-readwrite"
   , "formatters"
   , "functions"
   , "json-codecs"
@@ -17,12 +20,14 @@
   , "now"
   , "prelude"
   , "quickcheck"
+  , "unsafe-coerce"
   ]
 , packages =
     ./packages.dhall
   with benchotron =
     { dependencies =
       [ "ansi"
+      , "argonaut-core"
       , "arrays"
       , "codec"
       , "datetime"
@@ -30,6 +35,8 @@
       , "exceptions"
       , "exists"
       , "foldable-traversable"
+      , "foreign"
+      , "foreign-readwrite"
       , "functions"
       , "identity"
       , "integers"
@@ -51,6 +58,7 @@
       , "transformers"
       , "tuples"
       , "unfoldable"
+      , "unsafe-coerce"
       ]
     , repo = "https://github.com/JordanMartinez/purescript-benchotron.git"
     , version = "ad76b5e1282cb9d7aaaca3d146c5014ae962cb6e"

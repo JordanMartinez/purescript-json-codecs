@@ -9,13 +9,17 @@ import Codec.Json.Bidirectional.Class as BiC
 import Codec.Json.Bidirectional.Value as BiV
 import Codec.Json.Unidirectional.Encode.Class as UniCE
 import Codec.Json.Unidirectional.Encode.Value as UniV
+import Data.Argonaut.Core (Json)
 import Data.Argonaut.Encode as AE
 import Data.Array as Array
 import Data.Codec as CC
 import Data.Codec.Argonaut as CA
 import Data.Function.Uncurried (runFn2)
+import Foreign (Foreign)
+import Foreign.ReadWrite as FRW
 import Test.QuickCheck.Arbitrary (arbitrary)
 import Test.QuickCheck.Gen (Gen, vectorOf)
+import Unsafe.Coerce (unsafeCoerce)
 
 benchmark :: BenchProps -> Benchmark
 benchmark props = mkBenchmark
@@ -28,6 +32,7 @@ benchmark props = mkBenchmark
   , functions:
       [ benchFn "encode (argonaut-codec)"
           AE.encodeJson
+      , benchFn "encode (foreign-readwrite)" frwEncode
       , benchFn "encode (json-codecs - uni - value)" $
           UniV.encodeArray UniV.encodeInt
       , benchFn "encode (json-codecs - uni - class)"
@@ -41,3 +46,6 @@ benchmark props = mkBenchmark
           \a -> runFn2 (Codec.encoder BiC.codecJson) unit a
       ]
   }
+
+frwEncode ∷ Array Int → Json
+frwEncode = (unsafeCoerce :: (Array Int -> Foreign) -> (_ -> Json)) FRW.writeForeign

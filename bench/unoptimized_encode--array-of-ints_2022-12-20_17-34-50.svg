@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="500"><defs><style type="text/css">
+/* https://www.vis4.net/palettes/#/9|d|00429d,96ffea|ffffe0,ff005e,93003a|1|1 */
+:root {
+  --data-series-0: #00429d;
+  --data-series-1: #416db1;
+  --data-series-2: #629cc4;
+  --data-series-3: #7dccd7;
+  --data-series-4: #96ffea;
+  --data-series-5: #ffbcaf;
+  --data-series-6: #f4777f;
+  --data-series-7: #cf3759;
+  --data-series-8: #93003a;
+}
+
+.background {
+  fill: white;
+}
+
+text {
+  font-size: 14px;
+  font-family: sans-serif;
+}
+
+.axis-path,
+.axis-line {
+  fill: none;
+  stroke: #000;
+  stroke-width: 1px;
+  shape-rendering: crispEdges;
+}
+
+.line {
+  fill: none;
+  stroke-width: 1.5px;
+}
+
+.data-series-0 {
+  stroke: var(--data-series-0);
+  fill: var(--data-series-0);
+}
+
+.data-series-1 {
+  stroke: var(--data-series-1);
+  fill: var(--data-series-1);
+}
+
+.data-series-2 {
+  stroke: var(--data-series-2);
+  fill: var(--data-series-2);
+}
+
+.data-series-3 {
+  stroke: var(--data-series-3);
+  fill: var(--data-series-3);
+}
+
+.data-series-4 {
+  stroke: var(--data-series-4);
+  fill: var(--data-series-4);
+}
+
+.data-series-5 {
+  stroke: var(--data-series-5);
+  fill: var(--data-series-5);
+}
+
+.data-series-6 {
+  stroke: var(--data-series-6);
+  fill: var(--data-series-6);
+}
+
+.data-series-7 {
+  stroke: var(--data-series-7);
+  fill: var(--data-series-7);
+}
+
+.data-series-8 {
+  stroke: var(--data-series-8);
+  fill: var(--data-series-8);
+}
+
+.data-series-9 {
+  stroke: var(--data-series-9);
+  fill: var(--data-series-9);
+}
+
+.error-bar {
+  fill: none;
+}
+</style></defs><rect width="960" height="500" class="background"/><g transform="translate(80,40)"><g transform="translate(420, 0)"><text style="text-anchor: middle; font-size: 28px;">Encoding an array of ints (unoptimized)</text></g><g class="x axis" transform="translate(0,400)"><g class="tick" style="opacity: 1;" transform="translate(0,0)"><line y2="6" x2="0" class="axis-line"/><text dy=".71em" style="text-anchor: middle;" y="9" x="0">1,000</text></g><g class="tick" style="opacity: 1;" transform="translate(105,0)"><line y2="6" x2="0" class="axis-line"/><text dy=".71em" style="text-anchor: middle;" y="9" x="0">1,500</text></g><g class="tick" style="opacity: 1;" transform="translate(210,0)"><line y2="6" x2="0" class="axis-line"/><text dy=".71em" style="text-anchor: middle;" y="9" x="0">2,000</text></g><g class="tick" style="opacity: 1;" transform="translate(315,0)"><line y2="6" x2="0" class="axis-line"/><text dy=".71em" style="text-anchor: middle;" y="9" x="0">2,500</text></g><g class="tick" style="opacity: 1;" transform="translate(420,0)"><line y2="6" x2="0" class="axis-line"/><text dy=".71em" style="text-anchor: middle;" y="9" x="0">3,000</text></g><g class="tick" style="opacity: 1;" transform="translate(525,0)"><line y2="6" x2="0" class="axis-line"/><text dy=".71em" style="text-anchor: middle;" y="9" x="0">3,500</text></g><g class="tick" style="opacity: 1;" transform="translate(630,0)"><line y2="6" x2="0" class="axis-line"/><text dy=".71em" style="text-anchor: middle;" y="9" x="0">4,000</text></g><g class="tick" style="opacity: 1;" transform="translate(735,0)"><line y2="6" x2="0" class="axis-line"/><text dy=".71em" style="text-anchor: middle;" y="9" x="0">4,500</text></g><g class="tick" style="opacity: 1;" transform="translate(840,0)"><line y2="6" x2="0" class="axis-line"/><text dy=".71em" style="text-anchor: middle;" y="9" x="0">5,000</text></g><path class="axis-path" d="M0,6V0H840V6"/><text x="420" y="40" style="text-anchor: middle;">Number of elements in the array</text></g><g class="y axis"><g class="tick" style="opacity: 1;" transform="translate(0,371.77009286728594)"><line x2="-6" y2="0" class="axis-line"/><text dy=".32em" style="text-anchor: end;" x="-9" y="0">2.00e-5</text></g><g class="tick" style="opacity: 1;" transform="translate(0,340.59876056436957)"><line x2="-6" y2="0" class="axis-line"/><text dy=".32em" style="text-anchor: end;" x="-9" y="0">4.00e-5</text></g><g class="tick" style="opacity: 1;" transform="translate(0,309.4274282614532)"><line x2="-6" y2="0" class="axis-line"/><text dy=".32em" style="text-anchor: end;" x="-9" y="0">6.00e-5</text></g><g class="tick" style="opacity: 1;" transform="translate(0,278.2560959585368)"><line x2="-6" y2="0" class="axis-line"/><text dy=".32em" style="text-anchor: end;" x="-9" y="0">8.00e-5</text></g><g class="tick" style="opacity: 1;" transform="translate(0,247.0847636556204)"><line x2="-6" y2="0" class="axis-line"/><text dy=".32em" style="text-anchor: end;" x="-9" y="0">1.00e-4</text></g><g class="tick" style="opacity: 1;" transform="translate(0,215.91343135270407)"><line x2="-6" y2="0" class="axis-line"/><text dy=".32em" style="text-anchor: end;" x="-9" y="0">1.20e-4</text></g><g class="tick" style="opacity: 1;" transform="translate(0,184.74209904978773)"><line x2="-6" y2="0" class="axis-line"/><text dy=".32em" style="text-anchor: end;" x="-9" y="0">1.40e-4</text></g><g class="tick" style="opacity: 1;" transform="translate(0,153.5707667468713)"><line x2="-6" y2="0" class="axis-line"/><text dy=".32em" style="text-anchor: end;" x="-9" y="0">1.60e-4</text></g><g class="tick" style="opacity: 1;" transform="translate(0,122.39943444395492)"><line x2="-6" y2="0" class="axis-line"/><text dy=".32em" style="text-anchor: end;" x="-9" y="0">1.80e-4</text></g><g class="tick" style="opacity: 1;" transform="translate(0,91.22810214103856)"><line x2="-6" y2="0" class="axis-line"/><text dy=".32em" style="text-anchor: end;" x="-9" y="0">2.00e-4</text></g><g class="tick" style="opacity: 1;" transform="translate(0,60.05676983812221)"><line x2="-6" y2="0" class="axis-line"/><text dy=".32em" style="text-anchor: end;" x="-9" y="0">2.20e-4</text></g><g class="tick" style="opacity: 1;" transform="translate(0,28.885437535205803)"><line x2="-6" y2="0" class="axis-line"/><text dy=".32em" style="text-anchor: end;" x="-9" y="0">2.40e-4</text></g><path class="axis-path" d="M-6,0H0V400H-6"/><text transform="rotate(-90)" y="6" dy=".71em" style="text-anchor: end;">Mean running time (seconds)</text></g><g class="data-series-0"><circle cx="0" cy="399.55528428181333" r="3"/><circle cx="210" cy="396.02256065665546" r="3"/><circle cx="420" cy="393.48890402783917" r="3"/><circle cx="630" cy="390.3533253035096" r="3"/><circle cx="840" cy="387.2603114261735" r="3"/><path class="error-bar" x="0" y="399.55528428181333" d="M 0 399.55528428181333 V 399.47004341854677 h -3 h 6 h -3 V 399.6405251450799 h -3 h 6"/><path class="error-bar" x="210" y="396.02256065665546" d="M 210 396.02256065665546 V 391.9824536848404 h -3 h 6 h -3 V 400.0626676284706 h -3 h 6"/><path class="error-bar" x="420" y="393.48890402783917" d="M 420 393.48890402783917 V 393.2260014822334 h -3 h 6 h -3 V 393.7518065734449 h -3 h 6"/><path class="error-bar" x="630" y="390.3533253035096" d="M 630 390.3533253035096 V 390.0599268438551 h -3 h 6 h -3 V 390.64672376316423 h -3 h 6"/><path class="error-bar" x="840" y="387.2603114261735" d="M 840 387.2603114261735 V 387.11746453419573 h -3 h 6 h -3 V 387.4031583181512 h -3 h 6"/><path class="line" d="M0,399.55528428181333L210,396.02256065665546L420,393.48890402783917L630,390.3533253035096L840,387.2603114261735"/></g><g class="data-series-1"><circle cx="0" cy="400" r="3"/><circle cx="210" cy="396.6262220959826" r="3"/><circle cx="420" cy="393.5276053180541" r="3"/><circle cx="630" cy="390.3763844379109" r="3"/><circle cx="840" cy="387.24621336988224" r="3"/><path class="error-bar" x="0" y="400" d="M 0 400 V 399.9389931732267 h -3 h 6 h -3 V 400.0610068267733 h -3 h 6"/><path class="error-bar" x="210" y="396.6262220959826" d="M 210 396.6262220959826 V 396.4409292524602 h -3 h 6 h -3 V 396.811514939505 h -3 h 6"/><path class="error-bar" x="420" y="393.5276053180541" d="M 420 393.5276053180541 V 393.3967336072711 h -3 h 6 h -3 V 393.6584770288371 h -3 h 6"/><path class="error-bar" x="630" y="390.3763844379109" d="M 630 390.3763844379109 V 390.2176612933236 h -3 h 6 h -3 V 390.53510758249826 h -3 h 6"/><path class="error-bar" x="840" y="387.24621336988224" d="M 840 387.24621336988224 V 386.97983048956166 h -3 h 6 h -3 V 387.5125962502028 h -3 h 6"/><path class="line" d="M0,400L210,396.6262220959826L420,393.5276053180541L630,390.3763844379109L840,387.24621336988224"/></g><g class="data-series-2"><circle cx="0" cy="399.5092908188172" r="3"/><circle cx="210" cy="396.68944796524823" r="3"/><circle cx="420" cy="393.525397690378" r="3"/><circle cx="630" cy="390.3073595612477" r="3"/><circle cx="840" cy="387.1727074574222" r="3"/><path class="error-bar" x="0" y="399.5092908188172" d="M 0 399.5092908188172 V 396.9281112378206 h -3 h 6 h -3 V 402.09047039981385 h -3 h 6"/><path class="error-bar" x="210" y="396.68944796524823" d="M 210 396.68944796524823 V 396.6047343596698 h -3 h 6 h -3 V 396.77416157082666 h -3 h 6"/><path class="error-bar" x="420" y="393.525397690378" d="M 420 393.525397690378 V 393.43346410986146 h -3 h 6 h -3 V 393.6173312708946 h -3 h 6"/><path class="error-bar" x="630" y="390.3073595612477" d="M 630 390.3073595612477 V 389.920446775267 h -3 h 6 h -3 V 390.69427234722843 h -3 h 6"/><path class="error-bar" x="840" y="387.1727074574222" d="M 840 387.1727074574222 V 386.74613047670834 h -3 h 6 h -3 V 387.59928443813607 h -3 h 6"/><path class="line" d="M0,399.5092908188172L210,396.68944796524823L420,393.525397690378L630,390.3073595612477L840,387.1727074574222"/></g><g class="data-series-3"><circle cx="0" cy="367.1460795120986" r="3"/><circle cx="210" cy="332.03295846129237" r="3"/><circle cx="420" cy="299.34740883874315" r="3"/><circle cx="630" cy="259.85251123281546" r="3"/><circle cx="840" cy="225.14859341155108" r="3"/><path class="error-bar" x="0" y="367.1460795120986" d="M 0 367.1460795120986 V 366.7549646368082 h -3 h 6 h -3 V 367.537194387389 h -3 h 6"/><path class="error-bar" x="210" y="332.03295846129237" d="M 210 332.03295846129237 V 328.37856058123504 h -3 h 6 h -3 V 335.68735634134975 h -3 h 6"/><path class="error-bar" x="420" y="299.34740883874315" d="M 420 299.34740883874315 V 297.06466347905103 h -3 h 6 h -3 V 301.63015419843526 h -3 h 6"/><path class="error-bar" x="630" y="259.85251123281546" d="M 630 259.85251123281546 V 256.46126193690515 h -3 h 6 h -3 V 263.2437605287257 h -3 h 6"/><path class="error-bar" x="840" y="225.14859341155108" d="M 840 225.14859341155108 V 223.67896627082092 h -3 h 6 h -3 V 226.61822055228134 h -3 h 6"/><path class="line" d="M0,367.1460795120986L210,332.03295846129237L420,299.34740883874315L630,259.85251123281546L840,225.14859341155108"/></g><g class="data-series-4"><circle cx="0" cy="364.262002332827" r="3"/><circle cx="210" cy="325.7749513882509" r="3"/><circle cx="420" cy="287.86065334953133" r="3"/><circle cx="630" cy="247.85794069367464" r="3"/><circle cx="840" cy="208.30509142817954" r="3"/><path class="error-bar" x="0" y="364.262002332827" d="M 0 364.262002332827 V 363.3662309430636 h -3 h 6 h -3 V 365.1577737225904 h -3 h 6"/><path class="error-bar" x="210" y="325.7749513882509" d="M 210 325.7749513882509 V 323.3869021849 h -3 h 6 h -3 V 328.16300059160176 h -3 h 6"/><path class="error-bar" x="420" y="287.86065334953133" d="M 420 287.86065334953133 V 286.78034557368113 h -3 h 6 h -3 V 288.9409611253816 h -3 h 6"/><path class="error-bar" x="630" y="247.85794069367464" d="M 630 247.85794069367464 V 243.54038688795728 h -3 h 6 h -3 V 252.17549449939202 h -3 h 6"/><path class="error-bar" x="840" y="208.30509142817954" d="M 840 208.30509142817954 V 202.36809859373608 h -3 h 6 h -3 V 214.24208426262305 h -3 h 6"/><path class="line" d="M0,364.262002332827L210,325.7749513882509L420,287.86065334953133L630,247.85794069367464L840,208.30509142817954"/></g><g class="data-series-5"><circle cx="0" cy="320.23032408280255" r="3"/><circle cx="210" cy="231.41960030743638" r="3"/><circle cx="420" cy="157.6859675629884" r="3"/><circle cx="630" cy="78.76070193205504" r="3"/><circle cx="840" cy="0" r="3"/><path class="error-bar" x="0" y="320.23032408280255" d="M 0 320.23032408280255 V 315.58835837976477 h -3 h 6 h -3 V 324.8722897858403 h -3 h 6"/><path class="error-bar" x="210" y="231.41960030743638" d="M 210 231.41960030743638 V 214.91803868254982 h -3 h 6 h -3 V 247.92116193232295 h -3 h 6"/><path class="error-bar" x="420" y="157.6859675629884" d="M 420 157.6859675629884 V 148.82697635172772 h -3 h 6 h -3 V 166.5449587742491 h -3 h 6"/><path class="error-bar" x="630" y="78.76070193205504" d="M 630 78.76070193205504 V 65.22040576570501 h -3 h 6 h -3 V 92.30099809840509 h -3 h 6"/><path class="error-bar" x="840" y="0" d="M 840 0 V -9.050338465867647 h -3 h 6 h -3 V 9.050338465867602 h -3 h 6"/><path class="line" d="M0,320.23032408280255L210,231.41960030743638L420,157.6859675629884L630,78.76070193205504L840,0"/></g><g class="data-series-6"><circle cx="0" cy="321.68714740811646" r="3"/><circle cx="210" cy="240.52425724819528" r="3"/><circle cx="420" cy="156.8230823321089" r="3"/><circle cx="630" cy="77.92336203355967" r="3"/><circle cx="840" cy="2.6051711223603835" r="3"/><path class="error-bar" x="0" y="321.68714740811646" d="M 0 321.68714740811646 V 318.909394144518 h -3 h 6 h -3 V 324.4649006717149 h -3 h 6"/><path class="error-bar" x="210" y="240.52425724819528" d="M 210 240.52425724819528 V 231.8894078084511 h -3 h 6 h -3 V 249.1591066879394 h -3 h 6"/><path class="error-bar" x="420" y="156.8230823321089" d="M 420 156.8230823321089 V 146.57111241877794 h -3 h 6 h -3 V 167.07505224543988 h -3 h 6"/><path class="error-bar" x="630" y="77.92336203355967" d="M 630 77.92336203355967 V 64.14522981901047 h -3 h 6 h -3 V 91.70149424810883 h -3 h 6"/><path class="error-bar" x="840" y="2.6051711223603835" d="M 840 2.6051711223603835 V -0.7676339204828686 h -3 h 6 h -3 V 5.977976165203636 h -3 h 6"/><path class="line" d="M0,321.68714740811646L210,240.52425724819528L420,156.8230823321089L630,77.92336203355967L840,2.6051711223603835"/></g><g class="legend" transform="translate(50, 50)"><rect x="0" y="0" width="15" height="15" class="data-series-0"/><rect x="0" y="20" width="15" height="15" class="data-series-1"/><rect x="0" y="40" width="15" height="15" class="data-series-2"/><rect x="0" y="60" width="15" height="15" class="data-series-3"/><rect x="0" y="80" width="15" height="15" class="data-series-4"/><rect x="0" y="100" width="15" height="15" class="data-series-5"/><rect x="0" y="120" width="15" height="15" class="data-series-6"/><text x="24" y="13">encode (argonaut-codec)</text><text x="24" y="33">encode (foreign-readwrite)</text><text x="24" y="53">encode (json-codecs - uni - value)</text><text x="24" y="73">encode (json-codecs - uni - class)</text><text x="24" y="93">encode (codec-argonaut)</text><text x="24" y="113">encode (json-codecs - bidi - value)</text><text x="24" y="133">encode (json-codecs - bidi - class)</text></g></g></svg>

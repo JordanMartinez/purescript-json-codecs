@@ -9,3 +9,4 @@
 /.psa*
 /.spago
 .vscode
+/output-es/

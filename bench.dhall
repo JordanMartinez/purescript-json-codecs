@@ -1,4 +1,4 @@
-{ name = "my-project"
+{ name = "json-codecs-benchmarks"
 , dependencies =
   [ "argonaut-codecs"
   , "argonaut-core"

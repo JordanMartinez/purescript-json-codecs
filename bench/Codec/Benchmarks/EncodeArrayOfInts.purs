@@ -41,43 +41,43 @@ benchmark props = mkBenchmark
   }
 
 argonaut :: BenchmarkFunction (Array Int)
-argonaut = benchFnTagged "encode (argonaut-codec)"
+argonaut = benchFnTagged "argonaut-codec"
   (tags [ "unidirectional", "top3" ])
   AE.encodeJson
 
 foreignReadWrite ∷ BenchmarkFunction (Array Int)
 foreignReadWrite =
-  benchFnTagged "encode (foreign-readwrite)"
+  benchFnTagged "foreign-readwrite"
     (tags [ "unidirectional", "top3" ])
     $ (unsafeCoerce :: (Array Int -> Foreign) -> (_ -> Json)) FRW.writeForeign
 
 jsonCodecsUniValue :: BenchmarkFunction (Array Int)
 jsonCodecsUniValue =
-  benchFnTagged "encode (json-codecs - uni - value)"
+  benchFnTagged "json-codecs - uni - value"
     (tags [ "unidirectional", "top3" ])
     $ UniV.encodeArray UniV.encodeInt
 
 jsonCodecsUniClass :: BenchmarkFunction (Array Int)
 jsonCodecsUniClass =
-  benchFnTagged "encode (json-codecs - uni - class)"
+  benchFnTagged "json-codecs - uni - class"
     (tags [ "unidirectional" ])
     $ UniCE.encodeJson
 
 codecArgonaut :: BenchmarkFunction (Array Int)
 codecArgonaut =
-  benchFnTagged "encode (codec-argonaut)"
+  benchFnTagged "codec-argonaut"
     (tags [ "bidirectional", "bidirectional-value" ])
     $ CC.encode
     $ CA.array CA.int
 
 jsonCodecsBiValue :: BenchmarkFunction (Array Int)
 jsonCodecsBiValue =
-  benchFnTagged "encode (json-codecs - bidi - value)"
+  benchFnTagged "json-codecs - bidi - value"
     (tags [ "bidirectional", "bidirectional-value" ])
     $ \a -> runFn2 (Codec.encoder $ BiV.array BiV.int) unit a
 
 jsonCodecsBiClass :: BenchmarkFunction (Array Int)
 jsonCodecsBiClass =
-  benchFnTagged "encode (json-codecs - bidi - class)"
+  benchFnTagged "json-codecs - bidi - class"
     (tags [ "bidirectional" ])
     $ \a -> runFn2 (Codec.encoder BiC.codecJson) unit a

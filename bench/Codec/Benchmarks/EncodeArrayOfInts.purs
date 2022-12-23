@@ -37,6 +37,7 @@ benchmark props = mkBenchmark
       , codecArgonaut
       , jsonCodecsBiValue
       , jsonCodecsBiClass
+      , baseline
       ]
   }
 
@@ -81,3 +82,8 @@ jsonCodecsBiClass =
   benchFnTagged "json-codecs - bidi - class"
     (tags [ "bidirectional" ])
     $ \a -> runFn2 (Codec.encoder BiC.codecJson) unit a
+
+baseline :: BenchmarkFunction (Array Int)
+baseline = benchFnTagged "unsafeCoerce"
+  (tags [ "unidirectional", "top3", "bidirectional", "bidirectional-value" ])
+  unsafeCoerce

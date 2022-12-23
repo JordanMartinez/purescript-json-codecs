@@ -48,6 +48,10 @@ jobs:
         run: |
           spago test
 
+      - name: Build the benchmarks
+        run: |
+          spago -x bench.dhall build
+
       - name: Check Formatting
         run: |
-          purs-tidy check src test
+          purs-tidy check src test bench

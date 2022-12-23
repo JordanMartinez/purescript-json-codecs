@@ -5,8 +5,8 @@
     "microtime": "^3.1.1"
   },
   "scripts": {
-    "bench": "spago -x bench.dhall run",
-    "bench-optimized": "spago -x bench-optimized.dhall build && OPTIMIZED=1 ./bench-optimized.mjs",
-    "bench-all": "npm run bench && npm run bench-optimized"
+    "bench-unoptimized": "spago -x bench.dhall run",
+    "bench-optimized": "purs-backend-es --version && spago -x bench-optimized.dhall build && OPTIMIZED=1 ./bench-optimized.mjs",
+    "bench": "npm run bench-unoptimized && npm run bench-optimized"
   }
 }

@@ -1,11 +1,14 @@
 { name = "json-codecs-benchmarks"
 , dependencies =
-  [ "argonaut-codecs"
+  [ "ansi"
+  , "argonaut-codecs"
   , "argonaut-core"
   , "arrays"
   , "benchotron"
   , "codec"
   , "codec-argonaut"
+  , "control"
+  , "dodo-printer"
   , "effect"
   , "foldable-traversable"
   , "foreign"
@@ -21,8 +24,6 @@
   , "quickcheck"
   , "unsafe-coerce"
   ]
-, packages =
-    ./packages.dhall
-  with json-codecs = ./spago.dhall as Location
+, packages = ./packages.dhall with json-codecs = ./spago.dhall as Location
 , sources = [ "bench/**/*.purs" ]
 }

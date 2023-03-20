@@ -166,7 +166,7 @@ barDecoder =
       , optionalB: adeD decodeString
       }
 
-barEncoder :: Jsonencoder (Doc GraphicsParam) _
+barEncoder :: JsonEncoder (Doc GraphicsParam) _
 barEncoder =
   encodeRecordPrim $ buildRecordencoder $
     encodeRequiredProps

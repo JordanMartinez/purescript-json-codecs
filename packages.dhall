@@ -38,18 +38,3 @@ in  upstream
     , repo = "https://github.com/JordanMartinez/purescript-benchotron.git"
     , version = "0c5342db5caf4608e4c0eb199ec2de3cb95b7d4e"
     }
-  with json =
-    { dependencies =
-        [ "prelude"
-        , "functions"
-        , "maybe"
-        , "either"
-        , "tuples"
-        , "foldable-traversable"
-        , "gen"
-        , "strings"
-        , "unfoldable"
-        ]
-    , repo = "https://github.com/purescript/purescript-json.git"
-    , version = "c9e053d0aad6882cf870e14766d7fbbfd15f0d8a"
-    }

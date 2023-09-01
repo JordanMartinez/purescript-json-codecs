@@ -14,7 +14,6 @@
   , "identity"
   , "integers"
   , "invariant"
-  , "json"
   , "lists"
   , "maybe"
   , "newtype"

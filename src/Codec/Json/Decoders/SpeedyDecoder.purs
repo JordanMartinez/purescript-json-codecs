@@ -72,3 +72,6 @@ instance IsJsonDecoder SpeedyDecoder where
   altAccumulateLazy l r j = case l j of
     x@(SpeedyDecoder (Just _)) -> x
     _ -> r j
+
+runSpeedyDecoder :: forall a. SpeedyDecoder a -> Maybe a
+runSpeedyDecoder (SpeedyDecoder a) = a

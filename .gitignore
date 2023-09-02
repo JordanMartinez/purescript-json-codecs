@@ -10,3 +10,5 @@
 /.spago
 .vscode
 /output-es/
+/snapshots/output/
+/snapshots/output-es/

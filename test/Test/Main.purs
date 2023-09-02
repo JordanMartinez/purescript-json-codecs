@@ -9,8 +9,8 @@ import Data.Traversable (sequence_)
 import Dodo as D
 import Effect (Effect)
 import Effect.Class.Console as Console
-import Test.Codec.Json.Unidirectional.Value as Value
 import Test.Codec.Json.Decoders.SpeedyDecoder as SpeedyDecoder
+import Test.Codec.Json.Unidirectional.Value as Value
 
 main :: Effect Unit
 main = 

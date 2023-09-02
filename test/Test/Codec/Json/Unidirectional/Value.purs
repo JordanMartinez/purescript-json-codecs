@@ -3,8 +3,8 @@ module Test.Codec.Json.Unidirectional.Value where
 import Prelude
 
 import Codec.Json.IsJsonDecoder (class IsJsonDecoder)
-import Codec.Json.Unidirectional.Decode.Value (decodeArray, decodeBoolean, decodeInt, decodeNumber, decodeObject, decodeString, toRecord, toRequired)
-import Codec.Json.Unidirectional.Encode.Value (encodeBoolean, encodeArray, encodeInt, encodeNumber, encodeObject, encodeRecord, encodeString, encodeUnitToNull)
+import Codec.Json.Unidirectional.Decode.Value (toArray, toBoolean, toInt, toNumber, toObject, toString, toRecord, toRequired)
+import Codec.Json.Unidirectional.Encode.Value (fromArray, fromBoolean, fromInt, fromNumber, fromObject, fromRecord, fromRequired, fromString, fromUnitToNull)
 import Data.Argonaut.Core (Json)
 import Data.Array as Array
 import Data.Tuple (Tuple(..))
@@ -15,10 +15,10 @@ import Foreign.Object as Object
 runOutput :: forall @f. IsJsonDecoder f => (forall a. Show a => f a -> String) -> Effect Unit
 runOutput printResult = do
   log "\n### PrimitiveJsonError Output:"
-  runDecoder @f "Decode Int to Int" exampleInt printResult decodeInt
-  runDecoder @f "Decode Int to String" exampleString printResult decodeInt
-  runDecoder @f "Decode Record to Int" exampleRec printResult decodeInt
-  runDecoder @f "Decode Record incorrectly" exampleRec printResult decodeRecIncorrectly
+  runDecoder @f "Decode Int to Int" exampleInt printResult toInt
+  runDecoder @f "Decode Int to String" exampleString printResult toInt
+  runDecoder @f "Decode Record to Int" exampleRec printResult toInt
+  runDecoder @f "Decode Record incorrectly" exampleRec printResult toRecIncorrectly
   log "==="
 
 runDecoder
@@ -28,44 +28,44 @@ runDecoder
   -> (f a -> String)
   -> (Json -> f a)
   -> Effect Unit
-runDecoder msg example printer decoder =
+runDecoder msg example printer tor =
   log
     $ append ("\n" <> msg <> ":\n")
     $ printer
-    $ decoder example
+    $ tor example
 
-decodeRecIncorrectly :: forall @f. IsJsonDecoder f => Json -> f _
-decodeRecIncorrectly =
+toRecIncorrectly :: forall @f. IsJsonDecoder f => Json -> f _
+toRecIncorrectly =
   toRecord
-    { boolean: toRequired @f decodeString
-    , number: toRequired @f decodeBoolean
-    , string: toRequired @f decodeNumber
-    , int: toRequired @f decodeString
-    , object: toRequired @f decodeInt
-    , array: toRequired @f $ decodeObject decodeString
-    , record: toRequired @f $ decodeArray decodeInt
+    { boolean: toRequired @f toString
+    , number: toRequired @f toBoolean
+    , string: toRequired @f toNumber
+    , int: toRequired @f toString
+    , object: toRequired @f toInt
+    , array: toRequired @f $ toObject toString
+    , record: toRequired @f $ toArray toInt
     }
 
 exampleInt :: Json
-exampleInt = encodeInt 1
+exampleInt = fromInt 1
 
 exampleString :: Json
-exampleString = encodeString "foo"
+exampleString = fromString "foo"
 
 exampleRec :: Json
 exampleRec =
-  encodeRecord encoder value
+  fromRecord fromr value
   where
-  encoder =
-    { boolean: encodeBoolean
-    , number: encodeNumber
-    , string: encodeString
-    , int: encodeInt
-    , object: encodeObject encodeString
-    , array: encodeArray encodeInt
-    , record: encodeRecord
-        { foo: encodeString
-        , bar: encodeUnitToNull
+  fromr =
+    { boolean: fromRequired fromBoolean
+    , number: fromRequired fromNumber
+    , string: fromRequired fromString
+    , int: fromRequired fromInt
+    , object: fromRequired $ fromObject fromString
+    , array: fromRequired $ fromArray fromInt
+    , record: fromRequired $ fromRecord
+        { foo: fromRequired fromString
+        , bar: fromRequired fromUnitToNull
         }
     }
   value =

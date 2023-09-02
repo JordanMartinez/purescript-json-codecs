@@ -20,7 +20,7 @@ class Monad f <= IsJsonDecoder f where
   addTypeHint :: forall a. String -> f a -> f a
   addCtorHint :: forall a. String -> f a -> f a
   addSubtermHint :: forall a. Int -> f a -> f a
-  addFieldHint :: forall a. Int -> f a -> f a
+  addFieldHint :: forall a. String -> f a -> f a
   altAccumulate :: forall a. f a -> f a -> f a
   altAccumulateLazy :: forall j a. (j -> f a) -> (j -> f a) -> j -> f a
 
@@ -41,7 +41,7 @@ withCtorHint arg f j = addCtorHint arg $ f j
 withSubtermHint :: forall f a. IsJsonDecoder f => Int -> (Json -> f a) -> Json -> f a
 withSubtermHint arg f j = addSubtermHint arg $ f j
 
-withFieldHint :: forall f a. IsJsonDecoder f => Int -> (Json -> f a) -> Json -> f a
+withFieldHint :: forall f a. IsJsonDecoder f => String -> (Json -> f a) -> Json -> f a
 withFieldHint arg f j = addFieldHint arg $ f j
 
 withAttempts :: forall f a j b. IsJsonDecoder f => NonEmptyArray a -> (a -> j -> f b) -> j -> f b

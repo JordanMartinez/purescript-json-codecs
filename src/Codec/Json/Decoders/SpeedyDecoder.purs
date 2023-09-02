@@ -62,7 +62,7 @@ instance IsJsonDecoder SpeedyDecoder where
   addSubtermHint :: forall a. Int -> SpeedyDecoder a -> SpeedyDecoder a
   addSubtermHint _ = identity
 
-  addFieldHint :: forall a. Int -> SpeedyDecoder a -> SpeedyDecoder a
+  addFieldHint :: forall a. String -> SpeedyDecoder a -> SpeedyDecoder a
   addFieldHint _ = identity
 
   altAccumulate :: forall a. SpeedyDecoder a -> SpeedyDecoder a -> SpeedyDecoder a

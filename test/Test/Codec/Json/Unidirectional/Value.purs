@@ -3,7 +3,7 @@ module Test.Codec.Json.Unidirectional.Value where
 import Prelude
 
 import Codec.Json.IsJsonDecoder (class IsJsonDecoder)
-import Codec.Json.Unidirectional.Value (toArray, toBoolean, toInt, toNumber, toObject, toString, toRecord, toRequired, fromArray, fromBoolean, fromInt, fromNumber, fromObject, fromRecord, fromRequired, fromString, fromUnitToNull)
+import Codec.Json.Unidirectional.Value (toArray, toBoolean, toInt, toNumber, toObject, toString, toRecord, toRequired, fromArray, fromBoolean, fromInt, fromNumber, fromObject, fromRecord, fromRequired, fromString, fromUnit)
 import Data.Argonaut.Core (Json)
 import Data.Array as Array
 import Data.Tuple (Tuple(..))
@@ -64,7 +64,7 @@ exampleRec =
     , array: fromRequired $ fromArray fromInt
     , record: fromRequired $ fromRecord
         { foo: fromRequired fromString
-        , bar: fromRequired fromUnitToNull
+        , bar: fromRequired fromUnit
         }
     }
   value =

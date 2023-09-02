@@ -10,6 +10,7 @@ import Dodo as D
 import Effect (Effect)
 import Effect.Class.Console as Console
 import Test.Codec.Json.Unidirectional.Value as Value
+import Test.Codec.Json.Decoders.SpeedyDecoder as SpeedyDecoder
 
 main :: Effect Unit
 main = 
@@ -17,4 +18,6 @@ main =
     [ Value.runOutput @SpeedyDecoder (runSpeedyDecoder >>> show)
     , Console.log "\n\n"
     , Value.runOutput @PlainPrettyDecoder (runPlainPrettyDecoder >>> either (D.print D.plainText D.twoSpaces) show)
+    , Console.log "\n\n"
+    , SpeedyDecoder.runTest
     ]

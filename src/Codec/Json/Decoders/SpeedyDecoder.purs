@@ -6,6 +6,7 @@ import Prelude
 
 import Codec.Json.IsJsonDecoder (class IsJsonDecoder)
 import Control.Alt ((<|>))
+import Data.Argonaut.Core (Json)
 import Data.Foldable (class Foldable)
 import Data.Function.Uncurried (Fn2, mkFn2)
 import Data.Generic.Rep (class Generic)
@@ -75,3 +76,8 @@ instance IsJsonDecoder SpeedyDecoder where
 
 runSpeedyDecoder :: forall a. SpeedyDecoder a -> Maybe a
 runSpeedyDecoder (SpeedyDecoder a) = a
+
+decodeWithErr :: forall @f a. IsJsonDecoder f => (forall @g. IsJsonDecoder g => Json -> g a) -> Json -> f a
+decodeWithErr fn j = case runSpeedyDecoder $ fn @SpeedyDecoder j of
+  Just a -> pure a
+  Nothing -> fn @f j

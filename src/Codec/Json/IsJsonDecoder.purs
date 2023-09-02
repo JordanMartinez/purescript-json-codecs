@@ -24,8 +24,6 @@ class Monad f <= IsJsonDecoder f where
   altAccumulate :: forall a. f a -> f a -> f a
   altAccumulateLazy :: forall j a. (j -> f a) -> (j -> f a) -> j -> f a
 
--- altLast :: forall a. f a -> (Unit -> f a) -> f a
-
 withKey :: forall f a. IsJsonDecoder f => String -> (Json -> f a) -> Json -> f a
 withKey arg f j = atKey arg $ f j
 

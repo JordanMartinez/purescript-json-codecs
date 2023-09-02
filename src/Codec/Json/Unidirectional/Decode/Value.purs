@@ -555,9 +555,9 @@ instance
       Left a' ->
         pure a'
       Right decs -> do
-        j # withAttempts decs \(Tuple keyRename tor) j' -> do
+        j # withAttempts decs \(Tuple keyRename decoder) j' -> do
           let key = fromMaybe lbl keyRename
-          tor key (Object.lookup key j')
+          decoder key (Object.lookup key j')
     pure $ Record.insert _lbl a rec
     where
     lbl = reflectType _lbl

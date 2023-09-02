@@ -3,8 +3,7 @@ module Test.Codec.Json.Unidirectional.Value where
 import Prelude
 
 import Codec.Json.IsJsonDecoder (class IsJsonDecoder)
-import Codec.Json.Unidirectional.Decode.Value (toArray, toBoolean, toInt, toNumber, toObject, toString, toRecord, toRequired)
-import Codec.Json.Unidirectional.Encode.Value (fromArray, fromBoolean, fromInt, fromNumber, fromObject, fromRecord, fromRequired, fromString, fromUnitToNull)
+import Codec.Json.Unidirectional.Value (toArray, toBoolean, toInt, toNumber, toObject, toString, toRecord, toRequired, fromArray, fromBoolean, fromInt, fromNumber, fromObject, fromRecord, fromRequired, fromString, fromUnitToNull)
 import Data.Argonaut.Core (Json)
 import Data.Array as Array
 import Data.Tuple (Tuple(..))

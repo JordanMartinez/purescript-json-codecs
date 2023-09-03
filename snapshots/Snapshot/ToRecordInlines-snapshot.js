@@ -1,3 +1,4 @@
+// @inline export Snapshot.ToRecordInlines.decoder arity=1
 import * as $runtime from "../runtime.js";
 import * as Codec$dJson$dDecoders$dSpeedyDecoder from "../Codec.Json.Decoders.SpeedyDecoder/index.js";
 import * as Codec$dJson$dUnidirectional$dValue from "../Codec.Json.Unidirectional.Value/index.js";
@@ -20,14 +21,11 @@ const otherIsSymbol = {reflectSymbol: () => "other"};
 const Reflectable$Dict6 = {reflectType: () => "other"};
 const fooIsSymbol = {reflectSymbol: () => "foo"};
 const Reflectable$Dict7 = {reflectType: () => "foo"};
-const Foo = x => x;
-const newtypeFoo_ = {Coercible0: () => {}};
 const decoder = dictIsJsonDecoder => {
-  const toRecordObjConsToRecordCo = Codec$dJson$dUnidirectional$dValue.toRecordObjConsToRecordCo({toRecordObj: v => v1 => v2 => dictIsJsonDecoder.Monad0().Applicative0().pure({})});
+  const toRecordObjCons = Codec$dJson$dUnidirectional$dValue.toRecordObjCons({toRecordObj: v => v1 => v2 => dictIsJsonDecoder.Monad0().Applicative0().pure({})});
   const toString = Codec$dJson$dUnidirectional$dValue.toString(dictIsJsonDecoder);
   const toBoolean = Codec$dJson$dUnidirectional$dValue.toBoolean(dictIsJsonDecoder);
-  const $0 = dictIsJsonDecoder.Monad0().Bind1().Apply0().Functor0().map(Foo);
-  const $1 = Codec$dJson$dUnidirectional$dValue.toRecord()(Codec$dJson$dUnidirectional$dValue.toRecordObjConsToRecordCo(Codec$dJson$dUnidirectional$dValue.toRecordObjConsToRecordCo(Codec$dJson$dUnidirectional$dValue.toRecordObjConsToRecordCo(Codec$dJson$dUnidirectional$dValue.toRecordObjConsToRecordCo(Codec$dJson$dUnidirectional$dValue.toRecordObjConsToRecordCo(toRecordObjConsToRecordCo(reqRenIsSymbol)(Reflectable$Dict)(dictIsJsonDecoder)()()())(reqIsSymbol)(Reflectable$Dict1)(dictIsJsonDecoder)()()())(optRenIsSymbol)(Reflectable$Dict2)(dictIsJsonDecoder)()()())(optArrIsSymbol)(Reflectable$Dict3)(dictIsJsonDecoder)()()())(optIsSymbol)(Reflectable$Dict4)(dictIsJsonDecoder)()()())(nestedIsSymbol)(Reflectable$Dict5)(dictIsJsonDecoder)()()())(dictIsJsonDecoder)({
+  return Codec$dJson$dUnidirectional$dValue.toRecord()(Codec$dJson$dUnidirectional$dValue.toRecordObjCons(Codec$dJson$dUnidirectional$dValue.toRecordObjCons(Codec$dJson$dUnidirectional$dValue.toRecordObjCons(Codec$dJson$dUnidirectional$dValue.toRecordObjCons(Codec$dJson$dUnidirectional$dValue.toRecordObjCons(toRecordObjCons(reqRenIsSymbol)(Reflectable$Dict)(dictIsJsonDecoder)()()())(reqIsSymbol)(Reflectable$Dict1)(dictIsJsonDecoder)()()())(optRenIsSymbol)(Reflectable$Dict2)(dictIsJsonDecoder)()()())(optArrIsSymbol)(Reflectable$Dict3)(dictIsJsonDecoder)()()())(optIsSymbol)(Reflectable$Dict4)(dictIsJsonDecoder)()()())(nestedIsSymbol)(Reflectable$Dict5)(dictIsJsonDecoder)()()())(dictIsJsonDecoder)({
     req: Codec$dJson$dUnidirectional$dValue.toRequired(dictIsJsonDecoder)(Codec$dJson$dUnidirectional$dValue.toInt(dictIsJsonDecoder)),
     reqRen: Data$dEither.$Either(
       "Right",
@@ -45,16 +43,15 @@ const decoder = dictIsJsonDecoder => {
     opt: Codec$dJson$dUnidirectional$dValue.toOption(dictIsJsonDecoder)(toString),
     optRen: Codec$dJson$dUnidirectional$dValue.toOptionRename(dictIsJsonDecoder)("otherName2")(toString),
     optArr: Codec$dJson$dUnidirectional$dValue.toOptionArray(dictIsJsonDecoder)(toString),
-    nested: Codec$dJson$dUnidirectional$dValue.toRequired(dictIsJsonDecoder)(Codec$dJson$dUnidirectional$dValue.toRecord()(Codec$dJson$dUnidirectional$dValue.toRecordObjConsToRecordCo(toRecordObjConsToRecordCo(otherIsSymbol)(Reflectable$Dict6)(dictIsJsonDecoder)()()())(fooIsSymbol)(Reflectable$Dict7)(dictIsJsonDecoder)()()())(dictIsJsonDecoder)({
+    nested: Codec$dJson$dUnidirectional$dValue.toRequired(dictIsJsonDecoder)(Codec$dJson$dUnidirectional$dValue.toRecord()(Codec$dJson$dUnidirectional$dValue.toRecordObjCons(toRecordObjCons(otherIsSymbol)(Reflectable$Dict6)(dictIsJsonDecoder)()()())(fooIsSymbol)(Reflectable$Dict7)(dictIsJsonDecoder)()()())(dictIsJsonDecoder)({
       other: Codec$dJson$dUnidirectional$dValue.toRequired(dictIsJsonDecoder)(toBoolean),
       foo: Codec$dJson$dUnidirectional$dValue.toOption(dictIsJsonDecoder)(toBoolean)
     }))
   });
-  return x => $0($1(x));
 };
-const test = /* #__PURE__ */ decoder(Codec$dJson$dDecoders$dSpeedyDecoder.isJsonDecoderSpeedyDecode);
+const decoder1 = /* #__PURE__ */ decoder(Codec$dJson$dDecoders$dSpeedyDecoder.isJsonDecoderSpeedyDecoder);
+const test = j => decoder1(j);
 export {
-  Foo,
   Reflectable$Dict,
   Reflectable$Dict1,
   Reflectable$Dict2,
@@ -64,9 +61,9 @@ export {
   Reflectable$Dict6,
   Reflectable$Dict7,
   decoder,
+  decoder1,
   fooIsSymbol,
   nestedIsSymbol,
-  newtypeFoo_,
   optArrIsSymbol,
   optIsSymbol,
   optRenIsSymbol,

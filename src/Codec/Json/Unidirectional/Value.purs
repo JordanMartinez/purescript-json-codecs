@@ -1,3 +1,58 @@
+-- @inline export Codec.Json.Unidirectional.Value.toVoid arity=1
+-- @inline export Codec.Json.Unidirectional.Value.refine arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toJNull arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toNullDefaultOrA arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toNullNothingOrJust arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toNullable arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toBoolean arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toNumber arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toInt arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toString arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toChar arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toCodePoint arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toNonEmptyString arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toJArray arity=1
+-- @inline export Codec.Json.Unidirectional.Value.underIndex' arity=1
+-- @inline export Codec.Json.Unidirectional.Value.underIndex arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toArray arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toArray2 arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toArray3 arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toArray4 arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toArray5 arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toNonEmptyArray arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toJObject arity=1
+-- @inline export Codec.Json.Unidirectional.Value.underKey arity=1
+-- @inline export Codec.Json.Unidirectional.Value.underKey' arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toObject arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toObjSingleton arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toIdentity arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toMaybeTagged arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toEither arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toTuple arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toThese arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toNonEmpty arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toList arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toNonEmptyList arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toMap arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toSet arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toNonEmptySet arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toEither arity=1
+-- @inline export Codec.Json.Unidirectional.Value.fromRecord arity=2
+-- @inline export Codec.Json.Unidirectional.Value.toRecord arity=3
+-- @inline export Codec.Json.Unidirectional.Value.fromRecordN arity=3
+-- @inline export Codec.Json.Unidirectional.Value.toRecordN arity=4
+-- @inline export Codec.Json.Unidirectional.Value.toStatic arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toRequired arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toRequiredRename arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toOption arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toOptionRename arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toOptionDefault arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toOptionDefaultRename arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toOptionArray arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toOptionAssocArray arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toRecordObjNil(..).toRecordObj arity=1
+-- @inline export Codec.Json.Unidirectional.Value.toRecordObjCons(..).toRecordObj arity=7
+-- @inline export Codec.Json.Unidirectional.Value.fromRecordObjCons(..).fromRecordObj arity=5
 module Codec.Json.Unidirectional.Value
   ( refine
   , coerce1
@@ -782,10 +837,10 @@ class ToRecordObj :: (Type -> Type) -> RowList Type -> Type -> Type -> Constrain
 class ToRecordObj f codecsRL codecs values | codecsRL -> codecs values where
   toRecordObj :: Proxy codecsRL -> codecs -> Object Json -> f values
 
-instance (IsJsonDecoder f) => ToRecordObj f RL.Nil {} {} where
+instance toRecordObjNil :: (IsJsonDecoder f) => ToRecordObj f RL.Nil {} {} where
   toRecordObj _ _ _ = pure {}
 
-instance
+instance toRecordObjCons ::
   ( ToRecordObj f codecTail { | cRest } { | vRest }
   , IsSymbol sym
   , Reflectable sym String
@@ -826,10 +881,10 @@ class FromRecordObj :: RowList Type -> Type -> Type -> Constraint
 class FromRecordObj codecsRL codecs values | codecsRL -> codecs values where
   fromRecordObj :: Proxy codecsRL -> codecs -> values -> Object Json
 
-instance FromRecordObj RL.Nil {} {} where
+instance fromRecordObjNil :: FromRecordObj RL.Nil {} {} where
   fromRecordObj _ _ _ = Object.empty
 
-instance
+instance fromRecordObjCons :: 
   ( FromRecordObj codecTail { | cRest } { | vRest }
   , IsSymbol sym
   , Reflectable sym String

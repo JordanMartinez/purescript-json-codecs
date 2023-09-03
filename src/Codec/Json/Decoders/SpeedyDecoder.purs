@@ -1,5 +1,24 @@
 -- | Defines the handlers and other utilities for when you do not want
 -- | any error when a JSON decoder fails.
+-- @inline export Codec.Json.Decoders.SpeedyDecoder.functorSpeedyDecoder(..).map always
+-- @inline export Codec.Json.Decoders.SpeedyDecoder.applySpeedyDecoder(..).apply always
+-- @inline export Codec.Json.Decoders.SpeedyDecoder.applicativeSpeedyDecoder(..).pure always
+-- @inline export Codec.Json.Decoders.SpeedyDecoder.bindSpeedyDecoder(..).bind always
+-- @inline export Codec.Json.Decoders.SpeedyDecoder.isJsonDecoderSpeedyDecoder(..).onUnrefinable always
+-- @inline export Codec.Json.Decoders.SpeedyDecoder.isJsonDecoderSpeedyDecoder(..).onTypeMismatch always
+-- @inline export Codec.Json.Decoders.SpeedyDecoder.isJsonDecoderSpeedyDecoder(..).onMissingField always
+-- @inline export Codec.Json.Decoders.SpeedyDecoder.isJsonDecoderSpeedyDecoder(..).onMissingIndex always
+-- @inline export Codec.Json.Decoders.SpeedyDecoder.isJsonDecoderSpeedyDecoder(..).onStructureError always
+-- @inline export Codec.Json.Decoders.SpeedyDecoder.isJsonDecoderSpeedyDecoder(..).atKey always
+-- @inline export Codec.Json.Decoders.SpeedyDecoder.isJsonDecoderSpeedyDecoder(..).atIndex always
+-- @inline export Codec.Json.Decoders.SpeedyDecoder.isJsonDecoderSpeedyDecoder(..).addTypeHint always
+-- @inline export Codec.Json.Decoders.SpeedyDecoder.isJsonDecoderSpeedyDecoder(..).addCtorHint always
+-- @inline export Codec.Json.Decoders.SpeedyDecoder.isJsonDecoderSpeedyDecoder(..).addSubtermHint always
+-- @inline export Codec.Json.Decoders.SpeedyDecoder.isJsonDecoderSpeedyDecoder(..).addFieldint always
+-- @inline export Codec.Json.Decoders.SpeedyDecoder.isJsonDecoderSpeedyDecoder(..).altAccumulate always
+-- @inline export Codec.Json.Decoders.SpeedyDecoder.isJsonDecoderSpeedyDecoder(..).altAccumulateLazy always
+-- @inline export Codec.Json.Decoders.SpeedyDecoder.runSpeedyDecoder always
+-- @inline export Codec.Json.Decoders.SpeedyDecoder.decodeWithErr always
 module Codec.Json.Decoders.SpeedyDecoder where
 
 import Prelude
@@ -24,15 +43,15 @@ derive instance Generic (SpeedyDecoder a) _
 instance Show a => Show (SpeedyDecoder a) where
   show x = genericShow x
 
-derive newtype instance Functor SpeedyDecoder
-derive newtype instance Apply SpeedyDecoder
-derive newtype instance Applicative SpeedyDecoder
-derive newtype instance Bind SpeedyDecoder
-derive newtype instance Monad SpeedyDecoder
-derive instance Foldable SpeedyDecoder
-derive instance Traversable SpeedyDecoder
+derive newtype instance functorSpeedyDecoder :: Functor SpeedyDecoder
+derive newtype instance applySpeedyDecoder :: Apply SpeedyDecoder
+derive newtype instance applicativeSpeedyDecoder :: Applicative SpeedyDecoder
+derive newtype instance bindSpeedyDecoder :: Bind SpeedyDecoder
+derive newtype instance monadSpeedyDecoder :: Monad SpeedyDecoder
+derive instance foldableSpeedyDecoder :: Foldable SpeedyDecoder
+derive instance traversableSpeedyDecoder :: Traversable SpeedyDecoder
 
-instance IsJsonDecoder SpeedyDecoder where
+instance isJsonDecoderSpeedyDecoder :: IsJsonDecoder SpeedyDecoder where
   onUnrefinableValue :: forall a. String -> SpeedyDecoder a
   onUnrefinableValue _ = SpeedyDecoder Nothing
 

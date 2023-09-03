@@ -1,3 +1,4 @@
+-- @inline export Snapshot.ToRecordInlines.decoder arity=1
 module Snapshot.ToRecordInlines where
 
 import Prelude
@@ -7,9 +8,8 @@ import Codec.Json.IsJsonDecoder (class IsJsonDecoder)
 import Codec.Json.Unidirectional.Value (toBoolean, toInt, toOption, toOptionArray, toOptionRename, toRecord, toRequired, toRequiredRename, toString)
 import Data.Argonaut.Core (Json)
 import Data.Maybe (Maybe)
-import Data.Newtype (class Newtype)
 
-newtype Foo = Foo
+type Foo =
   { req :: Int
   , reqRen :: String
   , opt :: Maybe String
@@ -20,10 +20,9 @@ newtype Foo = Foo
       , foo :: Maybe Boolean
       }
   }
-derive instance Newtype Foo _
 
 decoder :: forall @f. IsJsonDecoder f => Json -> f Foo
-decoder = map Foo <<< toRecord @f
+decoder = toRecord @f
   { req: toRequired @f toInt
   , reqRen: toRequiredRename @f "otherName" toString
   , opt: toOption @f toString
@@ -36,4 +35,4 @@ decoder = map Foo <<< toRecord @f
   }
 
 test :: Json -> Maybe Foo
-test = runSpeedyDecoder <<< decoder @SpeedyDecoder
+test j = runSpeedyDecoder $ decoder @SpeedyDecoder j

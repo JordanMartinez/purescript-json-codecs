@@ -1,3 +1,10 @@
+-- @inline export Codec.Json.IsJsonDecoder.withKey arity=1
+-- @inline export Codec.Json.IsJsonDecoder.withIndex arity=1
+-- @inline export Codec.Json.IsJsonDecoder.withTypeHint arity=1
+-- @inline export Codec.Json.IsJsonDecoder.withCtorHint arity=1
+-- @inline export Codec.Json.IsJsonDecoder.withSubtermHint arity=1
+-- @inline export Codec.Json.IsJsonDecoder.withFieldHint arity=1
+-- @inline export Codec.Json.IsJsonDecoder.withAttempts arity=1
 module Codec.Json.IsJsonDecoder where
 
 import Prelude

@@ -1,5 +1,7 @@
 # Design
 
+`Json` encoding is relatively straight-forward, so we'll just encode things to `Json` and `stringify` from there.
+
 ## Primitive
 
 At the end of the day, `Json` decoding is a function of `Json -> Maybe a` where either the decoder failed, `Nothing`, or succeeded, `Just a`.
@@ -62,7 +64,7 @@ A structured error could then represent its full error as `Tuple JsonPath e` whe
 
 ## Write once, debug as needed
 
-General idea
-1. write a codec once
-1. run the codec using an error like `Maybe` above to prioritize speed
-1. upon failure run the codec using a different one with an information-rich error
+When Json decoding succeeds, any overhead from the possible error message is pointless. But when it does fail, then having clear errors would be nice. Ideally, we could write out decoders once and only pay for the overhead when the failure happens. Since decoding happens within a Monad, and we want to swap in the implementation depending on the situation we're in, we need to use a type class. In this library, `IsJsonDecoder f` describes some monadic type `f` that can be used to produce a pretty-printed error message or ignore such things and just be a wrapper over `Maybe`. This then allows the following workflow:
+1. write a decoder once
+1. run the codec using an error type like `Maybe` above to prioritize speed
+1. upon failure run the decoder again using an information-rich error

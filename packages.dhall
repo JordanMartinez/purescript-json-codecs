@@ -1,6 +1,6 @@
 let upstream =
-      https://github.com/purescript/package-sets/releases/download/psc-0.15.10-20230826/packages.dhall
-        sha256:9ea8909f5f1219bd716b15f04b4d360cacfb32da9d5ae37a550a01c343b9eb10
+      https://github.com/purescript/package-sets/releases/download/psc-0.15.10-20230903/packages.dhall
+        sha256:92eae152a01cd49a0d1ec82dd487700870f50f6f5676ea59694ff9decc54648d
 
 in  upstream
   with benchotron =

@@ -1,9 +1,13 @@
-{ name = "json-codecs"
-, dependencies =
+let soureConfig = ./spago.dhall
+in 
+{ name = "json-codecs-test"
+, dependencies = soureConfig.dependencies #
   [ "argonaut-core"
   , "arrays"
+  , "console"
   , "control"
   , "dodo-printer"
+  , "effect"
   , "either"
   , "foldable-traversable"
   , "foreign-object"
@@ -26,5 +30,5 @@
   , "unsafe-coerce"
   ]
 , packages = ./packages.dhall
-, sources = [ "src/**/*.purs" ]
+, sources = [ "test/**/*.purs" ] # soureConfig.sources
 }

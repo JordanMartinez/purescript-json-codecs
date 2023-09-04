@@ -1,6 +1,6 @@
 let upstream =
-      https://github.com/purescript/package-sets/releases/download/psc-0.15.10-20230903/packages.dhall
-        sha256:92eae152a01cd49a0d1ec82dd487700870f50f6f5676ea59694ff9decc54648d
+      https://github.com/purescript/package-sets/releases/download/psc-0.15.10-20230820/packages.dhall
+        sha256:f002e9182da135bb48f3f1937830c57a66a422e21fc03fa0922755e8b444de66
 
 in  upstream
   with benchotron =
@@ -37,4 +37,37 @@ in  upstream
       ]
     , repo = "https://github.com/JordanMartinez/purescript-benchotron.git"
     , version = "0c5342db5caf4608e4c0eb199ec2de3cb95b7d4e"
+    }
+  with dodo-printer =
+    { repo = "https://github.com/natefaubion/purescript-dodo-printer.git"
+    , version = "v2.2.1"
+    , dependencies =
+      [ "aff"
+      , "ansi"
+      , "arrays"
+      , "avar"
+      , "console"
+      , "control"
+      , "effect"
+      , "either"
+      , "exceptions"
+      , "foldable-traversable"
+      , "integers"
+      , "lists"
+      , "maybe"
+      , "minibench"
+      , "newtype"
+      , "node-buffer"
+      , "node-child-process"
+      , "node-fs-aff"
+      , "node-path"
+      , "node-process"
+      , "node-streams"
+      , "parallel"
+      , "partial"
+      , "posix-types"
+      , "prelude"
+      , "safe-coerce"
+      , "strings"
+      ]
     }

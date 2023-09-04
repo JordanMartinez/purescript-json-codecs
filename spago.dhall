@@ -1,9 +1,7 @@
-{ name = "my-project"
+{ name = "json-codecs"
 , dependencies =
-  [ "ansi"
-  , "argonaut-core"
+  [ "argonaut-core"
   , "arrays"
-  , "bifunctors"
   , "console"
   , "control"
   , "dodo-printer"
@@ -14,7 +12,6 @@
   , "functions"
   , "identity"
   , "integers"
-  , "invariant"
   , "lists"
   , "maybe"
   , "newtype"
@@ -23,17 +20,12 @@
   , "ordered-collections"
   , "partial"
   , "prelude"
-  , "profunctor"
   , "record"
   , "safe-coerce"
-  , "st"
   , "strings"
   , "these"
   , "tuples"
-  , "uncurried-transformers"
   , "unsafe-coerce"
-  , "validation"
-  , "variant"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]

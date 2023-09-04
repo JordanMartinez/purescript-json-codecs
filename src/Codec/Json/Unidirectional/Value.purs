@@ -704,7 +704,6 @@ toNonEmptySet toA = withTypeHint "NonEmptySet" $
   toArray toA
     >=> refine (note "Received empty set" <<< NonEmptySet.fromSet <<< Set.fromFoldable)
 
-
 -- | All labels must have a function of type: `FromRecordCodec a`
 fromRecord
   :: forall codecs values codecsRL
@@ -715,7 +714,6 @@ fromRecord
   -> Json
 fromRecord codecs values = Json.fromObject
   $ fromRecordObj (Proxy :: Proxy codecsRL) codecs values
-
 
 -- | All labels must have a function of type: `ToRecordCodec a`
 -- | See `required`, `requiredRename`, `option`, `optionRename`.
@@ -730,7 +728,6 @@ toRecord
 toRecord codecs = toJObject >=>
   toRecordObj (Proxy :: Proxy codecsRL) codecs
 
-
 fromRecordN
   :: forall n codecs values codecsRL
    . RowToList codecs codecsRL
@@ -741,7 +738,6 @@ fromRecordN
   -> n
   -> Json
 fromRecordN _ codecs = unwrap >>> fromRecord codecs
-
 
 -- | Variant of `toRecord` that coerces the `f { | r }` into a `f NewtypedR`
 toRecordN
@@ -884,7 +880,7 @@ class FromRecordObj codecsRL codecs values | codecsRL -> codecs values where
 instance fromRecordObjNil :: FromRecordObj RL.Nil {} {} where
   fromRecordObj _ _ _ = Object.empty
 
-instance fromRecordObjCons :: 
+instance fromRecordObjCons ::
   ( FromRecordObj codecTail { | cRest } { | vRest }
   , IsSymbol sym
   , Reflectable sym String

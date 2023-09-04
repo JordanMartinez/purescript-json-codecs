@@ -24,9 +24,9 @@ runTest = do
 toValue :: forall @f. IsJsonDecoder f => Json -> f { a :: { b :: Array { c :: Map Int String } } }
 toValue = toRecord @f
   { a: toRequired @f $ toRecord
-    { b: toRequired @f $ toArray $ toRecord
-        { c: toRequired @f $ toMap toInt toString }
-    }
+      { b: toRequired @f $ toArray $ toRecord
+          { c: toRequired @f $ toMap toInt toString }
+      }
   }
 
 exampleRec :: Json
@@ -35,17 +35,17 @@ exampleRec =
   where
   fromR =
     { a: fromRequired $ fromRecord
-      { b: fromRequired $ fromArray $ fromRecord
-          { c: fromRequired $ fromMap fromInt fromString }
-      }
+        { b: fromRequired $ fromArray $ fromRecord
+            { c: fromRequired $ fromMap fromInt fromString }
+        }
     }
   value =
-    { a: 
-      { b: 
-          [ { c: Map.singleton 4 "bar" }
-          , { c: Map.singleton 4 "bar" }
-          ]
-      }
+    { a:
+        { b:
+            [ { c: Map.singleton 4 "bar" }
+            , { c: Map.singleton 4 "bar" }
+            ]
+        }
     }
 
 exampleBadRec :: Json
@@ -54,15 +54,15 @@ exampleBadRec =
   where
   fromR =
     { a: fromRequired $ fromRecord
-      { b: fromRequired $ fromArray $ fromRecord
-          { c: fromRequired $ fromMap fromInt fromInt }
-      }
+        { b: fromRequired $ fromArray $ fromRecord
+            { c: fromRequired $ fromMap fromInt fromInt }
+        }
     }
   value =
-    { a: 
-      { b: 
-          [ { c: Map.singleton 4 6 }
-          , { c: Map.singleton 4 6 }
-          ]
-      }
+    { a:
+        { b:
+            [ { c: Map.singleton 4 6 }
+            , { c: Map.singleton 4 6 }
+            ]
+        }
     }

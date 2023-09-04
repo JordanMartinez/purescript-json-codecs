@@ -13,7 +13,7 @@ import Test.Codec.Json.Decoders.SpeedyDecoder as SpeedyDecoder
 import Test.Codec.Json.Unidirectional.Value as Value
 
 main :: Effect Unit
-main = 
+main =
   sequence_
     [ Value.runOutput @SpeedyDecoder (runSpeedyDecoder >>> show)
     , Console.log "\n\n"

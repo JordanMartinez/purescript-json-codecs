@@ -16,12 +16,14 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: purescript-contrib/setup-purescript@main
+      - name: Set up Node toolchain
+        uses: actions/setup-node@v3
         with:
-          purescript: "0.15.10"
-          purs-tidy: "0.10.0"
-          spago: "0.20.9"
-          psa: "0.7.2"
+          node-version: "lts/*"
+
+      - name: Setup PS toolchain
+        run: |
+          npm i -g purescript@0.15.10 spago purescript-psa purs-tidy
 
       - name: Cache PureScript dependencies
         uses: actions/cache@v3
@@ -31,10 +33,6 @@ jobs:
             .spago
             output
 
-      - name: Set up Node toolchain
-        uses: actions/setup-node@v3
-        with:
-          node-version: "lts/*"
 
       # Compile the library/project
       #   censor-lib: ignore warnings emitted by dependencies

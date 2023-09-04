@@ -12,6 +12,9 @@ import Data.Argonaut.Decode as AD
 import Data.Array as Array
 import Data.Codec as CC
 import Data.Codec.Argonaut as CA
+import Data.Traversable (traverse)
+import JSON (JSON)
+import JSON as JSON
 import Test.QuickCheck.Arbitrary (arbitrary)
 import Test.QuickCheck.Gen (Gen, vectorOf)
 import Unsafe.Coerce (unsafeCoerce)
@@ -26,6 +29,7 @@ benchmark props = mkBenchmark
   , gen: \n -> encodeArrayInt $ vectorOf n (arbitrary :: Gen Int)
   , functions:
       [ argonaut
+      , json
       , jsonCodecsUniValueSpeedy
       , jsonCodecsUniValuePlainPretty
       , codecArgonaut
@@ -37,6 +41,7 @@ benchmark props = mkBenchmark
   encodeArrayInt = unsafeCoerce
 
 tagJsonCodecWithArgonautCodec = "json-codec-with-argonaut-codec" :: String
+tagJsonCodecWithJson = "json-codec-with-json" :: String
 tagJsonCodecWithCodecArgonaut = "json-codec-with-codec-argonaut" :: String
 tagJsonCodecWithBaseline = "json-codec-with-baseline" :: String
 
@@ -45,16 +50,21 @@ argonaut = benchFnTagged "argonaut-codec"
   (tags [ tagJsonCodecWithArgonautCodec ])
   (AD.decodeJson :: _ -> _ _ (Array Int))
 
+json :: BenchmarkFunction Json
+json = benchFnTagged "json"
+  (tags [ tagJsonCodecWithJson ])
+  ((unsafeCoerce :: Json -> JSON) >>> JSON.toArray >=> traverse JSON.toInt)
+
 jsonCodecsUniValueSpeedy :: BenchmarkFunction Json
 jsonCodecsUniValueSpeedy =
   benchFnTagged "json-codecs - SpeedyDecoder"
-    (tags [ tagJsonCodecWithArgonautCodec, tagJsonCodecWithCodecArgonaut, tagJsonCodecWithBaseline ])
+    (tags [ tagJsonCodecWithArgonautCodec, tagJsonCodecWithJson, tagJsonCodecWithCodecArgonaut, tagJsonCodecWithBaseline ])
     $ \j -> runSpeedyDecoder $ UniV.toArray UniV.toInt j
 
 jsonCodecsUniValuePlainPretty :: BenchmarkFunction Json
 jsonCodecsUniValuePlainPretty =
   benchFnTagged "json-codecs - PlainPrettyDecoder"
-    (tags [ tagJsonCodecWithArgonautCodec, tagJsonCodecWithCodecArgonaut, tagJsonCodecWithBaseline ])
+    (tags [ tagJsonCodecWithArgonautCodec, tagJsonCodecWithJson, tagJsonCodecWithCodecArgonaut, tagJsonCodecWithBaseline ])
     $ \j -> runPlainPrettyDecoder $ UniV.toArray UniV.toInt j
 
 codecArgonaut :: BenchmarkFunction Json

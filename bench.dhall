@@ -11,6 +11,7 @@
   , "foldable-traversable"
   , "foreign"
   , "foreign-readwrite"
+  , "json"
   , "json-codecs"
   , "maybe"
   , "node-fs"

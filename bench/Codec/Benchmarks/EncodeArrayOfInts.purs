@@ -12,6 +12,7 @@ import Data.Codec as CC
 import Data.Codec.Argonaut as CA
 import Foreign (Foreign)
 import Foreign.ReadWrite as FRW
+import JSON as JSON
 import Test.QuickCheck.Arbitrary (arbitrary)
 import Test.QuickCheck.Gen (Gen, vectorOf)
 import Unsafe.Coerce (unsafeCoerce)
@@ -34,6 +35,7 @@ benchmark props = mkBenchmark
   }
 
 tagJsonCodecWithArgonautCodec = "json-codec-with-argonaut-codec" :: String
+tagJsonCodecWithJson = "json-codec-with-json" :: String
 tagJsonCodecWithForeignReadWrite = "json-codec-with-foreign-readwrite" :: String
 tagJsonCodecWithCodecArgonaut = "json-codec-with-codec-argonaut" :: String
 tagJsonCodecWithBaseline = "json-codec-with-baseline" :: String
@@ -42,6 +44,11 @@ argonaut :: BenchmarkFunction (Array Int)
 argonaut = benchFnTagged "argonaut-codec"
   (tags [ tagJsonCodecWithArgonautCodec ])
   AE.encodeJson
+
+json :: BenchmarkFunction (Array Int)
+json = benchFnTagged "json"
+  (tags [ tagJsonCodecWithJson ])
+  (map JSON.fromInt >>> JSON.fromArray)
 
 foreignReadWrite ∷ BenchmarkFunction (Array Int)
 foreignReadWrite =
@@ -52,7 +59,7 @@ foreignReadWrite =
 jsonCodecsUniValue :: BenchmarkFunction (Array Int)
 jsonCodecsUniValue =
   benchFnTagged "json-codecs - uni - value"
-    (tags [ tagJsonCodecWithArgonautCodec, tagJsonCodecWithForeignReadWrite, tagJsonCodecWithCodecArgonaut, tagJsonCodecWithBaseline ])
+    (tags [ tagJsonCodecWithArgonautCodec, tagJsonCodecWithJson, tagJsonCodecWithForeignReadWrite, tagJsonCodecWithCodecArgonaut, tagJsonCodecWithBaseline ])
     $ UniV.fromArray UniV.fromInt
 
 codecArgonaut :: BenchmarkFunction (Array Int)

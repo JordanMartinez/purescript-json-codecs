@@ -71,3 +71,19 @@ in  upstream
       , "strings"
       ]
     }
+  with json =
+    { dependencies =
+    [ "prelude"
+    , "functions"
+    , "integers"
+    , "maybe"
+    , "either"
+    , "tuples"
+    , "foldable-traversable"
+    , "gen"
+    , "strings"
+    , "unfoldable"
+    ]
+    , repo = "https://github.com/purescript/purescript-json.git"
+    , version = "b06c9d5bddaf4dc11b09b94bc31c379722396648"
+    }

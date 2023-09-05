@@ -1,48 +1,48 @@
--- @inline export Codec.Json.Unidirectional.Value.withIndex arity=1
--- @inline export Codec.Json.Unidirectional.Value.wthKey arity=1
--- @inline export Codec.Json.Unidirectional.Value.withAttempts arity=2
--- @inline export Codec.Json.Unidirectional.Value.altAccumulateLazy arity=2
--- @inline export Codec.Json.Unidirectional.Value.underIndex' arity=1
--- @inline export Codec.Json.Unidirectional.Value.underIndex arity=1
--- @inline export Codec.Json.Unidirectional.Value.underKey arity=1
--- @inline export Codec.Json.Unidirectional.Value.underKey' arity=1
--- @inline export Codec.Json.Unidirectional.Value.toIdentity arity=1
--- @inline export Codec.Json.Unidirectional.Value.toMaybeTagged arity=1
--- @inline export Codec.Json.Unidirectional.Value.toEither arity=1
--- @inline export Codec.Json.Unidirectional.Value.toTuple arity=1
--- @inline export Codec.Json.Unidirectional.Value.toThese arity=1
--- @inline export Codec.Json.Unidirectional.Value.toNonEmpty arity=1
--- @inline export Codec.Json.Unidirectional.Value.toList arity=1
--- @inline export Codec.Json.Unidirectional.Value.toNonEmptyList arity=1
--- @inline export Codec.Json.Unidirectional.Value.toMap arity=1
--- @inline export Codec.Json.Unidirectional.Value.toSet arity=1
--- @inline export Codec.Json.Unidirectional.Value.toNonEmptySet arity=1
--- @inline export Codec.Json.Unidirectional.Value.toEither arity=1
--- @inline export Codec.Json.Unidirectional.Value.fromRecord arity=2
--- @inline export Codec.Json.Unidirectional.Value.toRecord arity=2
--- @inline export Codec.Json.Unidirectional.Value.fromRecordN arity=3
--- @inline export Codec.Json.Unidirectional.Value.toRecordN arity=3
--- @inline export Codec.Json.Unidirectional.Value.toStatic arity=1
--- @inline export Codec.Json.Unidirectional.Value.fromRequired arity=1
--- @inline export Codec.Json.Unidirectional.Value.toRequired arity=1
--- @inline export Codec.Json.Unidirectional.Value.fromRequiredRename arity=2
--- @inline export Codec.Json.Unidirectional.Value.toRequiredRename arity=2
--- @inline export Codec.Json.Unidirectional.Value.fromOption arity=1
--- @inline export Codec.Json.Unidirectional.Value.toOption arity=1
--- @inline export Codec.Json.Unidirectional.Value.fromOptionRename arity=2
--- @inline export Codec.Json.Unidirectional.Value.toOptionRename arity=2
--- @inline export Codec.Json.Unidirectional.Value.toOptionDefault arity=2
--- @inline export Codec.Json.Unidirectional.Value.toOptionDefaultRename arity=3
--- @inline export Codec.Json.Unidirectional.Value.fromOptionArray arity=1
--- @inline export Codec.Json.Unidirectional.Value.toOptionArray arity=1
--- @inline export Codec.Json.Unidirectional.Value.fromOptionAssocArray arity=2
--- @inline export Codec.Json.Unidirectional.Value.toOptionAssocArray arity=2
--- @inline export Codec.Json.Unidirectional.Value.toRecordObjNil(..).toRecordObj always
--- @inline export Codec.Json.Unidirectional.Value.toRecordObjCons(..).toRecordObj arity=5
--- @inline export Codec.Json.Unidirectional.Value.toRecordObjFailure(..).fromRecordObj always
--- @inline export Codec.Json.Unidirectional.Value.fromRecordObjNil(..).fromRecordObj always
--- @inline export Codec.Json.Unidirectional.Value.fromRecordObjCons(..).fromRecordObj arity=5
--- @inline export Codec.Json.Unidirectional.Value.fromRecordObjFailure(..).fromRecordObj always
+-- @inline export withIndex arity=1
+-- @inline export wthKey arity=1
+-- @inline export withAttempts arity=2
+-- @inline export altAccumulateLazy arity=2
+-- @inline export underIndex' arity=1
+-- @inline export underIndex arity=1
+-- @inline export underKey arity=1
+-- @inline export underKey' arity=1
+-- @inline export toIdentity arity=1
+-- @inline export toMaybeTagged arity=1
+-- @inline export toEither arity=1
+-- @inline export toTuple arity=1
+-- @inline export toThese arity=1
+-- @inline export toNonEmpty arity=1
+-- @inline export toList arity=1
+-- @inline export toNonEmptyList arity=1
+-- @inline export toMap arity=1
+-- @inline export toSet arity=1
+-- @inline export toNonEmptySet arity=1
+-- @inline export toEither arity=1
+-- @inline export fromRecord arity=2
+-- @inline export toRecord arity=2
+-- @inline export fromRecordN arity=3
+-- @inline export toRecordN arity=3
+-- @inline export toStatic arity=1
+-- @inline export fromRequired arity=1
+-- @inline export toRequired arity=1
+-- @inline export fromRequiredRename arity=2
+-- @inline export toRequiredRename arity=2
+-- @inline export fromOption arity=1
+-- @inline export toOption arity=1
+-- @inline export fromOptionRename arity=2
+-- @inline export toOptionRename arity=2
+-- @inline export toOptionDefault arity=2
+-- @inline export toOptionDefaultRename arity=3
+-- @inline export fromOptionArray arity=1
+-- @inline export toOptionArray arity=1
+-- @inline export fromOptionAssocArray arity=2
+-- @inline export toOptionAssocArray arity=2
+-- @inline export toRecordObjNil(..).toRecordObj always
+-- @inline export toRecordObjCons(..).toRecordObj arity=5
+-- @inline export toRecordObjFailure(..).fromRecordObj always
+-- @inline export fromRecordObjNil(..).fromRecordObj always
+-- @inline export fromRecordObjCons(..).fromRecordObj arity=4
+-- @inline export fromRecordObjFailure(..).fromRecordObj always
 module Codec.Json.Unidirectional.Value
   ( coerce1
   , fromVoid
@@ -167,7 +167,6 @@ import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Newtype (class Newtype, unwrap)
 import Data.NonEmpty (NonEmpty(..))
 import Data.Nullable (Nullable, notNull, null, toMaybe)
-import Data.Reflectable (class Reflectable, reflectType)
 import Data.Set (Set)
 import Data.Set as Set
 import Data.Set.NonEmpty (NonEmptySet)
@@ -178,7 +177,7 @@ import Data.String.CodeUnits (charAt)
 import Data.String.CodeUnits as SCU
 import Data.String.NonEmpty.Internal (NonEmptyString(..))
 import Data.String.NonEmpty.Internal as NonEmptyString
-import Data.Symbol (class IsSymbol)
+import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.These (These(..), these)
 import Data.Traversable (traverse)
 import Data.TraversableWithIndex (traverseWithIndex)
@@ -802,7 +801,6 @@ instance toRecordObjNil :: ToRecordObj RL.Nil {} {} where
 instance toRecordObjCons ::
   ( ToRecordObj codecTail { | cRest } { | vRest }
   , IsSymbol sym
-  , Reflectable sym String
   , Row.Cons sym (ToRecordCodec a) cRest codecs
   , Row.Cons sym a vRest values
   , Row.Lacks sym vRest
@@ -819,7 +817,7 @@ instance toRecordObjCons ::
           decoder key (Object.lookup key j')
     pure $ Record.insert _lbl a rec
     where
-    lbl = reflectType _lbl
+    lbl = reflectSymbol _lbl
     _lbl = (Proxy :: Proxy sym)
     (ToRecordCodec keyDecoders) = Record.get _lbl codecs
     codecsRest = unsafeCoerce codecs
@@ -845,7 +843,6 @@ instance fromRecordObjNil :: FromRecordObj RL.Nil {} {} where
 instance fromRecordObjCons ::
   ( FromRecordObj codecTail { | cRest } { | vRest }
   , IsSymbol sym
-  , Reflectable sym String
   , Row.Cons sym (FromRecordCodec a) cRest codecs
   , Row.Cons sym a vRest values
   ) =>
@@ -857,7 +854,7 @@ instance fromRecordObjCons ::
       Nothing -> obj
       Just a'' -> Object.insert key a'' obj
     where
-    lbl = reflectType _lbl
+    lbl = reflectSymbol _lbl
     _lbl = (Proxy :: Proxy sym)
     (FromRecordCodec (Tuple keyRename encoder)) = Record.get _lbl codecs
     a' = Record.get _lbl values

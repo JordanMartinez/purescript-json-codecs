@@ -1,5 +1,9 @@
 -- @inline export withAttempts arity=2
 -- @inline export altAccumulateLazy arity=2
+-- @inline export fromPrimitiveArray(..).fromPrimitive arity=1
+-- @inline export fromPrimitiveObject(..).fromPrimitive arity=1
+-- @inline export fromPrimitiveRecord(..).fromPrimitive arity=2
+-- @inline export fromPrimitiveFailure(..).fromPrimitive always
 -- @inline export underIndex' arity=1
 -- @inline export underIndex arity=1
 -- @inline export underKey arity=1
@@ -46,6 +50,9 @@ module Codec.Json.Unidirectional.Value
   , accumulateErrors
   , printDecodeError
   , coerce1
+  , class FromPrimitive
+  , fromPrimitive
+  , class AllPrimitive
   , fromVoid
   , toVoid
   , fromUnit
@@ -240,6 +247,36 @@ altAccumulateLazy f g j = case f j of
   (Left e1) -> case g j of
     x@(Right _) -> x
     Left e2 -> Left $ accumulateErrors e1 e2
+
+class FromPrimitive :: Type -> Constraint
+class FromPrimitive a where
+  fromPrimitive :: a -> Json
+
+instance FromPrimitive Boolean where
+  fromPrimitive = unsafeCoerce
+else instance FromPrimitive Number where
+  fromPrimitive = unsafeCoerce
+else instance FromPrimitive String where
+  fromPrimitive = unsafeCoerce
+else instance fromPrimitiveArray :: FromPrimitive a => FromPrimitive (Array a) where
+  fromPrimitive = unsafeCoerce
+else instance fromPrimitiveObject :: FromPrimitive a => FromPrimitive (Object a) where
+  fromPrimitive = unsafeCoerce
+else instance fromPrimitiveRecord :: 
+  ( RowToList rows rl
+  , AllPrimitive rl
+  ) => FromPrimitive { | rows } where
+  fromPrimitive = unsafeCoerce
+else instance fromPrimitiveFailure :: 
+  ( Fail (Beside (Text "Expected a primitive JSON type but got type: ") (Quote a))
+  ) => FromPrimitive a where
+  fromPrimitive _ = unsafeCrashWith "Impossible"
+
+class AllPrimitive :: RL.RowList Type -> Constraint
+class AllPrimitive rl
+
+instance allPrimitiveNil :: AllPrimitive RL.Nil
+instance allPrimitiveCons :: (AllPrimitive tail, FromPrimitive a) => AllPrimitive (RL.Cons sym a tail)
 
 fromVoid :: Void -> Json
 fromVoid = absurd

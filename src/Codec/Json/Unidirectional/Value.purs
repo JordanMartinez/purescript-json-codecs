@@ -262,14 +262,16 @@ else instance fromPrimitiveArray :: FromPrimitive a => FromPrimitive (Array a) w
   fromPrimitive = unsafeCoerce
 else instance fromPrimitiveObject :: FromPrimitive a => FromPrimitive (Object a) where
   fromPrimitive = unsafeCoerce
-else instance fromPrimitiveRecord :: 
+else instance fromPrimitiveRecord ::
   ( RowToList rows rl
   , AllPrimitive rl
-  ) => FromPrimitive { | rows } where
+  ) =>
+  FromPrimitive { | rows } where
   fromPrimitive = unsafeCoerce
-else instance fromPrimitiveFailure :: 
+else instance fromPrimitiveFailure ::
   ( Fail (Beside (Text "Expected a primitive JSON type but got type: ") (Quote a))
-  ) => FromPrimitive a where
+  ) =>
+  FromPrimitive a where
   fromPrimitive _ = unsafeCrashWith "Impossible"
 
 class AllPrimitive :: RL.RowList Type -> Constraint

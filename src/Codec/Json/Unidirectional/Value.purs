@@ -758,13 +758,13 @@ toRecordN f codecs = coerce1 f <<< toRecord codecs
 -- | - `String` -> the label of the record
 newtype ToProp a = ToProp (Fn2 (String -> Maybe Json) String (Either DecodeError a))
 
-newtype FromProp a = FromProp (Tuple (Maybe String) (String -> a -> Maybe Json))
+newtype FromProp a = FromProp (a -> Maybe (Tuple (Maybe String) Json))
 
 toStatic :: forall a. a -> ToProp a
 toStatic a = ToProp $ mkFn2 \_ _ -> pure a
 
 fromRequired :: forall a. (a -> Json) -> FromProp a
-fromRequired f = FromProp $ Tuple Nothing \_ -> Just <<< f
+fromRequired f = FromProp $ (Just <<< Tuple Nothing) <$> f
 
 toRequired :: forall a. (Json -> Either DecodeError a) -> ToProp a
 toRequired f = ToProp $ mkFn2 \lookupFn recLabel ->
@@ -773,7 +773,7 @@ toRequired f = ToProp $ mkFn2 \lookupFn recLabel ->
     Just j' -> lmap (AtKey recLabel) $ f j'
 
 fromRequiredRename :: forall a. String -> (a -> Json) -> FromProp a
-fromRequiredRename str f = FromProp $ Tuple (Just str) \_ -> Just <<< f
+fromRequiredRename str f = FromProp $ (Just <<< Tuple (Just str)) <$> f
 
 toRequiredRename :: forall a. String -> (Json -> Either DecodeError a) -> ToProp a
 toRequiredRename jsonLbl f = ToProp $ mkFn2 \lookupFn _ ->
@@ -784,14 +784,14 @@ toRequiredRename jsonLbl f = ToProp $ mkFn2 \lookupFn _ ->
 -- | If Nothing, does not add the coressponding key
 -- | If Just, adds the key and the encoded value to the JObject
 fromOption :: forall a. (a -> Json) -> FromProp (Maybe a)
-fromOption f = FromProp $ Tuple Nothing \_ -> map f
+fromOption f = FromProp $ map (Tuple Nothing <<< f)
 
 -- | Succeeds with Nothing if key wasn't found or with Just if key was found and value was succesfully tod.
 toOption :: forall a. (Json -> Either DecodeError a) -> ToProp (Maybe a)
 toOption f = toOptionDefault Nothing (map Just <$> f)
 
 fromOptionRename :: forall a. String -> (a -> Json) -> FromProp (Maybe a)
-fromOptionRename str f = FromProp $ Tuple (Just str) \_ -> map f
+fromOptionRename str f = FromProp $ map (Tuple (Just str) <<< f)
 
 toOptionRename :: forall a. String -> (Json -> Either DecodeError a) -> ToProp (Maybe a)
 toOptionRename rename f = toOptionDefaultRename rename Nothing (map Just <$> f)
@@ -809,9 +809,9 @@ toOptionDefaultRename jsonLbl a f = ToProp $ mkFn2 \lookupFn _ ->
     Just j' -> lmap (AtKey jsonLbl) $ f j'
 
 fromOptionArray :: forall a. (a -> Json) -> FromProp (Array a)
-fromOptionArray f = FromProp $ Tuple Nothing \_ arr ->
+fromOptionArray f = FromProp $ \arr ->
   if Array.length arr == 0 then Nothing
-  else Just $ fromArray f arr
+  else Just $ Tuple Nothing $ fromArray f arr
 
 toOptionArray :: forall a. (Json -> Either DecodeError a) -> ToProp (Array a)
 toOptionArray f = ToProp $ mkFn2 \lookupFn recLabel ->
@@ -820,9 +820,9 @@ toOptionArray f = ToProp $ mkFn2 \lookupFn recLabel ->
     Just j' -> lmap (AtKey recLabel) $ toArray f j'
 
 fromOptionAssocArray :: forall a b. (a -> String) -> (b -> Json) -> FromProp (Array (Tuple a b))
-fromOptionAssocArray k' v' = FromProp $ Tuple Nothing \_ arr ->
+fromOptionAssocArray k' v' = FromProp $ \arr ->
   if Array.length arr == 0 then Nothing
-  else Just $ Json.fromObject $ Array.foldl (\acc (Tuple k v) -> Object.insert (k' k) (v' v) acc) Object.empty arr
+  else Just $ Tuple Nothing $ Json.fromObject $ Array.foldl (\acc (Tuple k v) -> Object.insert (k' k) (v' v) acc) Object.empty arr
 
 toOptionAssocArray :: forall a b. (String -> Either DecodeError a) -> (Json -> Either DecodeError b) -> ToProp (Array (Tuple a b))
 toOptionAssocArray k' v' = ToProp $ mkFn2 \lookupFn recLabel ->
@@ -891,14 +891,13 @@ instance fromRecordObjCons ::
   FromRecordObj (RL.Cons sym (FromProp a) codecTail) { | codecs } { | values } where
   fromRecordObj _ codecs values = do
     let obj = fromRecordObj (Proxy :: Proxy codecTail) cRest vRest
-    let key = fromMaybe lbl keyRename
-    case encoder key a' of
+    case encoder a' of
       Nothing -> obj
-      Just a'' -> Object.insert key a'' obj
+      Just (Tuple k a'') -> Object.insert (fromMaybe lbl k) a'' obj
     where
     lbl = reflectSymbol _lbl
     _lbl = (Proxy :: Proxy sym)
-    (FromProp (Tuple keyRename encoder)) = Record.get _lbl codecs
+    (FromProp encoder) = Record.get _lbl codecs
     a' = Record.get _lbl values
     cRest = unsafeCoerce codecs
     vRest = unsafeCoerce values

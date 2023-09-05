@@ -123,8 +123,8 @@ module Codec.Json.Unidirectional.Value
   , toRecord
   , fromRecordN
   , toRecordN
-  , FromRecordCodec(..)
-  , ToRecordCodec(..)
+  , FromProp(..)
+  , ToProp(..)
   , toStatic
   , fromRequired
   , toRequired
@@ -707,7 +707,7 @@ toNonEmptySet
   -> Either DecodeError (NonEmptySet a)
 toNonEmptySet toA = toArray toA >=> (note (DecodeError "Received empty set") <<< NonEmptySet.fromSet <<< Set.fromFoldable)
 
--- | All labels must have a function of type: `FromRecordCodec a`
+-- | All labels must have a function of type: `FromProp a`
 fromRecord
   :: forall codecs values codecsRL
    . RowToList codecs codecsRL
@@ -718,7 +718,7 @@ fromRecord
 fromRecord codecs values = Json.fromObject
   $ fromRecordObj (Proxy :: Proxy codecsRL) codecs values
 
--- | All labels must have a function of type: `ToRecordCodec a`
+-- | All labels must have a function of type: `ToProp a`
 -- | See `required`, `requiredRename`, `option`, `optionRename`.
 toRecord
   :: forall codecs values codecsRL
@@ -756,76 +756,76 @@ toRecordN f codecs = coerce1 f <<< toRecord codecs
 -- | Iterates through the underlying array.
 -- | - `String -> Maybe Json`: `\str -> Object.lookup str obj`
 -- | - `String` -> the label of the record
-newtype ToRecordCodec a = ToRecordCodec (Fn2 (String -> Maybe Json) String (Either DecodeError a))
+newtype ToProp a = ToProp (Fn2 (String -> Maybe Json) String (Either DecodeError a))
 
-newtype FromRecordCodec a = FromRecordCodec (Tuple (Maybe String) (String -> a -> Maybe Json))
+newtype FromProp a = FromProp (Tuple (Maybe String) (String -> a -> Maybe Json))
 
-toStatic :: forall a. a -> ToRecordCodec a
-toStatic a = ToRecordCodec $ mkFn2 \_ _ -> pure a
+toStatic :: forall a. a -> ToProp a
+toStatic a = ToProp $ mkFn2 \_ _ -> pure a
 
-fromRequired :: forall a. (a -> Json) -> FromRecordCodec a
-fromRequired f = FromRecordCodec $ Tuple Nothing \_ -> Just <<< f
+fromRequired :: forall a. (a -> Json) -> FromProp a
+fromRequired f = FromProp $ Tuple Nothing \_ -> Just <<< f
 
-toRequired :: forall a. (Json -> Either DecodeError a) -> ToRecordCodec a
-toRequired f = ToRecordCodec $ mkFn2 \lookupFn recLabel ->
+toRequired :: forall a. (Json -> Either DecodeError a) -> ToProp a
+toRequired f = ToProp $ mkFn2 \lookupFn recLabel ->
   case lookupFn recLabel of
     Nothing -> Left $ AtKey recLabel $ DecodeError $ "Missing field"
     Just j' -> lmap (AtKey recLabel) $ f j'
 
-fromRequiredRename :: forall a. String -> (a -> Json) -> FromRecordCodec a
-fromRequiredRename str f = FromRecordCodec $ Tuple (Just str) \_ -> Just <<< f
+fromRequiredRename :: forall a. String -> (a -> Json) -> FromProp a
+fromRequiredRename str f = FromProp $ Tuple (Just str) \_ -> Just <<< f
 
-toRequiredRename :: forall a. String -> (Json -> Either DecodeError a) -> ToRecordCodec a
-toRequiredRename jsonLbl f = ToRecordCodec $ mkFn2 \lookupFn _ ->
+toRequiredRename :: forall a. String -> (Json -> Either DecodeError a) -> ToProp a
+toRequiredRename jsonLbl f = ToProp $ mkFn2 \lookupFn _ ->
   case lookupFn jsonLbl of
     Nothing -> Left $ AtKey jsonLbl $ DecodeError "Missing field"
     Just j' -> lmap (AtKey jsonLbl) $ f j'
 
 -- | If Nothing, does not add the coressponding key
 -- | If Just, adds the key and the encoded value to the JObject
-fromOption :: forall a. (a -> Json) -> FromRecordCodec (Maybe a)
-fromOption f = FromRecordCodec $ Tuple Nothing \_ -> map f
+fromOption :: forall a. (a -> Json) -> FromProp (Maybe a)
+fromOption f = FromProp $ Tuple Nothing \_ -> map f
 
 -- | Succeeds with Nothing if key wasn't found or with Just if key was found and value was succesfully tod.
-toOption :: forall a. (Json -> Either DecodeError a) -> ToRecordCodec (Maybe a)
+toOption :: forall a. (Json -> Either DecodeError a) -> ToProp (Maybe a)
 toOption f = toOptionDefault Nothing (map Just <$> f)
 
-fromOptionRename :: forall a. String -> (a -> Json) -> FromRecordCodec (Maybe a)
-fromOptionRename str f = FromRecordCodec $ Tuple (Just str) \_ -> map f
+fromOptionRename :: forall a. String -> (a -> Json) -> FromProp (Maybe a)
+fromOptionRename str f = FromProp $ Tuple (Just str) \_ -> map f
 
-toOptionRename :: forall a. String -> (Json -> Either DecodeError a) -> ToRecordCodec (Maybe a)
+toOptionRename :: forall a. String -> (Json -> Either DecodeError a) -> ToProp (Maybe a)
 toOptionRename rename f = toOptionDefaultRename rename Nothing (map Just <$> f)
 
-toOptionDefault :: forall a. a -> (Json -> Either DecodeError a) -> ToRecordCodec a
-toOptionDefault a f = ToRecordCodec $ mkFn2 \lookupFn recLabel ->
+toOptionDefault :: forall a. a -> (Json -> Either DecodeError a) -> ToProp a
+toOptionDefault a f = ToProp $ mkFn2 \lookupFn recLabel ->
   case lookupFn recLabel of
     Nothing -> pure a
     Just j' -> lmap (AtKey recLabel) $ f j'
 
-toOptionDefaultRename :: forall a. String -> a -> (Json -> Either DecodeError a) -> ToRecordCodec a
-toOptionDefaultRename jsonLbl a f = ToRecordCodec $ mkFn2 \lookupFn _ ->
+toOptionDefaultRename :: forall a. String -> a -> (Json -> Either DecodeError a) -> ToProp a
+toOptionDefaultRename jsonLbl a f = ToProp $ mkFn2 \lookupFn _ ->
   case lookupFn jsonLbl of
     Nothing -> pure a
     Just j' -> lmap (AtKey jsonLbl) $ f j'
 
-fromOptionArray :: forall a. (a -> Json) -> FromRecordCodec (Array a)
-fromOptionArray f = FromRecordCodec $ Tuple Nothing \_ arr ->
+fromOptionArray :: forall a. (a -> Json) -> FromProp (Array a)
+fromOptionArray f = FromProp $ Tuple Nothing \_ arr ->
   if Array.length arr == 0 then Nothing
   else Just $ fromArray f arr
 
-toOptionArray :: forall a. (Json -> Either DecodeError a) -> ToRecordCodec (Array a)
-toOptionArray f = ToRecordCodec $ mkFn2 \lookupFn recLabel ->
+toOptionArray :: forall a. (Json -> Either DecodeError a) -> ToProp (Array a)
+toOptionArray f = ToProp $ mkFn2 \lookupFn recLabel ->
   case lookupFn recLabel of
     Nothing -> pure []
     Just j' -> lmap (AtKey recLabel) $ toArray f j'
 
-fromOptionAssocArray :: forall a b. (a -> String) -> (b -> Json) -> FromRecordCodec (Array (Tuple a b))
-fromOptionAssocArray k' v' = FromRecordCodec $ Tuple Nothing \_ arr ->
+fromOptionAssocArray :: forall a b. (a -> String) -> (b -> Json) -> FromProp (Array (Tuple a b))
+fromOptionAssocArray k' v' = FromProp $ Tuple Nothing \_ arr ->
   if Array.length arr == 0 then Nothing
   else Just $ Json.fromObject $ Array.foldl (\acc (Tuple k v) -> Object.insert (k' k) (v' v) acc) Object.empty arr
 
-toOptionAssocArray :: forall a b. (String -> Either DecodeError a) -> (Json -> Either DecodeError b) -> ToRecordCodec (Array (Tuple a b))
-toOptionAssocArray k' v' = ToRecordCodec $ mkFn2 \lookupFn recLabel ->
+toOptionAssocArray :: forall a b. (String -> Either DecodeError a) -> (Json -> Either DecodeError b) -> ToProp (Array (Tuple a b))
+toOptionAssocArray k' v' = ToProp $ mkFn2 \lookupFn recLabel ->
   case lookupFn recLabel of
     Nothing -> pure []
     Just j' -> lmap (AtKey recLabel) $ ((Object.toUnfoldable <$> toJObject j') >>= traverse (bitraverse k' v'))
@@ -840,11 +840,11 @@ instance toRecordObjNil :: ToRecordObj RL.Nil {} {} where
 instance toRecordObjCons ::
   ( ToRecordObj codecTail { | cRest } { | vRest }
   , IsSymbol sym
-  , Row.Cons sym (ToRecordCodec a) cRest codecs
+  , Row.Cons sym (ToProp a) cRest codecs
   , Row.Cons sym a vRest values
   , Row.Lacks sym vRest
   ) =>
-  ToRecordObj (RL.Cons sym (ToRecordCodec a) codecTail) { | codecs } { | values } where
+  ToRecordObj (RL.Cons sym (ToProp a) codecTail) { | codecs } { | values } where
   toRecordObj _ codecs j = do
     rec <- onLeft (toRecordObj (Proxy :: Proxy codecTail) codecsRest j) \e1 ->
       case runFn2 decoder (\k -> Object.lookup k j) lbl of
@@ -859,14 +859,14 @@ instance toRecordObjCons ::
       x@(Right _) -> x
     lbl = reflectSymbol _lbl
     _lbl = (Proxy :: Proxy sym)
-    (ToRecordCodec decoder) = Record.get _lbl codecs
+    (ToProp decoder) = Record.get _lbl codecs
 
     codecsRest :: { | cRest }
     codecsRest = unsafeCoerce codecs
 else instance toRecordObjFailure ::
   ( Fail
       ( Above
-          (Beside (Beside (Text "Expected 'ToRecordCodec a' for label '") (Text sym)) (Beside (Text "' but got type: ") (Quote a)))
+          (Beside (Beside (Text "Expected 'ToProp a' for label '") (Text sym)) (Beside (Text "' but got type: ") (Quote a)))
           ( Above (Text "")
               (Text "User likely forgot to supply an additional argument or is not using `toRequired*`/`toOption*` variants.")
           )
@@ -885,10 +885,10 @@ instance fromRecordObjNil :: FromRecordObj RL.Nil {} {} where
 instance fromRecordObjCons ::
   ( FromRecordObj codecTail { | cRest } { | vRest }
   , IsSymbol sym
-  , Row.Cons sym (FromRecordCodec a) cRest codecs
+  , Row.Cons sym (FromProp a) cRest codecs
   , Row.Cons sym a vRest values
   ) =>
-  FromRecordObj (RL.Cons sym (FromRecordCodec a) codecTail) { | codecs } { | values } where
+  FromRecordObj (RL.Cons sym (FromProp a) codecTail) { | codecs } { | values } where
   fromRecordObj _ codecs values = do
     let obj = fromRecordObj (Proxy :: Proxy codecTail) cRest vRest
     let key = fromMaybe lbl keyRename
@@ -898,14 +898,14 @@ instance fromRecordObjCons ::
     where
     lbl = reflectSymbol _lbl
     _lbl = (Proxy :: Proxy sym)
-    (FromRecordCodec (Tuple keyRename encoder)) = Record.get _lbl codecs
+    (FromProp (Tuple keyRename encoder)) = Record.get _lbl codecs
     a' = Record.get _lbl values
     cRest = unsafeCoerce codecs
     vRest = unsafeCoerce values
 else instance fromRecordObjFailure ::
   ( Fail
       ( Above
-          (Beside (Beside (Text "Expected 'FromRecordCodec a' for label '") (Text sym)) (Beside (Text "' but got type: ") (Quote a)))
+          (Beside (Beside (Text "Expected 'FromProp a' for label '") (Text sym)) (Beside (Text "' but got type: ") (Quote a)))
           ( Above (Text "")
               (Text "User likely forgot to supply an additional argument or is not using `fromRequired*`/`fromOption*` variants.")
           )

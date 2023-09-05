@@ -43,6 +43,7 @@
 -- @inline export fromRecordObjFailure(..).fromRecordObj always
 module Codec.Json.Unidirectional.Value
   ( DecodeError(..)
+  , accumulateErrors
   , printDecodeError
   , coerce1
   , fromVoid
@@ -213,7 +214,7 @@ accumulateErrors = case _, _ of
   first, next -> AccumulateError $ next : first : Nil
 
 printDecodeError :: DecodeError -> String
-printDecodeError = go 0 "ROOT"
+printDecodeError = go 1 "ROOT"
   where
   go indent acc = case _ of
     AtKey k next -> go indent (acc <> "." <> show k) next

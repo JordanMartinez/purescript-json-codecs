@@ -52,4 +52,4 @@ jobs:
 
       - name: Check Formatting
         run: |
-          purs-tidy check src test bench
+          purs-tidy check src test bench snapshots

@@ -1,3 +1,4 @@
+-- @inline export withIndex arity=1
 module Codec.Benchmarks.Decoders.EitherStringA where
 
 import Prelude

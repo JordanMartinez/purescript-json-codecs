@@ -3,6 +3,7 @@ module Main where
 import Prelude
 
 import Codec.Benchmarks.DecodeArrayOfInts as DecodeArrayOfInts
+import Codec.Benchmarks.Decoders.Benchmark as DecoderApproaches
 import Codec.Benchmarks.EncodeArrayOfInts as EncodeArrayOfInts
 import Codec.Benchmarks.Utils (benchIt)
 import Control.Alternative (guard)
@@ -12,6 +13,8 @@ import Effect (Effect)
 
 main :: Effect Unit
 main = traverse_ benchIt $ Array.catMaybes
-  [ EncodeArrayOfInts.benchmark <$ guard true
+  [ DecoderApproaches.microBenchmark <$ guard true
+  , DecoderApproaches.approachBenchmark <$ guard true
+  , EncodeArrayOfInts.benchmark <$ guard true
   , DecodeArrayOfInts.benchmark <$ guard true
   ]

@@ -1,0 +1,219 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="540"><defs><style type="text/css">
+    /* https://www.vis4.net/palettes/#/9|d|00429d,96ffea|ffffe0,ff005e,93003a|1|1 */
+    :root {
+    --data-series-0--1-only: #000;
+
+    --data-series-0--3-or-less: #00429d;
+    --data-series-1--3-or-less: #96ffea;
+    --data-series-2--3-or-less: #93003a;
+
+    --data-series-0--5-or-less: #00429d;
+    --data-series-1--5-or-less: #629cc4;
+    --data-series-2--5-or-less: #96ffea;
+    --data-series-3--5-or-less: #f4777f;
+    --data-series-4--5-or-less: #93003a;
+
+    --data-series-0--7-or-less: #00429d;
+    --data-series-1--7-or-less: #4d7cb7;
+    --data-series-2--7-or-less: #74bcd1;
+    --data-series-3--7-or-less: #96ffea;
+    --data-series-4--7-or-less: #ffa59e;
+    --data-series-5--7-or-less: #dd4c65;
+    --data-series-6--7-or-less: #93003a;
+
+    --data-series-0--9-or-less: #00429d;
+    --data-series-1--9-or-less: #416db1;
+    --data-series-2--9-or-less: #629cc4;
+    --data-series-3--9-or-less: #7dccd7;
+    --data-series-4--9-or-less: #96ffea;
+    --data-series-5--9-or-less: #ffbcaf;
+    --data-series-6--9-or-less: #f4777f;
+    --data-series-7--9-or-less: #cf3759;
+    --data-series-8--9-or-less: #93003a;
+    }
+
+    .background {
+    fill: white;
+    }
+
+    text {
+    font-size: 14px;
+    font-family: sans-serif;
+    }
+
+    .axis-path,
+    .axis-line {
+    fill: none;
+    stroke: #000;
+    stroke-width: 1px;
+    shape-rendering: crispEdges;
+    }
+
+    .line {
+    fill: none;
+    stroke-width: 1.5px;
+    }
+
+    .error-bar {
+    fill: none;
+    }
+
+    /* Series of 1 */
+
+    .data-series-0.data-series-count-1 {
+    stroke: var(--data-series-0--1-only);
+    fill: var(--data-series-0--1-only);
+    }
+
+    /* Series of 3 */
+
+    .data-series-0.data-series-count-3,
+    .data-series-0.data-series-count-2 {
+    stroke: var(--data-series-0--3-or-less);
+    fill: var(--data-series-0--3-or-less);
+    }
+
+    .data-series-1.data-series-count-3,
+    .data-series-1.data-series-count-2 {
+    stroke: var(--data-series-1--3-or-less);
+    fill: var(--data-series-1--3-or-less);
+    }
+
+    .data-series-2.data-series-count-3,
+    .data-series-2.data-series-count-2 {
+    stroke: var(--data-series-2--3-or-less);
+    fill: var(--data-series-2--3-or-less);
+    }
+
+    /* Series of 5 */
+
+    .data-series-0.data-series-count-5,
+    .data-series-0.data-series-count-4 {
+    stroke: var(--data-series-0--5-or-less);
+    fill: var(--data-series-0--5-or-less);
+    }
+
+    .data-series-1.data-series-count-5,
+    .data-series-1.data-series-count-4 {
+    stroke: var(--data-series-1--5-or-less);
+    fill: var(--data-series-1--5-or-less);
+    }
+
+    .data-series-2.data-series-count-5,
+    .data-series-2.data-series-count-4 {
+    stroke: var(--data-series-2--5-or-less);
+    fill: var(--data-series-2--5-or-less);
+    }
+
+    .data-series-3.data-series-count-5,
+    .data-series-3.data-series-count-4 {
+    stroke: var(--data-series-3--5-or-less);
+    fill: var(--data-series-3--5-or-less);
+    }
+
+    .data-series-4.data-series-count-5,
+    .data-series-4.data-series-count-4 {
+    stroke: var(--data-series-4--5-or-less);
+    fill: var(--data-series-4--5-or-less);
+    }
+
+    /* Series of 7 */
+
+    .data-series-0.data-series-count-7,
+    .data-series-0.data-series-count-6 {
+    stroke: var(--data-series-0--7-or-less);
+    fill: var(--data-series-0--7-or-less);
+    }
+
+    .data-series-1.data-series-count-7,
+    .data-series-1.data-series-count-6 {
+    stroke: var(--data-series-1--7-or-less);
+    fill: var(--data-series-1--7-or-less);
+    }
+
+    .data-series-2.data-series-count-7,
+    .data-series-2.data-series-count-6 {
+    stroke: var(--data-series-2--7-or-less);
+    fill: var(--data-series-2--7-or-less);
+    }
+
+    .data-series-3.data-series-count-7,
+    .data-series-3.data-series-count-6 {
+    stroke: var(--data-series-3--7-or-less);
+    fill: var(--data-series-3--7-or-less);
+    }
+
+    .data-series-4.data-series-count-7,
+    .data-series-4.data-series-count-6 {
+    stroke: var(--data-series-4--7-or-less);
+    fill: var(--data-series-4--7-or-less);
+    }
+
+    .data-series-5.data-series-count-7,
+    .data-series-5.data-series-count-6 {
+    stroke: var(--data-series-5--7-or-less);
+    fill: var(--data-series-5--7-or-less);
+    }
+
+    .data-series-6.data-series-count-7,
+    .data-series-6.data-series-count-6 {
+    stroke: var(--data-series-6--7-or-less);
+    fill: var(--data-series-6--7-or-less);
+    }
+
+    /* Series of 9 */
+
+    .data-series-0.data-series-count-9,
+    .data-series-0.data-series-count-8 {
+    stroke: var(--data-series-0--9-or-less);
+    fill: var(--data-series-0--9-or-less);
+    }
+
+    .data-series-1.data-series-count-9,
+    .data-series-1.data-series-count-8 {
+    stroke: var(--data-series-1--9-or-less);
+    fill: var(--data-series-1--9-or-less);
+    }
+
+    .data-series-2.data-series-count-9,
+    .data-series-2.data-series-count-8 {
+    stroke: var(--data-series-2--9-or-less);
+    fill: var(--data-series-2--9-or-less);
+    }
+
+    .data-series-3.data-series-count-9,
+    .data-series-3.data-series-count-8 {
+    stroke: var(--data-series-3--9-or-less);
+    fill: var(--data-series-3--9-or-less);
+    }
+
+    .data-series-4.data-series-count-9,
+    .data-series-4.data-series-count-8 {
+    stroke: var(--data-series-4--9-or-less);
+    fill: var(--data-series-4--9-or-less);
+    }
+
+    .data-series-5.data-series-count-9,
+    .data-series-5.data-series-count-8 {
+    stroke: var(--data-series-5--9-or-less);
+    fill: var(--data-series-5--9-or-less);
+    }
+
+    .data-series-6.data-series-count-9,
+    .data-series-6.data-series-count-8 {
+    stroke: var(--data-series-6--9-or-less);
+    fill: var(--data-series-6--9-or-less);
+    }
+
+    .data-series-7.data-series-count-9,
+    .data-series-7.data-series-count-8 {
+    stroke: var(--data-series-7--9-or-less);
+    fill: var(--data-series-7--9-or-less);
+    }
+
+    .data-series-8.data-series-count-9,
+    .data-series-8.data-series-count-8 {
+    stroke: var(--data-series-8--9-or-less);
+    fill: var(--data-series-8--9-or-less);
+    }
+  </style></defs><rect width="1000" height="540" class="background"/><g transform="translate(0, 0)"><g transform="translate(80, 40)"><g transform="translate(440, 0)"><text style="text-anchor: middle; font-size: 28px;">Minute changes in decode approach (unoptimized)</text></g><g class="x axis" transform="translate(0, 400)"><g class="tick" style="opacity: 1;" transform="translate(0,0)"><line y2="6" x2="0" class="axis-line"/><text dy=".71em" style="text-anchor: middle;" y="9" x="0">1,000</text></g><g class="tick" style="opacity: 1;" transform="translate(110,0)"><line y2="6" x2="0" class="axis-line"/><text dy=".71em" style="text-anchor: middle;" y="9" x="0">1,500</text></g><g class="tick" style="opacity: 1;" transform="translate(220,0)"><line y2="6" x2="0" class="axis-line"/><text dy=".71em" style="text-anchor: middle;" y="9" x="0">2,000</text></g><g class="tick" style="opacity: 1;" transform="translate(330,0)"><line y2="6" x2="0" class="axis-line"/><text dy=".71em" style="text-anchor: middle;" y="9" x="0">2,500</text></g><g class="tick" style="opacity: 1;" transform="translate(440,0)"><line y2="6" x2="0" class="axis-line"/><text dy=".71em" style="text-anchor: middle;" y="9" x="0">3,000</text></g><g class="tick" style="opacity: 1;" transform="translate(550,0)"><line y2="6" x2="0" class="axis-line"/><text dy=".71em" style="text-anchor: middle;" y="9" x="0">3,500</text></g><g class="tick" style="opacity: 1;" transform="translate(660,0)"><line y2="6" x2="0" class="axis-line"/><text dy=".71em" style="text-anchor: middle;" y="9" x="0">4,000</text></g><g class="tick" style="opacity: 1;" transform="translate(770,0)"><line y2="6" x2="0" class="axis-line"/><text dy=".71em" style="text-anchor: middle;" y="9" x="0">4,500</text></g><g class="tick" style="opacity: 1;" transform="translate(880,0)"><line y2="6" x2="0" class="axis-line"/><text dy=".71em" style="text-anchor: middle;" y="9" x="0">5,000</text></g><path class="axis-path" d="M0,6V0H880V6"/><text x="440" y="40" style="text-anchor: middle;">Number of elements in the array</text></g><g class="y axis"><g class="tick" style="opacity: 1;" transform="translate(0,377.3797759356147)"><line x2="-6" y2="0" class="axis-line"/><text dy=".32em" style="text-anchor: end;" x="-9" y="0">5.00e-4</text></g><g class="tick" style="opacity: 1;" transform="translate(0,320.18618689243795)"><line x2="-6" y2="0" class="axis-line"/><text dy=".32em" style="text-anchor: end;" x="-9" y="0">1.00e-3</text></g><g class="tick" style="opacity: 1;" transform="translate(0,262.99259784926113)"><line x2="-6" y2="0" class="axis-line"/><text dy=".32em" style="text-anchor: end;" x="-9" y="0">1.50e-3</text></g><g class="tick" style="opacity: 1;" transform="translate(0,205.79900880608443)"><line x2="-6" y2="0" class="axis-line"/><text dy=".32em" style="text-anchor: end;" x="-9" y="0">2.00e-3</text></g><g class="tick" style="opacity: 1;" transform="translate(0,148.60541976290764)"><line x2="-6" y2="0" class="axis-line"/><text dy=".32em" style="text-anchor: end;" x="-9" y="0">2.50e-3</text></g><g class="tick" style="opacity: 1;" transform="translate(0,91.41183071973092)"><line x2="-6" y2="0" class="axis-line"/><text dy=".32em" style="text-anchor: end;" x="-9" y="0">3.00e-3</text></g><g class="tick" style="opacity: 1;" transform="translate(0,34.21824167655414)"><line x2="-6" y2="0" class="axis-line"/><text dy=".32em" style="text-anchor: end;" x="-9" y="0">3.50e-3</text></g><path class="axis-path" d="M-6,0H0V400H-6"/><text transform="rotate(-90)" y="6" dy=".71em" style="text-anchor: end;">Mean running time (seconds)</text></g><g class="data-series-0 data-series-count-5"><circle cx="0" cy="367.11475557239913" r="3"/><circle cx="440" cy="185.7742667762559" r="3"/><circle cx="880" cy="13.754606571404704" r="3"/><path class="error-bar" x="0" y="367.11475557239913" d="M 0 367.11475557239913 V 363.4370761125387 h -3 h 6 h -3 V 370.7924350322595 h -3 h 6"/><path class="error-bar" x="440" y="185.7742667762559" d="M 440 185.7742667762559 V 175.81567598283766 h -3 h 6 h -3 V 195.73285756967414 h -3 h 6"/><path class="error-bar" x="880" y="13.754606571404704" d="M 880 13.754606571404704 V -3.79486053026703 h -3 h 6 h -3 V 31.304073673076395 h -3 h 6"/><path class="line" d="M0,367.11475557239913L440,185.7742667762559L880,13.754606571404704"/></g><g class="data-series-1 data-series-count-5"><circle cx="0" cy="381.7033842110857" r="3"/><circle cx="440" cy="242.98375558697884" r="3"/><circle cx="880" cy="109.69158810099859" r="3"/><path class="error-bar" x="0" y="381.7033842110857" d="M 0 381.7033842110857 V 380.35330568269137 h -3 h 6 h -3 V 383.05346273948004 h -3 h 6"/><path class="error-bar" x="440" y="242.98375558697884" d="M 440 242.98375558697884 V 238.90679411395604 h -3 h 6 h -3 V 247.06071706000165 h -3 h 6"/><path class="error-bar" x="880" y="109.69158810099859" d="M 880 109.69158810099859 V 99.37921948322636 h -3 h 6 h -3 V 120.00395671877078 h -3 h 6"/><path class="line" d="M0,381.7033842110857L440,242.98375558697884L880,109.69158810099859"/></g><g class="data-series-2 data-series-count-5"><circle cx="0" cy="367.07424143712126" r="3"/><circle cx="440" cy="190.46001117364727" r="3"/><circle cx="880" cy="0" r="3"/><path class="error-bar" x="0" y="367.07424143712126" d="M 0 367.07424143712126 V 363.6819368751647 h -3 h 6 h -3 V 370.46654599907777 h -3 h 6"/><path class="error-bar" x="440" y="190.46001117364727" d="M 440 190.46001117364727 V 181.38386506686555 h -3 h 6 h -3 V 199.53615728042905 h -3 h 6"/><path class="error-bar" x="880" y="0" d="M 880 0 V -19.552700169907133 h -3 h 6 h -3 V 19.55270016990709 h -3 h 6"/><path class="line" d="M0,367.07424143712126L440,190.46001117364727L880,0"/></g><g class="data-series-3 data-series-count-5"><circle cx="0" cy="378.8108762231592" r="3"/><circle cx="440" cy="243.35083552030534" r="3"/><circle cx="880" cy="113.14233138791643" r="3"/><path class="error-bar" x="0" y="378.8108762231592" d="M 0 378.8108762231592 V 376.9181550021567 h -3 h 6 h -3 V 380.7035974441617 h -3 h 6"/><path class="error-bar" x="440" y="243.35083552030534" d="M 440 243.35083552030534 V 233.48036311880117 h -3 h 6 h -3 V 253.2213079218095 h -3 h 6"/><path class="error-bar" x="880" y="113.14233138791643" d="M 880 113.14233138791643 V 96.00759461118304 h -3 h 6 h -3 V 130.27706816464982 h -3 h 6"/><path class="line" d="M0,378.8108762231592L440,243.35083552030534L880,113.14233138791643"/></g><g class="data-series-4 data-series-count-5"><circle cx="0" cy="400" r="3"/><circle cx="440" cy="328.72771911230893" r="3"/><circle cx="880" cy="119.47542398187596" r="3"/><path class="error-bar" x="0" y="400" d="M 0 400 V 398.8681331708398 h -3 h 6 h -3 V 401.1318668291602 h -3 h 6"/><path class="error-bar" x="440" y="328.72771911230893" d="M 440 328.72771911230893 V 325.61324920124673 h -3 h 6 h -3 V 331.84218902337125 h -3 h 6"/><path class="error-bar" x="880" y="119.47542398187596" d="M 880 119.47542398187596 V -22.378711121090777 h -3 h 6 h -3 V 261.3295590848428 h -3 h 6"/><path class="line" d="M0,400L440,328.72771911230893L880,119.47542398187596"/></g><g class="legend" transform="translate(50, 50)"><rect x="0" y="0" width="15" height="15" class="data-series-0 data-series-count-5"/><rect x="0" y="20" width="15" height="15" class="data-series-1 data-series-count-5"/><rect x="0" y="40" width="15" height="15" class="data-series-2 data-series-count-5"/><rect x="0" y="60" width="15" height="15" class="data-series-3 data-series-count-5"/><rect x="0" y="80" width="15" height="15" class="data-series-4 data-series-count-5"/><text x="24" y="13">Either-String-A</text><text x="24" y="33">Either-String-A__noShow</text><text x="24" y="53">Either-String-A__noWithIndex</text><text x="24" y="73">Either-String-A__noShow__noWithIndex</text><text x="24" y="93">Maybe-A</text></g></g><g transform="translate(960, 500)" class="graph-footer"><text style="text-anchor: end;">Ran on:</text><text style="text-anchor: end;" y="14">2023-09-05 16:32:34</text></g></g></svg>

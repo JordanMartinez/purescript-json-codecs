@@ -7,6 +7,7 @@
   "scripts": {
     "bench-unoptimized": "spago -x bench.dhall run",
     "bench-optimized": "purs-backend-es --version && spago -x bench-optimized.dhall build && OPTIMIZED=1 ./bench-optimized.mjs",
-    "bench": "npm run bench-unoptimized && npm run bench-optimized"
+    "bench": "npm run bench-unoptimized && npm run bench-optimized",
+    "snapshots": "spago -x snapshots.dhall build --purs-args \"-g corefn,js\" && purs-backend-es build && spago -x snapshots.dhall run -m Test.Snapshot"
   }
 }

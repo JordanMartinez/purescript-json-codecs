@@ -36,11 +36,11 @@
 -- @inline export toOptionArray arity=1
 -- @inline export fromOptionAssocArray arity=2
 -- @inline export toOptionAssocArray arity=2
--- @inline export toRecordObjNil(..).toRecordObj always
--- @inline export toRecordObjCons(..).toRecordObj arity=5
+-- @inline export toRecordObjNil(..).toRecordObj arity=2
+-- @inline export toRecordObjCons(..).toRecordObj arity=2
 -- @inline export toRecordObjFailure(..).fromRecordObj always
--- @inline export fromRecordObjNil(..).fromRecordObj always
--- @inline export fromRecordObjCons(..).fromRecordObj arity=4
+-- @inline export fromRecordObjNil(..).fromRecordObj arity=3
+-- @inline export fromRecordObjCons(..).fromRecordObj arity=3
 -- @inline export fromRecordObjFailure(..).fromRecordObj always
 -- | Unidirectional, value-based JSON codecs.
 -- | This module sould be imported using a qualified `J` alias:

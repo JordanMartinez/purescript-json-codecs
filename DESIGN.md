@@ -64,7 +64,16 @@ A structured error could then represent its full error as `Tuple JsonPath e` whe
 
 ## Write once, debug as needed
 
-When Json decoding succeeds, any overhead from the possible error message is pointless. But when it does fail, then having clear errors would be nice. Ideally, we could write out decoders once and only pay for the overhead when the failure happens. Since decoding happens within a Monad, and we want to swap in the implementation depending on the situation we're in, we need to use a type class. In this library, `IsJsonDecoder f` describes some monadic type `f` that can be used to produce a pretty-printed error message or ignore such things and just be a wrapper over `Maybe`. This then allows the following workflow:
+When Json decoding succeeds, any overhead from the possible error message is pointless. But when it does fail, then having clear errors would be nice. Ideally, we could write out decoders once and only pay for the overhead when the failure happens. Since decoding happens within a Monad, and we want to swap in the implementation depending on the situation we're in, we need to use a type class. For example, a hypothetical type class `IsJsonDecoder f` describes some monadic type `f` that can be used to produce a pretty-printed error message or ignore such things and just be a wrapper over `Maybe`. This then allows the following workflow:
 1. write a decoder once
 1. run the codec using an error type like `Maybe` above to prioritize speed
 1. upon failure run the decoder again using an information-rich error
+
+Unfortunately, because we don't have specialization in PureScript, the above approach does not work. So, this library tries to get the best of both worlds via `Either DecodeError`.
+
+## DecodeError
+
+Via [the benchmarks](./bench/results), I learned
+- using an error type of `String`, adding path information via`lmap (append $ "." <> show key)`, and printing via `identity` is slower than other methods
+- using an error type of `List String`, adding path information via `lmap (Cons $ "." <> show key)`, and printing via `fold` is slower than other methods
+- using an error type of `DecodeError`, adding path information via `lmap (AtKey key)`, and printing via `printDecodeError` is the current fastest known method if one wants errors. If errors are not desired then `Maybe a` is the fastest decoding monad.

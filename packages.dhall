@@ -1,6 +1,6 @@
 let upstream =
-      https://github.com/purescript/package-sets/releases/download/psc-0.15.10-20230820/packages.dhall
-        sha256:f002e9182da135bb48f3f1937830c57a66a422e21fc03fa0922755e8b444de66
+      https://github.com/purescript/package-sets/releases/download/psc-0.15.7-20230408/packages.dhall
+        sha256:eafb4e5bcbc2de6172e9457f321764567b33bc7279bd6952468d0d422aa33948
 
 in  upstream
   with benchotron =
@@ -73,17 +73,17 @@ in  upstream
     }
   with json =
     { dependencies =
-    [ "prelude"
-    , "functions"
-    , "integers"
-    , "maybe"
-    , "either"
-    , "tuples"
-    , "foldable-traversable"
-    , "gen"
-    , "strings"
-    , "unfoldable"
-    ]
+      [ "prelude"
+      , "functions"
+      , "integers"
+      , "maybe"
+      , "either"
+      , "tuples"
+      , "foldable-traversable"
+      , "gen"
+      , "strings"
+      , "unfoldable"
+      ]
     , repo = "https://github.com/purescript/purescript-json.git"
     , version = "b06c9d5bddaf4dc11b09b94bc31c379722396648"
     }

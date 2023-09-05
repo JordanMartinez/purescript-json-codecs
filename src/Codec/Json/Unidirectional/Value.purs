@@ -435,8 +435,8 @@ toArray2
 toArray2 x a' b' = toJArray >=> case _ of
   [ a, b ] ->
     x
-      <$> a' a
-      <*> b' b
+      <$> (lmap (AtIndex 0) $ a' a)
+      <*> (lmap (AtIndex 1) $ b' b)
   _ -> Left $ DecodeError "Expected array of length 2"
 
 fromArray3 :: Json -> Json -> Json -> Json
@@ -453,9 +453,9 @@ toArray3
 toArray3 x a' b' c' = toJArray >=> case _ of
   [ a, b, c ] ->
     x
-      <$> a' a
-      <*> b' b
-      <*> c' c
+      <$> (lmap (AtIndex 0) $ a' a)
+      <*> (lmap (AtIndex 1) $ b' b)
+      <*> (lmap (AtIndex 2) $ c' c)
   _ -> Left $ DecodeError "Expected array of length 3"
 
 fromArray4 :: Json -> Json -> Json -> Json -> Json
@@ -473,10 +473,10 @@ toArray4
 toArray4 x a' b' c' d' = toJArray >=> case _ of
   [ a, b, c, d ] ->
     x
-      <$> a' a
-      <*> b' b
-      <*> c' c
-      <*> d' d
+      <$> (lmap (AtIndex 0) $ a' a)
+      <*> (lmap (AtIndex 1) $ b' b)
+      <*> (lmap (AtIndex 2) $ c' c)
+      <*> (lmap (AtIndex 3) $ d' d)
   _ -> Left $ DecodeError "Expected array of length 4"
 
 fromArray5 :: Json -> Json -> Json -> Json -> Json -> Json
@@ -495,11 +495,11 @@ toArray5
 toArray5 x a' b' c' d' e' = toJArray >=> case _ of
   [ a, b, c, d, e ] ->
     x
-      <$> a' a
-      <*> b' b
-      <*> c' c
-      <*> d' d
-      <*> e' e
+      <$> (lmap (AtIndex 0) $ a' a)
+      <*> (lmap (AtIndex 1) $ b' b)
+      <*> (lmap (AtIndex 2) $ c' c)
+      <*> (lmap (AtIndex 3) $ d' d)
+      <*> (lmap (AtIndex 4) $ e' e)
   _ -> Left $ DecodeError "Expected array of length 5"
 
 fromNonEmptyArray :: forall a. (a -> Json) -> NonEmptyArray a -> Json

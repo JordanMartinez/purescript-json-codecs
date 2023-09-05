@@ -3,10 +3,10 @@ module Snapshot.ToRecordInlines where
 
 import Prelude
 
-import Codec.Json.Decoders.SpeedyDecoder (SpeedyDecoder, runSpeedyDecoder)
-import Codec.Json.IsJsonDecoder (class IsJsonDecoder)
 import Codec.Json.Unidirectional.Value (toBoolean, toInt, toOption, toOptionArray, toOptionRename, toRecord, toRequired, toRequiredRename, toString)
 import Data.Argonaut.Core (Json)
+import Data.Either (Either)
+import Data.List (List)
 import Data.Maybe (Maybe)
 
 type Foo =
@@ -15,24 +15,24 @@ type Foo =
   , opt :: Maybe String
   , optRen :: Maybe String
   , optArr :: Array String
-  , nested :: 
+  , nested ::
       { other :: Boolean
       , foo :: Maybe Boolean
       }
   }
 
-decoder :: forall @f. IsJsonDecoder f => Json -> f Foo
-decoder = toRecord @f
-  { req: toRequired @f toInt
-  , reqRen: toRequiredRename @f "otherName" toString
-  , opt: toOption @f toString
-  , optRen: toOptionRename @f "otherName2" toString
-  , optArr: toOptionArray @f toString
-  , nested: toRequired @f $ toRecord @f
-      { other: toRequired @f toBoolean
-      , foo: toOption @f toBoolean
+decoder :: Json -> Either (List String) Foo
+decoder = toRecord
+  { req: toRequired toInt
+  , reqRen: toRequiredRename "otherName" toString
+  , opt: toOption toString
+  , optRen: toOptionRename "otherName2" toString
+  , optArr: toOptionArray toString
+  , nested: toRequired $ toRecord
+      { other: toRequired toBoolean
+      , foo: toOption toBoolean
       }
   }
 
-test :: Json -> Maybe Foo
-test j = runSpeedyDecoder $ decoder @SpeedyDecoder j
+test :: Json -> Either (List String) Foo
+test j = decoder j

@@ -1,30 +1,11 @@
--- @inline export Codec.Json.Unidirectional.Value.toVoid arity=1
--- @inline export Codec.Json.Unidirectional.Value.refine arity=1
--- @inline export Codec.Json.Unidirectional.Value.toJNull arity=1
--- @inline export Codec.Json.Unidirectional.Value.toNullDefaultOrA arity=1
--- @inline export Codec.Json.Unidirectional.Value.toNullNothingOrJust arity=1
--- @inline export Codec.Json.Unidirectional.Value.toNullable arity=1
--- @inline export Codec.Json.Unidirectional.Value.toBoolean arity=1
--- @inline export Codec.Json.Unidirectional.Value.toNumber arity=1
--- @inline export Codec.Json.Unidirectional.Value.toInt arity=1
--- @inline export Codec.Json.Unidirectional.Value.toString arity=1
--- @inline export Codec.Json.Unidirectional.Value.toChar arity=1
--- @inline export Codec.Json.Unidirectional.Value.toCodePoint arity=1
--- @inline export Codec.Json.Unidirectional.Value.toNonEmptyString arity=1
--- @inline export Codec.Json.Unidirectional.Value.toJArray arity=1
+-- @inline export Codec.Json.Unidirectional.Value.withIndex arity=1
+-- @inline export Codec.Json.Unidirectional.Value.wthKey arity=1
+-- @inline export Codec.Json.Unidirectional.Value.withAttempts arity=2
+-- @inline export Codec.Json.Unidirectional.Value.altAccumulateLazy arity=2
 -- @inline export Codec.Json.Unidirectional.Value.underIndex' arity=1
 -- @inline export Codec.Json.Unidirectional.Value.underIndex arity=1
--- @inline export Codec.Json.Unidirectional.Value.toArray arity=1
--- @inline export Codec.Json.Unidirectional.Value.toArray2 arity=1
--- @inline export Codec.Json.Unidirectional.Value.toArray3 arity=1
--- @inline export Codec.Json.Unidirectional.Value.toArray4 arity=1
--- @inline export Codec.Json.Unidirectional.Value.toArray5 arity=1
--- @inline export Codec.Json.Unidirectional.Value.toNonEmptyArray arity=1
--- @inline export Codec.Json.Unidirectional.Value.toJObject arity=1
 -- @inline export Codec.Json.Unidirectional.Value.underKey arity=1
 -- @inline export Codec.Json.Unidirectional.Value.underKey' arity=1
--- @inline export Codec.Json.Unidirectional.Value.toObject arity=1
--- @inline export Codec.Json.Unidirectional.Value.toObjSingleton arity=1
 -- @inline export Codec.Json.Unidirectional.Value.toIdentity arity=1
 -- @inline export Codec.Json.Unidirectional.Value.toMaybeTagged arity=1
 -- @inline export Codec.Json.Unidirectional.Value.toEither arity=1
@@ -38,24 +19,32 @@
 -- @inline export Codec.Json.Unidirectional.Value.toNonEmptySet arity=1
 -- @inline export Codec.Json.Unidirectional.Value.toEither arity=1
 -- @inline export Codec.Json.Unidirectional.Value.fromRecord arity=2
--- @inline export Codec.Json.Unidirectional.Value.toRecord arity=3
+-- @inline export Codec.Json.Unidirectional.Value.toRecord arity=2
 -- @inline export Codec.Json.Unidirectional.Value.fromRecordN arity=3
--- @inline export Codec.Json.Unidirectional.Value.toRecordN arity=4
+-- @inline export Codec.Json.Unidirectional.Value.toRecordN arity=3
 -- @inline export Codec.Json.Unidirectional.Value.toStatic arity=1
+-- @inline export Codec.Json.Unidirectional.Value.fromRequired arity=1
 -- @inline export Codec.Json.Unidirectional.Value.toRequired arity=1
--- @inline export Codec.Json.Unidirectional.Value.toRequiredRename arity=1
+-- @inline export Codec.Json.Unidirectional.Value.fromRequiredRename arity=2
+-- @inline export Codec.Json.Unidirectional.Value.toRequiredRename arity=2
+-- @inline export Codec.Json.Unidirectional.Value.fromOption arity=1
 -- @inline export Codec.Json.Unidirectional.Value.toOption arity=1
--- @inline export Codec.Json.Unidirectional.Value.toOptionRename arity=1
--- @inline export Codec.Json.Unidirectional.Value.toOptionDefault arity=1
--- @inline export Codec.Json.Unidirectional.Value.toOptionDefaultRename arity=1
+-- @inline export Codec.Json.Unidirectional.Value.fromOptionRename arity=2
+-- @inline export Codec.Json.Unidirectional.Value.toOptionRename arity=2
+-- @inline export Codec.Json.Unidirectional.Value.toOptionDefault arity=2
+-- @inline export Codec.Json.Unidirectional.Value.toOptionDefaultRename arity=3
+-- @inline export Codec.Json.Unidirectional.Value.fromOptionArray arity=1
 -- @inline export Codec.Json.Unidirectional.Value.toOptionArray arity=1
--- @inline export Codec.Json.Unidirectional.Value.toOptionAssocArray arity=1
--- @inline export Codec.Json.Unidirectional.Value.toRecordObjNil(..).toRecordObj arity=1
--- @inline export Codec.Json.Unidirectional.Value.toRecordObjCons(..).toRecordObj arity=7
+-- @inline export Codec.Json.Unidirectional.Value.fromOptionAssocArray arity=2
+-- @inline export Codec.Json.Unidirectional.Value.toOptionAssocArray arity=2
+-- @inline export Codec.Json.Unidirectional.Value.toRecordObjNil(..).toRecordObj always
+-- @inline export Codec.Json.Unidirectional.Value.toRecordObjCons(..).toRecordObj arity=5
+-- @inline export Codec.Json.Unidirectional.Value.toRecordObjFailure(..).fromRecordObj always
+-- @inline export Codec.Json.Unidirectional.Value.fromRecordObjNil(..).fromRecordObj always
 -- @inline export Codec.Json.Unidirectional.Value.fromRecordObjCons(..).fromRecordObj arity=5
+-- @inline export Codec.Json.Unidirectional.Value.fromRecordObjFailure(..).fromRecordObj always
 module Codec.Json.Unidirectional.Value
-  ( refine
-  , coerce1
+  ( coerce1
   , fromVoid
   , toVoid
   , fromUnit
@@ -156,20 +145,19 @@ module Codec.Json.Unidirectional.Value
 
 import Prelude
 
-import Codec.Json.IsJsonDecoder (class IsJsonDecoder, addCtorHint, addSubtermHint, addTypeHint, altAccumulateLazy, onMissingField, onMissingIndex, onStructureError, onTypeMismatch, onUnrefinableValue, withAttempts, withIndex, withKey, withSubtermHint, withTypeHint)
 import Data.Argonaut.Core (Json, caseJson)
 import Data.Argonaut.Core as Json
 import Data.Array as Array
 import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Array.NonEmpty as NEA
+import Data.Bifunctor (lmap)
 import Data.Bitraversable (bitraverse)
 import Data.Either (Either(..), either, note)
 import Data.Foldable (foldl)
 import Data.FoldableWithIndex (foldlWithIndex)
-import Data.Function.Uncurried (runFn2)
 import Data.Identity (Identity(..))
 import Data.Int as Int
-import Data.List (List)
+import Data.List (List(..))
 import Data.List as List
 import Data.List.NonEmpty as NEL
 import Data.List.Types (NonEmptyList)
@@ -197,7 +185,7 @@ import Data.TraversableWithIndex (traverseWithIndex)
 import Data.Tuple (Tuple(..))
 import Foreign.Object (Object)
 import Foreign.Object as Object
-import Partial.Unsafe (unsafeCrashWith)
+import Partial.Unsafe (unsafeCrashWith, unsafePartial)
 import Prim.Coerce (class Coercible)
 import Prim.Row as Row
 import Prim.RowList (class RowToList, RowList)
@@ -208,29 +196,37 @@ import Safe.Coerce (coerce)
 import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
 
+withIndex :: forall a. Int -> Either (List String) a -> Either (List String) a
+withIndex idx = lmap (Cons $ "[" <> show idx <> "]")
+
+withKey :: forall a. String -> Either (List String) a -> Either (List String) a
+withKey key = lmap (Cons $ "." <> show key)
+
+withAttempts :: forall a j b. NonEmptyArray a -> (a -> j -> Either (List String) b) -> j -> Either (List String) b
+withAttempts decoders fn j = go 0
+  where
+  lastIdx = NEA.length decoders - 1
+  go idx = case fn (unsafePartial $ NEA.unsafeIndex decoders idx) j of
+    x@(Right _) -> x
+    x@(Left _)
+      | idx == lastIdx -> x
+      | otherwise -> go (idx + 1)
+
+altAccumulateLazy :: forall a. (Json -> Either (List String) a) -> (Json -> Either (List String) a) -> Json -> Either (List String) a
+altAccumulateLazy f g j = case f j of
+  x@(Right _) -> x
+  (Left e1) -> case g j of
+    x@(Right _) -> x
+    Left e2 -> Left $ e1 <> e2
+
 fromVoid :: Void -> Json
 fromVoid = absurd
 
-toVoid :: forall @f. IsJsonDecoder f => Json -> f Void
-toVoid _ = addTypeHint "Void" $ onUnrefinableValue "Decoding a value to Void is impossible"
+toVoid :: Json -> Either (List String) Void
+toVoid _ = Left $ pure "Decoding a value to Void is impossible"
 
-coerce1 :: forall @f n a. Coercible (f n) (f a) => (a -> n) -> f a -> f n
+coerce1 :: forall n a. Coercible n a => (a -> n) -> Either (List String) a -> Either (List String) n
 coerce1 _ = coerce
-
--- | ```
--- | import Data.String.NonEmpty as NES
--- |
--- | toRefined (note "Received empty string" <<< NES.fromString) toString
--- | ```
-refine
-  :: forall @f a b
-   . IsJsonDecoder f
-  => (a -> Either String b)
-  -> a
-  -> f b
-refine f a = case f a of
-  Left e -> onUnrefinableValue e
-  Right b -> pure b
 
 fromJNull :: Json
 fromJNull = Json.jsonNull
@@ -238,60 +234,58 @@ fromJNull = Json.jsonNull
 fromUnit :: Unit -> Json
 fromUnit = const fromJNull
 
-toJNull :: forall @f. IsJsonDecoder f => Json -> f Unit
+toJNull :: Json -> Either (List String) Unit
 toJNull json =
   caseJson
     pure
-    (\_ -> runFn2 onTypeMismatch "Null" "Boolean")
-    (\_ -> runFn2 onTypeMismatch "Null" "Number")
-    (\_ -> runFn2 onTypeMismatch "Null" "String")
-    (\_ -> runFn2 onTypeMismatch "Null" "Array")
-    (\_ -> runFn2 onTypeMismatch "Null" "Object")
+    (\_ -> Left $ pure "Expected a value of type Null but got Boolean")
+    (\_ -> Left $ pure "Expected a value of type Null but got Number")
+    (\_ -> Left $ pure "Expected a value of type Null but got String")
+    (\_ -> Left $ pure "Expected a value of type Null but got Array")
+    (\_ -> Left $ pure "Expected a value of type Null but got Object")
     json
 
-toNullDefaultOrA :: forall @f a. IsJsonDecoder f => a -> (Json -> f a) -> Json -> f a
-toNullDefaultOrA def f =
-  altAccumulateLazy (\j -> def <$ toJNull j) f
+toNullDefaultOrA :: forall a. a -> (Json -> Either (List String) a) -> Json -> Either (List String) a
+toNullDefaultOrA def f = altAccumulateLazy (\j -> def <$ toJNull j) f
 
 fromNullNothingOrJust :: forall a. (a -> Json) -> Maybe a -> Json
 fromNullNothingOrJust f = maybe Json.jsonNull f
 
-toNullNothingOrJust :: forall @f a. IsJsonDecoder f => (Json -> f a) -> Json -> f (Maybe a)
+toNullNothingOrJust :: forall a. (Json -> Either (List String) a) -> Json -> Either (List String) (Maybe a)
 toNullNothingOrJust f = toNullDefaultOrA Nothing (map Just <$> f)
 
 fromNullable :: forall a. (a -> Json) -> Nullable a -> Json
 fromNullable fromA = toMaybe >>> fromNullNothingOrJust fromA
 
-toNullable :: forall @f a. IsJsonDecoder f => (Json -> f a) -> Json -> f (Nullable a)
-toNullable toA = withTypeHint "Nullable" $
-  altAccumulateLazy (\j -> null <$ toJNull j) (\j -> notNull <$> toA j)
+toNullable :: forall a. (Json -> Either (List String) a) -> Json -> Either (List String) (Nullable a)
+toNullable toA = altAccumulateLazy (\j -> null <$ toJNull j) (\j -> notNull <$> toA j)
 
 fromBoolean :: Boolean -> Json
 fromBoolean = Json.fromBoolean
 
-toBoolean :: forall @f. IsJsonDecoder f => Json -> f Boolean
+toBoolean :: Json -> Either (List String) Boolean
 toBoolean json =
   caseJson
-    (\_ -> runFn2 onTypeMismatch "Boolean" "Null")
+    (\_ -> Left $ pure "Expected a value of type Boolean but got Null")
     pure
-    (\_ -> runFn2 onTypeMismatch "Boolean" "Number")
-    (\_ -> runFn2 onTypeMismatch "Boolean" "String")
-    (\_ -> runFn2 onTypeMismatch "Boolean" "Array")
-    (\_ -> runFn2 onTypeMismatch "Boolean" "Object")
+    (\_ -> Left $ pure "Expected a value of type Boolean but got Number")
+    (\_ -> Left $ pure "Expected a value of type Boolean but got String")
+    (\_ -> Left $ pure "Expected a value of type Boolean but got Array")
+    (\_ -> Left $ pure "Expected a value of type Boolean but got Object")
     json
 
 fromNumber :: Number -> Json
 fromNumber = Json.fromNumber
 
-toNumber :: forall @f. IsJsonDecoder f => Json -> f Number
+toNumber :: Json -> Either (List String) Number
 toNumber json =
   caseJson
-    (\_ -> runFn2 onTypeMismatch "Number" "Null")
-    (\_ -> runFn2 onTypeMismatch "Number" "Boolean")
+    (\_ -> Left $ pure "Expected a value of type Number but got Null")
+    (\_ -> Left $ pure "Expected a value of type Number but got Boolean")
     pure
-    (\_ -> runFn2 onTypeMismatch "Number" "String")
-    (\_ -> runFn2 onTypeMismatch "Number" "Array")
-    (\_ -> runFn2 onTypeMismatch "Number" "Object")
+    (\_ -> Left $ pure "Expected a value of type Number but got String")
+    (\_ -> Left $ pure "Expected a value of type Number but got Array")
+    (\_ -> Left $ pure "Expected a value of type Number but got Object")
     json
 
 fromInt :: Int -> Json
@@ -300,127 +294,118 @@ fromInt = Int.toNumber >>> fromNumber
 fromString :: String -> Json
 fromString = Json.fromString
 
-toInt :: forall @f. IsJsonDecoder f => Json -> f Int
-toInt = withTypeHint "Int"
-  $ toNumber >=> refine (\n -> note ("Could not convert Number to Int: " <> show n) $ Int.fromNumber n)
+toInt :: Json -> Either (List String) Int
+toInt = toNumber >=> (\n -> note (pure $ "could not convert Number to Int: " <> show n) $ Int.fromNumber n)
 
-toString :: forall @f. IsJsonDecoder f => Json -> f String
+toString :: Json -> Either (List String) String
 toString json =
   caseJson
-    (\_ -> runFn2 onTypeMismatch "String" "Null")
-    (\_ -> runFn2 onTypeMismatch "String" "Boolean")
-    (\_ -> runFn2 onTypeMismatch "String" "Number")
+    (\_ -> Left $ pure "Expected a value of type String but got Null")
+    (\_ -> Left $ pure "Expected a value of type String but got Boolean")
+    (\_ -> Left $ pure "Expected a value of type String but got Number")
     pure
-    (\_ -> runFn2 onTypeMismatch "String" "Array")
-    (\_ -> runFn2 onTypeMismatch "String" "Object")
+    (\_ -> Left $ pure "Expected a value of type String but got Array")
+    (\_ -> Left $ pure "Expected a value of type String but got Object")
     json
 
 fromChar :: Char -> Json
 fromChar = SCU.singleton >>> fromString
 
-toChar :: forall @f. IsJsonDecoder f => Json -> f Char
-toChar = withTypeHint "Char"
-  $ toString >=> refine (note "Could not get char at index 0 in String" <<< charAt 0)
+toChar :: Json -> Either (List String) Char
+toChar = toString >=> (note (pure "Could not get char at index 0 in String") <<< charAt 0)
 
 fromCodePoint :: CodePoint -> Json
 fromCodePoint = SCP.singleton >>> fromString
 
-toCodePoint
-  :: forall @f
-   . IsJsonDecoder f
-  => Json
-  -> f CodePoint
-toCodePoint = withTypeHint "CodePoint" $
-  toString
-    >=> refine (\s -> note ("Could not get code point from String: " <> show s) $ codePointAt 0 s)
+toCodePoint :: Json -> Either (List String) CodePoint
+toCodePoint = toString >=> (\s -> note (pure $ "Could not get code point from String: " <> show s) $ codePointAt 0 s)
 
 fromNonEmptyString :: NonEmptyString -> Json
 fromNonEmptyString (NonEmptyString s) = fromString s
 
-toNonEmptyString :: forall @f. IsJsonDecoder f => Json -> f NonEmptyString
-toNonEmptyString = withTypeHint "NonEmptyString"
-  $ toString >=> refine (note "Received empty string" <<< NonEmptyString.fromString)
+toNonEmptyString :: Json -> Either (List String) NonEmptyString
+toNonEmptyString = toString >=> (note (pure $ "Received empty string") <<< NonEmptyString.fromString)
 
 fromJArray :: Array Json -> Json
 fromJArray = Json.fromArray
 
-toJArray :: forall @f. IsJsonDecoder f => Json -> f (Array Json)
+toJArray :: Json -> Either (List String) (Array Json)
 toJArray json =
   caseJson
-    (\_ -> runFn2 onTypeMismatch "Array" "Null")
-    (\_ -> runFn2 onTypeMismatch "Array" "Boolean")
-    (\_ -> runFn2 onTypeMismatch "Array" "Number")
-    (\_ -> runFn2 onTypeMismatch "Array" "String")
+    (\_ -> Left $ pure "Expected a value of type Array but got Null")
+    (\_ -> Left $ pure "Expected a value of type Array but got Boolean")
+    (\_ -> Left $ pure "Expected a value of type Array but got Number")
+    (\_ -> Left $ pure "Expected a value of type Array but got String")
     pure
-    (\_ -> runFn2 onTypeMismatch "Array" "Object")
+    (\_ -> Left $ pure "Expected a value of type Array but got Object")
     json
 
-underIndex' :: forall @f a. IsJsonDecoder f => Int -> (Maybe Json -> f a) -> Array Json -> f a
-underIndex' idx f arr = f $ Array.index arr idx
+underIndex' :: forall a. Int -> (Maybe Json -> Either (List String) a) -> Array Json -> Either (List String) a
+underIndex' idx f arr = do
+  let res = Array.index arr idx
+  case res of
+    Nothing -> f res
+    Just _ -> withIndex idx $ f res
 
-underIndex :: forall @f a. IsJsonDecoder f => Int -> (Json -> f a) -> Array Json -> f a
+underIndex :: forall a. Int -> (Json -> Either (List String) a) -> Array Json -> Either (List String) a
 underIndex idx f arr = arr # underIndex' idx case _ of
-  Nothing -> onMissingIndex idx
-  Just j -> withIndex idx f j
+  Nothing -> Left $ pure $ "Missing index: " <> show idx
+  Just j -> withIndex idx $ f j
 
 fromArray :: forall a. (a -> Json) -> Array a -> Json
 fromArray fromA = map fromA >>> fromJArray
 
-toArray :: forall @f a. IsJsonDecoder f => (Json -> f a) -> Json -> f (Array a)
-toArray toElem = withTypeHint "Array" $
-  toJArray >=> traverseWithIndex (flip withIndex toElem)
+toArray :: forall a. (Json -> Either (List String) a) -> Json -> Either (List String) (Array a)
+toArray toElem = toJArray >=> traverseWithIndex (\i j -> withIndex i $ toElem j)
 
 fromArray2 :: Json -> Json -> Json
 fromArray2 a b = fromJArray [ a, b ]
 
 toArray2
-  :: forall @f a b x
-   . IsJsonDecoder f
-  => (a -> b -> x)
-  -> (Json -> f a)
-  -> (Json -> f b)
+  :: forall a b x
+   . (a -> b -> x)
+  -> (Json -> Either (List String) a)
+  -> (Json -> Either (List String) b)
   -> Json
-  -> f x
+  -> Either (List String) x
 toArray2 x a' b' = toJArray >=> case _ of
   [ a, b ] ->
     x
       <$> a' a
       <*> b' b
-  arr -> onUnrefinableValue $ "Expected array of length 2 but array had length " <> show (Array.length arr)
+  arr -> Left $ pure $ "Expected array of length 2 but array had length " <> show (Array.length arr)
 
 fromArray3 :: Json -> Json -> Json -> Json
 fromArray3 a b c = fromJArray [ a, b, c ]
 
 toArray3
-  :: forall @f a b c x
-   . IsJsonDecoder f
-  => (a -> b -> c -> x)
-  -> (Json -> f a)
-  -> (Json -> f b)
-  -> (Json -> f c)
+  :: forall a b c x
+   . (a -> b -> c -> x)
+  -> (Json -> Either (List String) a)
+  -> (Json -> Either (List String) b)
+  -> (Json -> Either (List String) c)
   -> Json
-  -> f x
+  -> Either (List String) x
 toArray3 x a' b' c' = toJArray >=> case _ of
   [ a, b, c ] ->
     x
       <$> a' a
       <*> b' b
       <*> c' c
-  arr -> onUnrefinableValue $ "Expected array of length 3 but array had length " <> show (Array.length arr)
+  arr -> Left $ pure $ "Expected array of length 3 but array had length " <> show (Array.length arr)
 
 fromArray4 :: Json -> Json -> Json -> Json -> Json
 fromArray4 a b c d = fromJArray [ a, b, c, d ]
 
 toArray4
-  :: forall @f a b c d x
-   . IsJsonDecoder f
-  => (a -> b -> c -> d -> x)
-  -> (Json -> f a)
-  -> (Json -> f b)
-  -> (Json -> f c)
-  -> (Json -> f d)
+  :: forall a b c d x
+   . (a -> b -> c -> d -> x)
+  -> (Json -> Either (List String) a)
+  -> (Json -> Either (List String) b)
+  -> (Json -> Either (List String) c)
+  -> (Json -> Either (List String) d)
   -> Json
-  -> f x
+  -> Either (List String) x
 toArray4 x a' b' c' d' = toJArray >=> case _ of
   [ a, b, c, d ] ->
     x
@@ -428,22 +413,21 @@ toArray4 x a' b' c' d' = toJArray >=> case _ of
       <*> b' b
       <*> c' c
       <*> d' d
-  arr -> onUnrefinableValue $ "Expected array of length 4 but array had length " <> show (Array.length arr)
+  arr -> Left $ pure $ "Expected array of length 4 but array had length " <> show (Array.length arr)
 
 fromArray5 :: Json -> Json -> Json -> Json -> Json -> Json
 fromArray5 a b c d e = fromJArray [ a, b, c, d, e ]
 
 toArray5
-  :: forall @f a b c d e x
-   . IsJsonDecoder f
-  => (a -> b -> c -> d -> e -> x)
-  -> (Json -> f a)
-  -> (Json -> f b)
-  -> (Json -> f c)
-  -> (Json -> f d)
-  -> (Json -> f e)
+  :: forall a b c d e x
+   . (a -> b -> c -> d -> e -> x)
+  -> (Json -> Either (List String) a)
+  -> (Json -> Either (List String) b)
+  -> (Json -> Either (List String) c)
+  -> (Json -> Either (List String) d)
+  -> (Json -> Either (List String) e)
   -> Json
-  -> f x
+  -> Either (List String) x
 toArray5 x a' b' c' d' e' = toJArray >=> case _ of
   [ a, b, c, d, e ] ->
     x
@@ -452,49 +436,50 @@ toArray5 x a' b' c' d' e' = toJArray >=> case _ of
       <*> c' c
       <*> d' d
       <*> e' e
-  arr -> onUnrefinableValue $ "Expected array of length 5 but array had length " <> show (Array.length arr)
+  arr -> Left $ pure $ "Expected array of length 5 but array had length " <> show (Array.length arr)
 
 fromNonEmptyArray :: forall a. (a -> Json) -> NonEmptyArray a -> Json
 fromNonEmptyArray fromA = NEA.toArray >>> fromArray fromA
 
-toNonEmptyArray :: forall @f a. IsJsonDecoder f => (Json -> f a) -> Json -> f (NonEmptyArray a)
-toNonEmptyArray toElem = withTypeHint "NonEmptyArray" $
-  toArray toElem
-    >=> refine (note "Received empty array" <<< NEA.fromArray)
+toNonEmptyArray :: forall a. (Json -> Either (List String) a) -> Json -> Either (List String) (NonEmptyArray a)
+toNonEmptyArray toElem = toArray toElem >=> (note (pure "Received empty array") <<< NEA.fromArray)
 
 fromJObject :: Object Json -> Json
 fromJObject = Json.fromObject
 
-toJObject :: forall @f. IsJsonDecoder f => Json -> f (Object Json)
+toJObject :: Json -> Either (List String) (Object Json)
 toJObject json =
   caseJson
-    (\_ -> runFn2 onTypeMismatch "Object" "Null")
-    (\_ -> runFn2 onTypeMismatch "Object" "Boolean")
-    (\_ -> runFn2 onTypeMismatch "Object" "Number")
-    (\_ -> runFn2 onTypeMismatch "Object" "String")
-    (\_ -> runFn2 onTypeMismatch "Object" "Array")
+    (\_ -> Left $ pure "Expected a value of type Object but got Null")
+    (\_ -> Left $ pure "Expected a value of type Object but got Boolean")
+    (\_ -> Left $ pure "Expected a value of type Object but got Number")
+    (\_ -> Left $ pure "Expected a value of type Object but got String")
+    (\_ -> Left $ pure "Expected a value of type Object but got Array")
     pure
     json
 
-underKey' :: forall @f a. IsJsonDecoder f => String -> (Maybe Json -> f a) -> Object Json -> f a
-underKey' key f obj = f $ Object.lookup key obj
+underKey' :: forall a. String -> (Maybe Json -> Either (List String) a) -> Object Json -> Either (List String) a
+underKey' key f obj = do
+  let res = Object.lookup key obj
+  case res of
+    Nothing -> f res
+    Just _ -> withKey key $ f res
 
-underKey :: forall @f a. IsJsonDecoder f => String -> (Json -> f a) -> Object Json -> f a
+underKey :: forall a. String -> (Json -> Either (List String) a) -> Object Json -> Either (List String) a
 underKey key f obj = obj # underKey' key case _ of
-  Nothing -> onMissingField key
-  Just j -> withKey key f j
+  Nothing -> Left $ pure $ "Missing key, " <> show key
+  Just j -> withKey key $ f j
 
 fromObject :: forall a. (a -> Json) -> Object a -> Json
 fromObject fromA = map fromA >>> fromJObject
 
-toObject :: forall @f a. IsJsonDecoder f => (Json -> f a) -> Json -> f (Object a)
-toObject toElem = withTypeHint "Object" $ toJObject >=>
-  traverseWithIndex (flip withKey toElem)
+toObject :: forall a. (Json -> Either (List String) a) -> Json -> Either (List String) (Object a)
+toObject toElem = toJObject >=> traverseWithIndex (\k j -> withKey k $ toElem j)
 
 fromObjSingleton :: String -> Json -> Json
 fromObjSingleton k v = fromJObject $ Object.singleton k v
 
-toObjSingleton :: forall f a. IsJsonDecoder f => String -> (Maybe Json -> f a) -> Json -> f a
+toObjSingleton :: forall a. String -> (Maybe Json -> Either (List String) a) -> Json -> Either (List String) a
 toObjSingleton k f = toJObject >=> (\j -> underKey' k f j)
 
 fromPropArray :: Array (Tuple String Json) -> Json
@@ -503,8 +488,8 @@ fromPropArray = fromJObject <<< Array.foldl (\acc (Tuple k v) -> Object.insert k
 fromIdentity :: forall a. (a -> Json) -> Identity a -> Json
 fromIdentity fromA (Identity a) = fromA a
 
-toIdentity :: forall @f a. Coercible (f a) (f (Identity a)) => IsJsonDecoder f => (Json -> f a) -> Json -> f (Identity a)
-toIdentity f = withTypeHint "Identity" $ coerce f
+toIdentity :: forall a. (Json -> Either (List String) a) -> Json -> Either (List String) (Identity a)
+toIdentity f = coerce f
 
 fromMaybeTagged :: forall a. (a -> Json) -> Maybe a -> Json
 fromMaybeTagged fromA =
@@ -513,15 +498,15 @@ fromMaybeTagged fromA =
   where
   tagged tag j = Object.fromFoldable [ Tuple "tag" $ fromString tag, Tuple "value" j ]
 
-toMaybeTagged :: forall @f a. IsJsonDecoder f => (Json -> f a) -> Json -> f (Maybe a)
-toMaybeTagged toElem = withTypeHint "Maybe" $ toJObject >=> \jo -> do
+toMaybeTagged :: forall a. (Json -> Either (List String) a) -> Json -> Either (List String) (Maybe a)
+toMaybeTagged toElem = toJObject >=> \jo -> do
   tag <- jo # underKey "tag" toString
   case tag of
-    "Just" -> addCtorHint "Just" $ (map Just <$> underKey "value" toElem) jo
+    "Just" -> (map Just <$> underKey "value" toElem) jo
     "Nothing" ->
       pure Nothing
     unknownTag ->
-      onStructureError $ "Tag was not 'Just' or 'Nothing': " <> unknownTag
+      Left $ pure $ "Tag was not 'Just' or 'Nothing': " <> unknownTag
 
 fromEither :: forall a b. (a -> Json) -> (b -> Json) -> Either a b -> Json
 fromEither fromA fromB =
@@ -531,21 +516,18 @@ fromEither fromA fromB =
   tagged tag j = Object.fromFoldable [ Tuple "tag" $ fromString tag, Tuple "value" j ]
 
 toEither
-  :: forall @f a b
-   . IsJsonDecoder f
-  => (Json -> f a)
-  -> (Json -> f b)
+  :: forall a b
+   . (Json -> Either (List String) a)
+  -> (Json -> Either (List String) b)
   -> Json
-  -> f (Either a b)
-toEither toLeft toRight = withTypeHint "Either" $ toJObject >=> \jo -> do
+  -> Either (List String) (Either a b)
+toEither toLeft toRight = toJObject >=> \jo -> do
   tag <- underKey "tag" toString jo
   case tag of
-    "Left" -> addCtorHint "Left" do
-      Left <$> underKey "value" toLeft jo
-    "Right" -> addCtorHint "Right" do
-      Right <$> underKey "value" toRight jo
+    "Left" -> Left <$> underKey "value" toLeft jo
+    "Right" -> Right <$> underKey "value" toRight jo
     unknownTag ->
-      onStructureError $ "Tag was not 'Left' or 'Right': " <> unknownTag
+      Left $ pure $ "Tag was not 'Left' or 'Right': " <> unknownTag
 
 fromTuple :: forall a b. (a -> Json) -> (b -> Json) -> Tuple a b -> Json
 fromTuple fromA fromB (Tuple a b) =
@@ -555,17 +537,16 @@ fromTuple fromA fromB (Tuple a b) =
     ]
 
 toTuple
-  :: forall @f a b
-   . IsJsonDecoder f
-  => (Json -> f a)
-  -> (Json -> f b)
+  :: forall a b
+   . (Json -> Either (List String) a)
+  -> (Json -> Either (List String) b)
   -> Json
-  -> f (Tuple a b)
-toTuple toA toB = withTypeHint "Tuple" $
+  -> Either (List String) (Tuple a b)
+toTuple toA toB =
   toArray2
     Tuple
-    (withSubtermHint 0 $ withIndex 0 toA)
-    (withSubtermHint 1 $ withIndex 1 toB)
+    toA
+    toB
 
 fromThese :: forall a b. (a -> Json) -> (b -> Json) -> These a b -> Json
 fromThese fromA fromB =
@@ -582,25 +563,22 @@ fromThese fromA fromB =
   tagged tag j = Object.fromFoldable [ Tuple "tag" $ fromString tag, Tuple "value" j ]
 
 toThese
-  :: forall @f a b
-   . IsJsonDecoder f
-  => (Json -> f a)
-  -> (Json -> f b)
+  :: forall a b
+   . (Json -> Either (List String) a)
+  -> (Json -> Either (List String) b)
   -> Json
-  -> f (These a b)
-toThese toA toB = withTypeHint "These" $ toJObject >=> \jo -> do
+  -> Either (List String) (These a b)
+toThese toA toB = toJObject >=> \jo -> do
   tag <- underKey "tag" toString jo
   case tag of
-    "This" -> addCtorHint "This" do
-      This <$> underKey "value" toA jo
-    "That" -> addCtorHint "That" do
-      That <$> underKey "value" toB jo
-    "Both" -> addCtorHint "This" do
+    "This" -> This <$> underKey "value" toA jo
+    "That" -> That <$> underKey "value" toB jo
+    "Both" ->
       Both
-        <$> (addSubtermHint 0 $ underKey "this" toA jo)
-        <*> (addSubtermHint 1 $ underKey "that" toB jo)
+        <$> (underKey "this" toA jo)
+        <*> (underKey "that" toB jo)
     unknownTag ->
-      onStructureError $ "Tag was not 'This', 'That', or 'Both': " <> unknownTag
+      Left $ pure $ "Tag was not 'This', 'That', or 'Both': " <> unknownTag
 
 fromNonEmpty :: forall f a. (a -> Json) -> (f a -> Json) -> NonEmpty f a -> Json
 fromNonEmpty fromHead fromTail (NonEmpty a fa) =
@@ -611,40 +589,34 @@ fromNonEmpty fromHead fromTail (NonEmpty a fa) =
         ]
 
 toNonEmpty
-  :: forall @f g a
-   . IsJsonDecoder f
-  => (Json -> f a)
-  -> (Json -> f (g a))
-  -> (Json -> f (NonEmpty g a))
-toNonEmpty toHead toTail = withTypeHint "NonEmpty" $ toJObject >=> \jo ->
+  :: forall g a
+   . (Json -> Either (List String) a)
+  -> (Json -> Either (List String) (g a))
+  -> (Json -> Either (List String) (NonEmpty g a))
+toNonEmpty toHead toTail = toJObject >=> \jo ->
   NonEmpty
-    <$> (addSubtermHint 0 $ underKey "head" toHead jo)
-    <*> (addSubtermHint 0 $ underKey "tail" toTail jo)
+    <$> (underKey "head" toHead jo)
+    <*> (underKey "tail" toTail jo)
 
 fromList :: forall a. (a -> Json) -> List a -> Json
 fromList fromA = List.foldl (\arr -> Array.snoc arr <<< fromA) [] >>> fromJArray
 
 toList
-  :: forall @f a
-   . IsJsonDecoder f
-  => (Json -> f a)
+  :: forall a
+   . (Json -> Either (List String) a)
   -> Json
-  -> f (List a)
-toList toElem = withTypeHint "List" $
-  toArray toElem
-    >>> map List.fromFoldable
+  -> Either (List String) (List a)
+toList toElem = toArray toElem >>> map List.fromFoldable
 
 fromNonEmptyList :: forall a. (a -> Json) -> (NonEmptyList a -> Json)
 fromNonEmptyList fromA = NEL.foldl (\arr -> Array.snoc arr <<< fromA) [] >>> fromJArray
 
 toNonEmptyList
-  :: forall @f a
-   . IsJsonDecoder f
-  => (Json -> f a)
+  :: forall a
+   . (Json -> Either (List String) a)
   -> Json
-  -> f (NonEmptyList a)
-toNonEmptyList toA = withTypeHint "NonEmptyList" $
-  toList toA >=> refine (note "Received empty list" <<< NEL.fromList)
+  -> Either (List String) (NonEmptyList a)
+toNonEmptyList toA = toList toA >=> (note (pure $ "Received empty list") <<< NEL.fromList)
 
 fromMap :: forall k v. (k -> Json) -> (v -> Json) -> Map k v -> Json
 fromMap fromKey fromValue =
@@ -660,49 +632,43 @@ fromMap fromKey fromValue =
     >>> fromJArray
 
 toMap
-  :: forall @f k v
-   . IsJsonDecoder f
-  => Ord k
-  => (Json -> f k)
-  -> (Json -> f v)
+  :: forall k v
+   . Ord k
+  => (Json -> Either (List String) k)
+  -> (Json -> Either (List String) v)
   -> Json
-  -> f (Map k v)
-toMap toKey toValue = withTypeHint "Map"
-  $ map (map Map.fromFoldable)
-  $ toArray
-  $ toJObject >=> \jo ->
-      ( Tuple
-          <$> (underKey "key" toKey jo)
-          <*> (underKey "value" toValue jo)
-      )
+  -> Either (List String) (Map k v)
+toMap toKey toValue =
+  toArray
+    ( toJObject >=> \jo ->
+        ( Tuple
+            <$> (underKey "key" toKey jo)
+            <*> (underKey "value" toValue jo)
+        )
+    )
+    >>> map Map.fromFoldable
 
 fromSet :: forall a. (a -> Json) -> Set a -> Json
 fromSet fromA = foldl (\arr -> Array.snoc arr <<< fromA) [] >>> fromJArray
 
 toSet
-  :: forall @f a
-   . IsJsonDecoder f
-  => Ord a
-  => (Json -> f a)
+  :: forall a
+   . Ord a
+  => (Json -> Either (List String) a)
   -> Json
-  -> f (Set a)
-toSet toA = withTypeHint "Set" do
-  toArray toA
-    >>> map Set.fromFoldable
+  -> Either (List String) (Set a)
+toSet toA = toArray toA >>> map Set.fromFoldable
 
 fromNonEmptySet :: forall a. (a -> Json) -> NonEmptySet a -> Json
 fromNonEmptySet fromA = NonEmptySet.toSet >>> fromSet fromA
 
 toNonEmptySet
-  :: forall @f a
-   . IsJsonDecoder f
-  => Ord a
-  => (Json -> f a)
+  :: forall a
+   . Ord a
+  => (Json -> Either (List String) a)
   -> Json
-  -> f (NonEmptySet a)
-toNonEmptySet toA = withTypeHint "NonEmptySet" $
-  toArray toA
-    >=> refine (note "Received empty set" <<< NonEmptySet.fromSet <<< Set.fromFoldable)
+  -> Either (List String) (NonEmptySet a)
+toNonEmptySet toA = toArray toA >=> (note (pure $ "Received empty set") <<< NonEmptySet.fromSet <<< Set.fromFoldable)
 
 -- | All labels must have a function of type: `FromRecordCodec a`
 fromRecord
@@ -718,13 +684,12 @@ fromRecord codecs values = Json.fromObject
 -- | All labels must have a function of type: `ToRecordCodec a`
 -- | See `required`, `requiredRename`, `option`, `optionRename`.
 toRecord
-  :: forall @f codecs values codecsRL
+  :: forall codecs values codecsRL
    . RowToList codecs codecsRL
-  => ToRecordObj f codecsRL { | codecs } { | values }
-  => IsJsonDecoder f
+  => ToRecordObj codecsRL { | codecs } { | values }
   => { | codecs }
   -> Json
-  -> f { | values }
+  -> Either (List String) { | values }
 toRecord codecs = toJObject >=>
   toRecordObj (Proxy :: Proxy codecsRL) codecs
 
@@ -741,46 +706,44 @@ fromRecordN _ codecs = unwrap >>> fromRecord codecs
 
 -- | Variant of `toRecord` that coerces the `f { | r }` into a `f NewtypedR`
 toRecordN
-  :: forall @f n codecs values codecsRL
+  :: forall n codecs values codecsRL
    . RowToList codecs codecsRL
-  => ToRecordObj f codecsRL { | codecs } { | values }
-  => IsJsonDecoder f
-  => Coercible (f n) (f { | values })
+  => ToRecordObj codecsRL { | codecs } { | values }
   => Newtype n { | values }
   => ({ | values } -> n)
   -> { | codecs }
   -> Json
-  -> f n
+  -> Either (List String) n
 toRecordN f codecs = coerce1 f <<< toRecord codecs
 
 -- | Iterates through the underlying array.
 -- | - key: uses the `str` in `Just str` or the record label if `Nothing`
 -- | - f: the key used on the object and the result of looking up that key in the object
 -- | - return: `Nothing` if the decoding failed; `Just` if it succeeded.
-newtype ToRecordCodec f a = ToRecordCodec (Either a (NonEmptyArray (Tuple (Maybe String) (String -> Maybe Json -> f a))))
+newtype ToRecordCodec a = ToRecordCodec (Either a (NonEmptyArray (Tuple (Maybe String) (String -> Maybe Json -> Either (List String) a))))
 
 newtype FromRecordCodec a = FromRecordCodec (Tuple (Maybe String) (String -> a -> Maybe Json))
 
-toStatic :: forall @f a. IsJsonDecoder f => a -> ToRecordCodec f a
+toStatic :: forall a. a -> ToRecordCodec a
 toStatic a = ToRecordCodec $ Left a
 
 fromRequired :: forall a. (a -> Json) -> FromRecordCodec a
 fromRequired f = FromRecordCodec $ Tuple Nothing \_ -> Just <<< f
 
-toRequired :: forall @f a. IsJsonDecoder f => (Json -> f a) -> ToRecordCodec f a
+toRequired :: forall a. (Json -> Either (List String) a) -> ToRecordCodec a
 toRequired f = ToRecordCodec $ Right $ NEA.singleton $ Tuple Nothing \k j ->
   case j of
-    Nothing -> onMissingField k
-    Just j' -> withKey k f j'
+    Nothing -> Left $ pure $ "Missing field, " <> show k
+    Just j' -> withKey k $ f j'
 
 fromRequiredRename :: forall a. String -> (a -> Json) -> FromRecordCodec a
 fromRequiredRename str f = FromRecordCodec $ Tuple (Just str) \_ -> Just <<< f
 
-toRequiredRename :: forall @f a. IsJsonDecoder f => String -> (Json -> f a) -> ToRecordCodec f a
+toRequiredRename :: forall a. String -> (Json -> Either (List String) a) -> ToRecordCodec a
 toRequiredRename jsonLbl f = ToRecordCodec $ Right $ NEA.singleton $ Tuple (Just jsonLbl) \k j ->
   case j of
-    Nothing -> onMissingField k
-    Just j' -> withKey k f j'
+    Nothing -> Left $ pure $ "Missing field, " <> show k
+    Just j' -> withKey k $ f j'
 
 -- | If Nothing, does not add the coressponding key
 -- | If Just, adds the key and the encoded value to the JObject
@@ -788,33 +751,33 @@ fromOption :: forall a. (a -> Json) -> FromRecordCodec (Maybe a)
 fromOption f = FromRecordCodec $ Tuple Nothing \_ -> map f
 
 -- | Succeeds with Nothing if key wasn't found or with Just if key was found and value was succesfully tod.
-toOption :: forall @f a. IsJsonDecoder f => (Json -> f a) -> ToRecordCodec f (Maybe a)
+toOption :: forall a. (Json -> Either (List String) a) -> ToRecordCodec (Maybe a)
 toOption f = toOptionDefault Nothing (map Just <$> f)
 
 fromOptionRename :: forall a. String -> (a -> Json) -> FromRecordCodec (Maybe a)
 fromOptionRename str f = FromRecordCodec $ Tuple (Just str) \_ -> map f
 
-toOptionRename :: forall @f a. IsJsonDecoder f => String -> (Json -> f a) -> ToRecordCodec f (Maybe a)
+toOptionRename :: forall a. String -> (Json -> Either (List String) a) -> ToRecordCodec (Maybe a)
 toOptionRename rename f = toOptionDefaultRename rename Nothing (map Just <$> f)
 
-toOptionDefault :: forall @f a. IsJsonDecoder f => a -> (Json -> f a) -> ToRecordCodec f a
+toOptionDefault :: forall a. a -> (Json -> Either (List String) a) -> ToRecordCodec a
 toOptionDefault a f = ToRecordCodec $ Right $ NEA.singleton $ Tuple Nothing \k j ->
   case j of
     Nothing -> pure a
-    Just j' -> withKey k f j'
+    Just j' -> withKey k $ f j'
 
-toOptionDefaultRename :: forall @f a. IsJsonDecoder f => String -> a -> (Json -> f a) -> ToRecordCodec f a
+toOptionDefaultRename :: forall a. String -> a -> (Json -> Either (List String) a) -> ToRecordCodec a
 toOptionDefaultRename jsonLbl a f = ToRecordCodec $ Right $ NEA.singleton $ Tuple (Just jsonLbl) \k j ->
   case j of
     Nothing -> pure a
-    Just j' -> withKey k f j'
+    Just j' -> withKey k $ f j'
 
 fromOptionArray :: forall a. (a -> Json) -> FromRecordCodec (Array a)
 fromOptionArray f = FromRecordCodec $ Tuple Nothing \_ arr ->
   if Array.length arr == 0 then Nothing
   else Just $ fromArray f arr
 
-toOptionArray :: forall @f a. IsJsonDecoder f => (Json -> f a) -> ToRecordCodec f (Array a)
+toOptionArray :: forall a. (Json -> Either (List String) a) -> ToRecordCodec (Array a)
 toOptionArray f = ToRecordCodec $ Right $ NEA.singleton $ Tuple Nothing \_ j -> case j of
   Nothing -> pure []
   Just j' -> toArray f j'
@@ -824,28 +787,27 @@ fromOptionAssocArray k' v' = FromRecordCodec $ Tuple Nothing \_ arr ->
   if Array.length arr == 0 then Nothing
   else Just $ Json.fromObject $ Array.foldl (\acc (Tuple k v) -> Object.insert (k' k) (v' v) acc) Object.empty arr
 
-toOptionAssocArray :: forall @f a b. IsJsonDecoder f => (String -> f a) -> (Json -> f b) -> ToRecordCodec f (Array (Tuple a b))
+toOptionAssocArray :: forall a b. (String -> Either (List String) a) -> (Json -> Either (List String) b) -> ToRecordCodec (Array (Tuple a b))
 toOptionAssocArray k' v' = ToRecordCodec $ Right $ NEA.singleton $ Tuple Nothing \_ j -> case j of
   Nothing -> pure []
   Just j' -> (Object.toUnfoldable <$> toJObject j') >>= traverse (bitraverse k' v')
 
-class ToRecordObj :: (Type -> Type) -> RowList Type -> Type -> Type -> Constraint
-class ToRecordObj f codecsRL codecs values | codecsRL -> codecs values where
-  toRecordObj :: Proxy codecsRL -> codecs -> Object Json -> f values
+class ToRecordObj :: RowList Type -> Type -> Type -> Constraint
+class ToRecordObj codecsRL codecs values | codecsRL -> codecs values where
+  toRecordObj :: Proxy codecsRL -> codecs -> Object Json -> Either (List String) values
 
-instance toRecordObjNil :: (IsJsonDecoder f) => ToRecordObj f RL.Nil {} {} where
+instance toRecordObjNil :: ToRecordObj RL.Nil {} {} where
   toRecordObj _ _ _ = pure {}
 
 instance toRecordObjCons ::
-  ( ToRecordObj f codecTail { | cRest } { | vRest }
+  ( ToRecordObj codecTail { | cRest } { | vRest }
   , IsSymbol sym
   , Reflectable sym String
-  , IsJsonDecoder f
-  , Row.Cons sym (ToRecordCodec f a) cRest codecs
+  , Row.Cons sym (ToRecordCodec a) cRest codecs
   , Row.Cons sym a vRest values
   , Row.Lacks sym vRest
   ) =>
-  ToRecordObj f (RL.Cons sym (ToRecordCodec f a) codecTail) { | codecs } { | values } where
+  ToRecordObj (RL.Cons sym (ToRecordCodec a) codecTail) { | codecs } { | values } where
   toRecordObj _ codecs j = do
     rec <- toRecordObj (Proxy :: Proxy codecTail) codecsRest j
     a <- case keyDecoders of
@@ -861,16 +823,16 @@ instance toRecordObjCons ::
     _lbl = (Proxy :: Proxy sym)
     (ToRecordCodec keyDecoders) = Record.get _lbl codecs
     codecsRest = unsafeCoerce codecs
-else instance
+else instance toRecordObjFailure ::
   ( Fail
       ( Above
-          (Beside (Beside (Text "Expected 'ToRecordCodec f a' for label '") (Text sym)) (Beside (Text "' but got type: ") (Quote a)))
+          (Beside (Beside (Text "Expected 'ToRecordCodec a' for label '") (Text sym)) (Beside (Text "' but got type: ") (Quote a)))
           ( Above (Text "")
               (Text "User likely forgot to supply an additional argument or is not using `toRequired*`/`toOption*` variants.")
           )
       )
   ) =>
-  ToRecordObj f (RL.Cons sym a codecTail) { | codecs } { | values } where
+  ToRecordObj (RL.Cons sym a codecTail) { | codecs } { | values } where
   toRecordObj _ _ _ = unsafeCrashWith "Impossible"
 
 class FromRecordObj :: RowList Type -> Type -> Type -> Constraint
@@ -901,7 +863,7 @@ instance fromRecordObjCons ::
     a' = Record.get _lbl values
     cRest = unsafeCoerce codecs
     vRest = unsafeCoerce values
-else instance
+else instance fromRecordObjFailure ::
   ( Fail
       ( Above
           (Beside (Beside (Text "Expected 'FromRecordCodec a' for label '") (Text sym)) (Beside (Text "' but got type: ") (Quote a)))

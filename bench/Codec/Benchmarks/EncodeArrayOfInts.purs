@@ -28,14 +28,15 @@ benchmark props = mkBenchmark
   , functions:
       [ argonaut
       , foreignReadWrite
-      , jsonCodecsUniValue
+      , jsonCodecs
+      , json
       , codecArgonaut
       , baseline
       ]
   }
 
 tagJsonCodecWithArgonautCodec = "json-codec-with-argonaut-codec" :: String
-tagJsonCodecWithJson = "json-codec-with-json" :: String
+tagJsonCodecWithJson = "json-codec-with-gary-json" :: String
 tagJsonCodecWithForeignReadWrite = "json-codec-with-foreign-readwrite" :: String
 tagJsonCodecWithCodecArgonaut = "json-codec-with-codec-argonaut" :: String
 tagJsonCodecWithBaseline = "json-codec-with-baseline" :: String
@@ -46,7 +47,7 @@ argonaut = benchFnTagged "argonaut-codec"
   AE.encodeJson
 
 json :: BenchmarkFunction (Array Int)
-json = benchFnTagged "json"
+json = benchFnTagged "garyb-json"
   (tags [ tagJsonCodecWithJson ])
   (map JSON.fromInt >>> JSON.fromArray)
 
@@ -56,9 +57,9 @@ foreignReadWrite =
     (tags [ tagJsonCodecWithForeignReadWrite ])
     $ (unsafeCoerce :: (Array Int -> Foreign) -> (_ -> Json)) FRW.writeForeign
 
-jsonCodecsUniValue :: BenchmarkFunction (Array Int)
-jsonCodecsUniValue =
-  benchFnTagged "json-codecs - uni - value"
+jsonCodecs :: BenchmarkFunction (Array Int)
+jsonCodecs =
+  benchFnTagged "json-codecs"
     (tags [ tagJsonCodecWithArgonautCodec, tagJsonCodecWithJson, tagJsonCodecWithForeignReadWrite, tagJsonCodecWithCodecArgonaut, tagJsonCodecWithBaseline ])
     $ UniV.fromArray UniV.fromInt
 

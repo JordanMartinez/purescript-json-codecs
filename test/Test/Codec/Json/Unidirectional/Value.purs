@@ -2,47 +2,49 @@ module Test.Codec.Json.Unidirectional.Value where
 
 import Prelude
 
-import Codec.Json.IsJsonDecoder (class IsJsonDecoder)
 import Codec.Json.Unidirectional.Value (toArray, toBoolean, toInt, toNumber, toObject, toString, toRecord, toRequired, fromArray, fromBoolean, fromInt, fromNumber, fromObject, fromRecord, fromRequired, fromString, fromUnit)
 import Data.Argonaut.Core (Json)
 import Data.Array as Array
+import Data.Either (Either, either)
+import Data.Foldable as Foldable
+import Data.List (List)
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Class.Console (log)
 import Foreign.Object as Object
 
-runOutput :: forall @f. IsJsonDecoder f => (forall a. Show a => f a -> String) -> Effect Unit
-runOutput printResult = do
+runOutput :: Effect Unit
+runOutput = do
   log "\n### PrimitiveJsonError Output:"
-  runDecoder @f "Decode Int to Int" exampleInt printResult toInt
-  runDecoder @f "Decode Int to String" exampleString printResult toInt
-  runDecoder @f "Decode Record to Int" exampleRec printResult toInt
-  runDecoder @f "Decode Record incorrectly" exampleRec printResult toRecIncorrectly
+  runDecoder "Decode Int to Int" exampleInt toInt
+  runDecoder "Decode Int to String" exampleString toInt
+  runDecoder "Decode Record to Int" exampleRec toInt
+  runDecoder "Decode Record incorrectly" exampleRec toRecIncorrectly
   log "==="
 
 runDecoder
-  :: forall @f a
-   . String
+  :: forall a
+   . Show a
+  => String
   -> Json
-  -> (f a -> String)
-  -> (Json -> f a)
+  -> (Json -> Either (List String) a)
   -> Effect Unit
-runDecoder msg example printer tor =
+runDecoder msg example decoder =
   log
     $ append ("\n" <> msg <> ":\n")
-    $ printer
-    $ tor example
+    $ either Foldable.fold show
+    $ decoder example
 
-toRecIncorrectly :: forall @f. IsJsonDecoder f => Json -> f _
+toRecIncorrectly :: Json -> Either (List String) _
 toRecIncorrectly =
   toRecord
-    { boolean: toRequired @f toString
-    , number: toRequired @f toBoolean
-    , string: toRequired @f toNumber
-    , int: toRequired @f toString
-    , object: toRequired @f toInt
-    , array: toRequired @f $ toObject toString
-    , record: toRequired @f $ toArray toInt
+    { boolean: toRequired toString
+    , number: toRequired toBoolean
+    , string: toRequired toNumber
+    , int: toRequired toString
+    , object: toRequired toInt
+    , array: toRequired $ toObject toString
+    , record: toRequired $ toArray toInt
     }
 
 exampleInt :: Json

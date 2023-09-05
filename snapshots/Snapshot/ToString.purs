@@ -1,16 +1,13 @@
 -- @inline export Snapshot.ToString.decoder arity=1
 module Snapshot.ToString where
 
-import Prelude
-
-import Codec.Json.Decoders.SpeedyDecoder (SpeedyDecoder, runSpeedyDecoder)
-import Codec.Json.IsJsonDecoder (class IsJsonDecoder)
 import Codec.Json.Unidirectional.Value (toString)
 import Data.Argonaut.Core (Json)
-import Data.Maybe (Maybe)
+import Data.Either (Either)
+import Data.List (List)
 
-decoder :: forall @f. IsJsonDecoder f => Json -> f String
-decoder = toString @f
+decoder :: Json -> Either (List String) String
+decoder = toString
 
-test :: Json -> Maybe String
-test j = runSpeedyDecoder $ decoder @SpeedyDecoder j
+test :: Json -> Either (List String) String
+test j = decoder j

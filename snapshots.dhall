@@ -1,10 +1,12 @@
-{ name = "json-codecs-benchmarks"
+{ name = "json-codecs-snapshots"
 , dependencies =
   [ "aff"
   , "argonaut-core"
   , "effect"
+  , "either"
   , "foldable-traversable"
   , "json-codecs"
+  , "lists"
   , "maybe"
   , "node-fs"
   , "node-fs-aff"

@@ -4,8 +4,6 @@ import Prelude
 
 import Benchotron.Core (Benchmark, BenchmarkFunction, benchFnTagged, mkBenchmark)
 import Codec.Benchmarks.Utils (BenchProps, tags)
-import Codec.Json.Decoders.PlainPrettyDecoder (runPlainPrettyDecoder)
-import Codec.Json.Decoders.SpeedyDecoder (runSpeedyDecoder)
 import Codec.Json.Unidirectional.Value as UniV
 import Data.Argonaut.Core (Json)
 import Data.Argonaut.Decode as AD
@@ -30,10 +28,8 @@ benchmark props = mkBenchmark
   , functions:
       [ argonaut
       , json
-      , jsonCodecsUniValueSpeedy
-      , jsonCodecsUniValuePlainPretty
+      , jsonCodecs
       , codecArgonaut
-      , baseline
       ]
   }
   where
@@ -55,17 +51,11 @@ json = benchFnTagged "json"
   (tags [ tagJsonCodecWithJson ])
   ((unsafeCoerce :: Json -> JSON) >>> JSON.toArray >=> traverse JSON.toInt)
 
-jsonCodecsUniValueSpeedy :: BenchmarkFunction Json
-jsonCodecsUniValueSpeedy =
-  benchFnTagged "json-codecs - SpeedyDecoder"
+jsonCodecs :: BenchmarkFunction Json
+jsonCodecs =
+  benchFnTagged "json-codecs"
     (tags [ tagJsonCodecWithArgonautCodec, tagJsonCodecWithJson, tagJsonCodecWithCodecArgonaut, tagJsonCodecWithBaseline ])
-    $ \j -> runSpeedyDecoder $ UniV.toArray UniV.toInt j
-
-jsonCodecsUniValuePlainPretty :: BenchmarkFunction Json
-jsonCodecsUniValuePlainPretty =
-  benchFnTagged "json-codecs - PlainPrettyDecoder"
-    (tags [ tagJsonCodecWithArgonautCodec, tagJsonCodecWithJson, tagJsonCodecWithCodecArgonaut, tagJsonCodecWithBaseline ])
-    $ \j -> runPlainPrettyDecoder $ UniV.toArray UniV.toInt j
+    $ \j -> UniV.toArray UniV.toInt j
 
 codecArgonaut :: BenchmarkFunction Json
 codecArgonaut =
@@ -74,7 +64,3 @@ codecArgonaut =
     $ CC.decode
     $ CA.array CA.int
 
-baseline :: BenchmarkFunction Json
-baseline = benchFnTagged "unsafeCoerce"
-  (tags [ tagJsonCodecWithBaseline ])
-  unsafeCoerce

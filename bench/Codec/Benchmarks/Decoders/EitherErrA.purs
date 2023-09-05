@@ -38,8 +38,14 @@ toJArray json =
 toInt :: Json -> Either DecodeErr Int
 toInt = toNumber >=> (\n -> note (DecodeErr $ "could not convert Number to Int: " <> show n) $ Int.fromNumber n)
 
+toInt_noShow :: Json -> Either DecodeErr Int
+toInt_noShow = toNumber >=> (\n -> note (DecodeErr $ "could not convert Number to Int") $ Int.fromNumber n)
+
 withIndex :: forall a. Int -> Either DecodeErr a -> Either DecodeErr a
 withIndex idx = lmap (AtIndex idx)
 
 toArray :: forall a. (Json -> Either DecodeErr a) -> Json -> Either DecodeErr (Array a)
 toArray toElem = toJArray >=> traverseWithIndex (\i j -> withIndex i $ toElem j)
+
+toArray_noWithIndex :: forall a. (Json -> Either DecodeErr a) -> Json -> Either DecodeErr (Array a)
+toArray_noWithIndex toElem = toJArray >=> traverseWithIndex (\i j -> lmap (AtIndex i) $ toElem j)

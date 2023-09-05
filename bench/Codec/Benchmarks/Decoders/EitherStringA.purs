@@ -33,8 +33,14 @@ toJArray json =
 toInt :: Json -> Either String Int
 toInt = toNumber >=> (\n -> note ("could not convert Number to Int: " <> show n) $ Int.fromNumber n)
 
+toInt_noShow :: Json -> Either String Int
+toInt_noShow = toNumber >=> (\n -> note "could not convert Number to Int" $ Int.fromNumber n)
+
 withIndex :: forall a. Int -> Either String a -> Either String a
 withIndex idx = lmap (append $ "[" <> show idx <> "]")
 
 toArray :: forall a. (Json -> Either String a) -> Json -> Either String (Array a)
 toArray toElem = toJArray >=> traverseWithIndex (\i j -> withIndex i $ toElem j)
+
+toArray_noWithIndex :: forall a. (Json -> Either String a) -> Json -> Either String (Array a)
+toArray_noWithIndex toElem = toJArray >=> traverseWithIndex (\i j -> lmap (append ("[" <> show i <> "]")) $ toElem j)

@@ -43,13 +43,14 @@
 -- @inline export fromRecordObjCons(..).fromRecordObj arity=3
 -- @inline export fromRecordObjFailure(..).fromRecordObj always
 -- | Unidirectional, value-based JSON codecs.
--- | This module sould be imported using a qualified `J` alias:
+-- | This module should be imported using a qualified `J` or `Json` alias:
 -- | ```
 -- | import Codec.Json.Unidirectional.Value as J
+-- | import Codec.Json.Unidirectional.Value as Json
 -- | ```
 -- | thereby causing `to*` and `from*` code to read like so:
--- | - `J.fromInt`, which reads "encode an `Int` to `Json`"
--- | - `J.toInt`, which reads "decode `JSON` to an `Int`"
+-- | - `J.fromInt`/`Json.fromInt`, which reads "encode an `Int` to `Json`"
+-- | - `J.toInt`/`Json.toInt`, which reads "decode `JSON` to an `Int`"
 module Codec.Json.Unidirectional.Value
   ( DecodeError(..)
   , accumulateErrors

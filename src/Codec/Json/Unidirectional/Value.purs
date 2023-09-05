@@ -1,13 +1,10 @@
--- @inline export withAttempts arity=2
 -- @inline export altAccumulateLazy arity=2
 -- @inline export fromPrimitiveArray(..).fromPrimitive arity=1
 -- @inline export fromPrimitiveObject(..).fromPrimitive arity=1
 -- @inline export fromPrimitiveRecord(..).fromPrimitive arity=2
 -- @inline export fromPrimitiveFailure(..).fromPrimitive always
--- @inline export underIndex' arity=1
 -- @inline export underIndex arity=1
 -- @inline export underKey arity=1
--- @inline export underKey' arity=1
 -- @inline export toIdentity arity=1
 -- @inline export toMaybeTagged arity=1
 -- @inline export toEither arity=1
@@ -161,6 +158,7 @@ import Data.Bitraversable (bitraverse)
 import Data.Either (Either(..), either, note)
 import Data.Foldable (foldMap, foldl)
 import Data.FoldableWithIndex (foldlWithIndex)
+import Data.Function.Uncurried (Fn2, mkFn2, runFn2)
 import Data.Generic.Rep (class Generic)
 import Data.Identity (Identity(..))
 import Data.Int as Int
@@ -193,7 +191,7 @@ import Data.TraversableWithIndex (traverseWithIndex)
 import Data.Tuple (Tuple(..))
 import Foreign.Object (Object)
 import Foreign.Object as Object
-import Partial.Unsafe (unsafeCrashWith, unsafePartial)
+import Partial.Unsafe (unsafeCrashWith)
 import Prim.Coerce (class Coercible)
 import Prim.Row as Row
 import Prim.RowList (class RowToList, RowList)
@@ -208,6 +206,8 @@ data DecodeError
   = AtKey String DecodeError
   | AtIndex Int DecodeError
   | DecodeError String
+  -- | Stores a reversed list of errors that happened at the same path.
+  -- | The error at `head` happened AFTER the errors in `tail`.
   | AccumulateError (List DecodeError)
 
 derive instance Eq DecodeError
@@ -230,16 +230,6 @@ printDecodeError = go 1 "ROOT"
       let newlineIndent = "\n" <> power "  " indent
       acc <> (foldMap (go (indent + 1) newlineIndent) $ List.reverse ls)
     DecodeError msg -> acc <> " - " <> msg
-
-withAttempts :: forall a j b. NonEmptyArray a -> (a -> j -> Either DecodeError b) -> j -> Either DecodeError b
-withAttempts decoders fn j = go 0
-  where
-  lastIdx = NEA.length decoders - 1
-  go idx = case fn (unsafePartial $ NEA.unsafeIndex decoders idx) j of
-    x@(Right _) -> x
-    x@(Left _)
-      | idx == lastIdx -> x
-      | otherwise -> go (idx + 1)
 
 altAccumulateLazy :: forall a. (Json -> Either DecodeError a) -> (Json -> Either DecodeError a) -> Json -> Either DecodeError a
 altAccumulateLazy f g j = case f j of
@@ -764,33 +754,32 @@ toRecordN
 toRecordN f codecs = coerce1 f <<< toRecord codecs
 
 -- | Iterates through the underlying array.
--- | - key: uses the `str` in `Just str` or the record label if `Nothing`
--- | - f: the key used on the object and the result of looking up that key in the object
--- | - return: `Nothing` if the decoding failed; `Just` if it succeeded.
-newtype ToRecordCodec a = ToRecordCodec (Either a (NonEmptyArray (Tuple (Maybe String) (String -> Maybe Json -> Either DecodeError a))))
+-- | - `String -> Maybe Json`: `\str -> Object.lookup str obj`
+-- | - `String` -> the label of the record
+newtype ToRecordCodec a = ToRecordCodec (Fn2 (String -> Maybe Json) String (Either DecodeError a))
 
 newtype FromRecordCodec a = FromRecordCodec (Tuple (Maybe String) (String -> a -> Maybe Json))
 
 toStatic :: forall a. a -> ToRecordCodec a
-toStatic a = ToRecordCodec $ Left a
+toStatic a = ToRecordCodec $ mkFn2 \_ _ -> pure a
 
 fromRequired :: forall a. (a -> Json) -> FromRecordCodec a
 fromRequired f = FromRecordCodec $ Tuple Nothing \_ -> Just <<< f
 
 toRequired :: forall a. (Json -> Either DecodeError a) -> ToRecordCodec a
-toRequired f = ToRecordCodec $ Right $ NEA.singleton $ Tuple Nothing \k j ->
-  case j of
-    Nothing -> Left $ DecodeError $ "Missing field, " <> show k
-    Just j' -> lmap (AtKey k) $ f j'
+toRequired f = ToRecordCodec $ mkFn2 \lookupFn recLabel ->
+  case lookupFn recLabel of
+    Nothing -> Left $ AtKey recLabel $ DecodeError $ "Missing field"
+    Just j' -> lmap (AtKey recLabel) $ f j'
 
 fromRequiredRename :: forall a. String -> (a -> Json) -> FromRecordCodec a
 fromRequiredRename str f = FromRecordCodec $ Tuple (Just str) \_ -> Just <<< f
 
 toRequiredRename :: forall a. String -> (Json -> Either DecodeError a) -> ToRecordCodec a
-toRequiredRename jsonLbl f = ToRecordCodec $ Right $ NEA.singleton $ Tuple (Just jsonLbl) \k j ->
-  case j of
-    Nothing -> Left $ DecodeError $ "Missing field, " <> show k
-    Just j' -> lmap (AtKey k) $ f j'
+toRequiredRename jsonLbl f = ToRecordCodec $ mkFn2 \lookupFn _ ->
+  case lookupFn jsonLbl of
+    Nothing -> Left $ AtKey jsonLbl $ DecodeError "Missing field"
+    Just j' -> lmap (AtKey jsonLbl) $ f j'
 
 -- | If Nothing, does not add the coressponding key
 -- | If Just, adds the key and the encoded value to the JObject
@@ -808,16 +797,16 @@ toOptionRename :: forall a. String -> (Json -> Either DecodeError a) -> ToRecord
 toOptionRename rename f = toOptionDefaultRename rename Nothing (map Just <$> f)
 
 toOptionDefault :: forall a. a -> (Json -> Either DecodeError a) -> ToRecordCodec a
-toOptionDefault a f = ToRecordCodec $ Right $ NEA.singleton $ Tuple Nothing \k j ->
-  case j of
+toOptionDefault a f = ToRecordCodec $ mkFn2 \lookupFn recLabel ->
+  case lookupFn recLabel of
     Nothing -> pure a
-    Just j' -> lmap (AtKey k) $ f j'
+    Just j' -> lmap (AtKey recLabel) $ f j'
 
 toOptionDefaultRename :: forall a. String -> a -> (Json -> Either DecodeError a) -> ToRecordCodec a
-toOptionDefaultRename jsonLbl a f = ToRecordCodec $ Right $ NEA.singleton $ Tuple (Just jsonLbl) \k j ->
-  case j of
+toOptionDefaultRename jsonLbl a f = ToRecordCodec $ mkFn2 \lookupFn _ ->
+  case lookupFn jsonLbl of
     Nothing -> pure a
-    Just j' -> lmap (AtKey k) $ f j'
+    Just j' -> lmap (AtKey jsonLbl) $ f j'
 
 fromOptionArray :: forall a. (a -> Json) -> FromRecordCodec (Array a)
 fromOptionArray f = FromRecordCodec $ Tuple Nothing \_ arr ->
@@ -825,9 +814,10 @@ fromOptionArray f = FromRecordCodec $ Tuple Nothing \_ arr ->
   else Just $ fromArray f arr
 
 toOptionArray :: forall a. (Json -> Either DecodeError a) -> ToRecordCodec (Array a)
-toOptionArray f = ToRecordCodec $ Right $ NEA.singleton $ Tuple Nothing \_ j -> case j of
-  Nothing -> pure []
-  Just j' -> toArray f j'
+toOptionArray f = ToRecordCodec $ mkFn2 \lookupFn recLabel ->
+  case lookupFn recLabel of
+    Nothing -> pure []
+    Just j' -> lmap (AtKey recLabel) $ toArray f j'
 
 fromOptionAssocArray :: forall a b. (a -> String) -> (b -> Json) -> FromRecordCodec (Array (Tuple a b))
 fromOptionAssocArray k' v' = FromRecordCodec $ Tuple Nothing \_ arr ->
@@ -835,9 +825,10 @@ fromOptionAssocArray k' v' = FromRecordCodec $ Tuple Nothing \_ arr ->
   else Just $ Json.fromObject $ Array.foldl (\acc (Tuple k v) -> Object.insert (k' k) (v' v) acc) Object.empty arr
 
 toOptionAssocArray :: forall a b. (String -> Either DecodeError a) -> (Json -> Either DecodeError b) -> ToRecordCodec (Array (Tuple a b))
-toOptionAssocArray k' v' = ToRecordCodec $ Right $ NEA.singleton $ Tuple Nothing \_ j -> case j of
-  Nothing -> pure []
-  Just j' -> (Object.toUnfoldable <$> toJObject j') >>= traverse (bitraverse k' v')
+toOptionAssocArray k' v' = ToRecordCodec $ mkFn2 \lookupFn recLabel ->
+  case lookupFn recLabel of
+    Nothing -> pure []
+    Just j' -> lmap (AtKey recLabel) $ ((Object.toUnfoldable <$> toJObject j') >>= traverse (bitraverse k' v'))
 
 class ToRecordObj :: RowList Type -> Type -> Type -> Constraint
 class ToRecordObj codecsRL codecs values | codecsRL -> codecs values where
@@ -856,27 +847,19 @@ instance toRecordObjCons ::
   ToRecordObj (RL.Cons sym (ToRecordCodec a) codecTail) { | codecs } { | values } where
   toRecordObj _ codecs j = do
     rec <- onLeft (toRecordObj (Proxy :: Proxy codecTail) codecsRest j) \e1 ->
-      case keyDecoders of
-        Right decs | Left e2 <- decodeNextField decs -> Left $ accumulateErrors e1 e2
+      case runFn2 decoder (\k -> Object.lookup k j) lbl of
+        Left e2 -> Left $ accumulateErrors e1 e2
         _ -> Left e1
-    a <- case keyDecoders of
-      Left a' -> pure a'
-      Right decs -> decodeNextField decs
+    a <- runFn2 decoder (\k -> Object.lookup k j) lbl
     pure $ Record.insert _lbl a rec
     where
     onLeft :: forall e x. Either e x -> (e -> Either e x) -> Either e x
     onLeft l f = case l of
       Left l' -> f l'
       x@(Right _) -> x
-
-    decodeNextField :: NonEmptyArray (Tuple (Maybe String) (String -> Maybe Json -> Either DecodeError a)) -> Either DecodeError a
-    decodeNextField decoders =
-      j # withAttempts decoders \(Tuple keyRename decoder) j' -> do
-        let key = fromMaybe lbl keyRename
-        decoder key (Object.lookup key j')
     lbl = reflectSymbol _lbl
     _lbl = (Proxy :: Proxy sym)
-    (ToRecordCodec keyDecoders) = Record.get _lbl codecs
+    (ToRecordCodec decoder) = Record.get _lbl codecs
 
     codecsRest :: { | cRest }
     codecsRest = unsafeCoerce codecs

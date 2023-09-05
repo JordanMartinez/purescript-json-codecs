@@ -16,10 +16,9 @@ Address gripes with other JSON codec libraries:
   - I don't want to use your information-poor error type, `JsonDecodeError`
 
 Improve error messages:
-- show me all failures, not just the first one (i.e. use `V`, not `Either`)
-- show me hints separate from the error message
+- show me all failures, not just the first one
 - on type mismatch errors, show me what you expected AND got, not just what was expected
-- give me more control over what my error type is
+- allow me to write custom error messages
 
 Provide record syntax I enjoy using
   - See examples below

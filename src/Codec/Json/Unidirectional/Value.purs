@@ -42,6 +42,14 @@
 -- @inline export fromRecordObjNil(..).fromRecordObj always
 -- @inline export fromRecordObjCons(..).fromRecordObj arity=4
 -- @inline export fromRecordObjFailure(..).fromRecordObj always
+-- | Unidirectional, value-based JSON codecs.
+-- | This module sould be imported using a qualified `J` alias:
+-- | ```
+-- | import Codec.Json.Unidirectional.Value as J
+-- | ```
+-- | thereby causing `to*` and `from*` code to read like so:
+-- | - `J.fromInt`, which reads "encode an `Int` to `Json`"
+-- | - `J.toInt`, which reads "decode `JSON` to an `Int`"
 module Codec.Json.Unidirectional.Value
   ( DecodeError(..)
   , accumulateErrors
@@ -202,6 +210,10 @@ import Safe.Coerce (coerce)
 import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
 
+-- | An error type that 
+-- | - includes path-to-json information
+-- | - allows for custom decode messages
+-- | - can accumulate errors at the same path location
 data DecodeError
   = AtKey String DecodeError
   | AtIndex Int DecodeError
@@ -215,6 +227,8 @@ derive instance Generic DecodeError _
 instance Show DecodeError where
   show x = genericShow x
 
+-- | Prefer to use `altAccumulateLazy`.
+-- | The first error arg is assumed to have happened before the second error arg.
 accumulateErrors :: DecodeError -> DecodeError -> DecodeError
 accumulateErrors = case _, _ of
   AccumulateError first', next -> AccumulateError $ next : first'
@@ -231,6 +245,8 @@ printDecodeError = go 1 "ROOT"
       acc <> (foldMap (go (indent + 1) newlineIndent) $ List.reverse ls)
     DecodeError msg -> acc <> " - " <> msg
 
+-- | Tries the first codec. If it fails, tries the second codec. If it fails, 
+-- | errors from both are accumulated. Succeeds if either of the two codecs succeed.
 altAccumulateLazy :: forall a. (Json -> Either DecodeError a) -> (Json -> Either DecodeError a) -> Json -> Either DecodeError a
 altAccumulateLazy f g j = case f j of
   x@(Right _) -> x
@@ -238,8 +254,10 @@ altAccumulateLazy f g j = case f j of
     x@(Right _) -> x
     Left e2 -> Left $ accumulateErrors e1 e2
 
+-- | Indicates which values are primitive JSON values that can be encoded via `unsafeCoerce`.
 class FromPrimitive :: Type -> Constraint
 class FromPrimitive a where
+  -- | Shortcut encoder for encoding primitive JSON values.
   fromPrimitive :: a -> Json
 
 instance FromPrimitive Boolean where
@@ -264,6 +282,8 @@ else instance fromPrimitiveFailure ::
   FromPrimitive a where
   fromPrimitive _ = unsafeCrashWith "Impossible"
 
+-- | Utility class that distinguishes which records are primitive and which are not.
+-- | Used in `FromPrimitive`.
 class AllPrimitive :: RL.RowList Type -> Constraint
 class AllPrimitive rl
 
@@ -707,7 +727,30 @@ toNonEmptySet
   -> Either DecodeError (NonEmptySet a)
 toNonEmptySet toA = toArray toA >=> (note (DecodeError "Received empty set") <<< NonEmptySet.fromSet <<< Set.fromFoldable)
 
--- | All labels must have a function of type: `FromProp a`
+-- | All labels must have a value of type `FromProp a`,
+-- | which can be obtained via functions like `fromRequired*` and `fromOption*`
+-- | or by defining a value yourself. Otherwise, you will get a compiler error:
+-- |
+-- | ```
+-- | fromRecord
+-- |   { label: fromRequired $ fromInt 
+-- |   , psName: fromRequiredRename "jsonName" fromInt
+-- |   , optionalDisappears: fromOption $ fromInt
+-- |   , optionalStillThere: fromOption $ fromInt
+-- |   }
+-- |   { label: 1
+-- |   , psName: Just 2
+-- |   , optionalDisappears: Nothing
+-- |   , optionalStillThere: Just 3
+-- |   }
+-- | ```
+-- | produces the following JSON
+-- | ```
+-- | { "label": 1
+-- | , "jsonName": 2
+-- | , "optionalStillThere": 3
+-- | }
+-- | ```
 fromRecord
   :: forall codecs values codecsRL
    . RowToList codecs codecsRL
@@ -718,8 +761,33 @@ fromRecord
 fromRecord codecs values = Json.fromObject
   $ fromRecordObj (Proxy :: Proxy codecsRL) codecs values
 
--- | All labels must have a function of type: `ToProp a`
--- | See `required`, `requiredRename`, `option`, `optionRename`.
+-- | All labels must have a value of type `ToProp a`,
+-- | which can be obtained via functions like `toRequired*` and `toOption*`
+-- | or by defining a value yourself. Otherwise, you will get a compiler error:
+-- |
+-- | The following JSON and codec...
+-- | ```
+-- | toRecord
+-- |   { label: toRequired toInt 
+-- |   , psName: toRequiredRename "jsonName" toInt
+-- |   , optionalAppears: toOption toInt
+-- |   , optionalAlwaysThere: toOption toInt
+-- |   }
+-- |   $ either (\_ -> unsafeCrashWith "error") identity
+-- |   $ jsonParser
+-- |   """{ "label": 1
+-- |      , "jsonName": 2
+-- |      , "optionalAlwaysThere": 3
+-- |      }"""
+-- | ```
+-- | ...produces the following value
+-- | ```
+-- |   { label: 1
+-- |   , psName: Just 2
+-- |   , optionalAppears: Nothing
+-- |   , optionalAlwaysThere: Just 3
+-- |   }
+-- | ```
 toRecord
   :: forall codecs values codecsRL
    . RowToList codecs codecsRL
@@ -730,6 +798,9 @@ toRecord
 toRecord codecs = toJObject >=>
   toRecordObj (Proxy :: Proxy codecsRL) codecs
 
+-- | Same as `fromRecord` but handles the Newtype for you
+-- | so you don't need to add a type annotation to help
+-- | type inference.
 fromRecordN
   :: forall n codecs values codecsRL
    . RowToList codecs codecsRL
@@ -741,7 +812,7 @@ fromRecordN
   -> Json
 fromRecordN _ codecs = unwrap >>> fromRecord codecs
 
--- | Variant of `toRecord` that coerces the `f { | r }` into a `f NewtypedR`
+-- | Same as `toRecord` but handles the Newtype for you.
 toRecordN
   :: forall n codecs values codecsRL
    . RowToList codecs codecsRL
@@ -753,11 +824,21 @@ toRecordN
   -> Either DecodeError n
 toRecordN f codecs = coerce1 f <<< toRecord codecs
 
--- | Iterates through the underlying array.
--- | - `String -> Maybe Json`: `\str -> Object.lookup str obj`
+-- | Converts a value in a JSON object into a value
+-- | associated with the record label.
+-- |
+-- | Explanation of arguments
+-- | - `String -> Maybe Json`: Looks up the provided key in the object. Implemented via `\str -> Object.lookup str obj`
 -- | - `String` -> the label of the record
 newtype ToProp a = ToProp (Fn2 (String -> Maybe Json) String (Either DecodeError a))
 
+-- | Converts a value associated with the record label
+-- | into a JSON value associated with the given label in the JSON object.
+-- |
+-- | On `Nothing`, the key-value pair is not added to the JSON object.
+-- | On `Just`, both the JSON-encoded value and the key to use in the JSON object is provided.
+-- | If the key is `Nothing`, the label associated with the record is used.
+-- | Otherwise the provided key is used.
 newtype FromProp a = FromProp (a -> Maybe (Tuple (Maybe String) Json))
 
 toStatic :: forall a. a -> ToProp a

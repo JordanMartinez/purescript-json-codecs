@@ -2,12 +2,10 @@ module Test.Codec.Json.Unidirectional.Value where
 
 import Prelude
 
-import Codec.Json.Unidirectional.Value (toArray, toBoolean, toInt, toNumber, toObject, toString, toRecord, toRequired, fromArray, fromBoolean, fromInt, fromNumber, fromObject, fromRecord, fromRequired, fromString, fromUnit)
+import Codec.Json.Unidirectional.Value (DecodeError, fromArray, fromBoolean, fromInt, fromNumber, fromObject, fromRecord, fromRequired, fromString, fromUnit, printDecodeError, toArray, toBoolean, toInt, toNumber, toObject, toRecord, toRequired, toString)
 import Data.Argonaut.Core (Json)
 import Data.Array as Array
 import Data.Either (Either, either)
-import Data.Foldable as Foldable
-import Data.List (List)
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Class.Console (log)
@@ -27,15 +25,15 @@ runDecoder
    . Show a
   => String
   -> Json
-  -> (Json -> Either (List String) a)
+  -> (Json -> Either DecodeError a)
   -> Effect Unit
 runDecoder msg example decoder =
   log
     $ append ("\n" <> msg <> ":\n")
-    $ either Foldable.fold show
+    $ either printDecodeError show
     $ decoder example
 
-toRecIncorrectly :: Json -> Either (List String) _
+toRecIncorrectly :: Json -> Either DecodeError _
 toRecIncorrectly =
   toRecord
     { boolean: toRequired toString

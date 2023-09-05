@@ -3,10 +3,9 @@ module Snapshot.ToRecordInlines where
 
 import Prelude
 
-import Codec.Json.Unidirectional.Value (toBoolean, toInt, toOption, toOptionArray, toOptionRename, toRecord, toRequired, toRequiredRename, toString)
+import Codec.Json.Unidirectional.Value (DecodeError, toBoolean, toInt, toOption, toOptionArray, toOptionRename, toRecord, toRequired, toRequiredRename, toString)
 import Data.Argonaut.Core (Json)
 import Data.Either (Either)
-import Data.List (List)
 import Data.Maybe (Maybe)
 
 type Foo =
@@ -21,7 +20,7 @@ type Foo =
       }
   }
 
-decoder :: Json -> Either (List String) Foo
+decoder :: Json -> Either DecodeError Foo
 decoder = toRecord
   { req: toRequired toInt
   , reqRen: toRequiredRename "otherName" toString
@@ -34,5 +33,5 @@ decoder = toRecord
       }
   }
 
-test :: Json -> Either (List String) Foo
+test :: Json -> Either DecodeError Foo
 test j = decoder j

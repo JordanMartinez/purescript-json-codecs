@@ -1,13 +1,12 @@
 -- @inline export Snapshot.ToString.decoder arity=1
 module Snapshot.ToString where
 
-import Codec.Json.Unidirectional.Value (toString)
+import Codec.Json.Unidirectional.Value (DecodeError, toString)
 import Data.Argonaut.Core (Json)
 import Data.Either (Either)
-import Data.List (List)
 
-decoder :: Json -> Either (List String) String
+decoder :: Json -> Either DecodeError String
 decoder = toString
 
-test :: Json -> Either (List String) String
+test :: Json -> Either DecodeError String
 test j = decoder j

@@ -6,7 +6,6 @@
   , "either"
   , "foldable-traversable"
   , "json-codecs"
-  , "lists"
   , "maybe"
   , "node-fs"
   , "node-fs-aff"

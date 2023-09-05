@@ -2,7 +2,6 @@
 import * as $runtime from "../runtime.js";
 import * as Codec$dJson$dUnidirectional$dValue from "../Codec.Json.Unidirectional.Value/index.js";
 import * as Data$dEither from "../Data.Either/index.js";
-import * as Data$dList$dTypes from "../Data.List.Types/index.js";
 import * as Data$dMaybe from "../Data.Maybe/index.js";
 import * as Data$dShow from "../Data.Show/index.js";
 import * as Data$dTuple from "../Data.Tuple/index.js";
@@ -20,9 +19,14 @@ const decoder = /* #__PURE__ */ (() => {
           Data$dMaybe.Nothing,
           k => j => {
             if (j.tag === "Nothing") {
-              return Data$dEither.$Either("Left", Data$dList$dTypes.$List("Cons", "Missing field, " + Data$dShow.showStringImpl(k), Data$dList$dTypes.Nil));
+              return Data$dEither.$Either("Left", Codec$dJson$dUnidirectional$dValue.$DecodeError("DecodeError", "Missing field, " + Data$dShow.showStringImpl(k)));
             }
-            if (j.tag === "Just") { return Codec$dJson$dUnidirectional$dValue.withKey(k)(Codec$dJson$dUnidirectional$dValue.toInt(j._1)); }
+            if (j.tag === "Just") {
+              const $0 = Codec$dJson$dUnidirectional$dValue.AtKey(k);
+              const $1 = Codec$dJson$dUnidirectional$dValue.toInt(j._1);
+              if ($1.tag === "Left") { return Data$dEither.$Either("Left", $0($1._1)); }
+              if ($1.tag === "Right") { return Data$dEither.$Either("Right", $1._1); }
+            }
             $runtime.fail();
           }
         )
@@ -35,9 +39,14 @@ const decoder = /* #__PURE__ */ (() => {
           Data$dMaybe.$Maybe("Just", "otherName"),
           k => j => {
             if (j.tag === "Nothing") {
-              return Data$dEither.$Either("Left", Data$dList$dTypes.$List("Cons", "Missing field, " + Data$dShow.showStringImpl(k), Data$dList$dTypes.Nil));
+              return Data$dEither.$Either("Left", Codec$dJson$dUnidirectional$dValue.$DecodeError("DecodeError", "Missing field, " + Data$dShow.showStringImpl(k)));
             }
-            if (j.tag === "Just") { return Codec$dJson$dUnidirectional$dValue.withKey(k)(Codec$dJson$dUnidirectional$dValue.toString(j._1)); }
+            if (j.tag === "Just") {
+              const $0 = Codec$dJson$dUnidirectional$dValue.AtKey(k);
+              const $1 = Codec$dJson$dUnidirectional$dValue.toString(j._1);
+              if ($1.tag === "Left") { return Data$dEither.$Either("Left", $0($1._1)); }
+              if ($1.tag === "Right") { return Data$dEither.$Either("Right", $1._1); }
+            }
             $runtime.fail();
           }
         )
@@ -51,12 +60,10 @@ const decoder = /* #__PURE__ */ (() => {
           k => j => {
             if (j.tag === "Nothing") { return Data$dEither.$Either("Right", Data$dMaybe.Nothing); }
             if (j.tag === "Just") {
-              return Codec$dJson$dUnidirectional$dValue.withKey(k)((() => {
-                const $0 = Codec$dJson$dUnidirectional$dValue.toString(j._1);
-                if ($0.tag === "Left") { return Data$dEither.$Either("Left", $0._1); }
-                if ($0.tag === "Right") { return Data$dEither.$Either("Right", Data$dMaybe.$Maybe("Just", $0._1)); }
-                $runtime.fail();
-              })());
+              const $0 = Codec$dJson$dUnidirectional$dValue.AtKey(k);
+              const $1 = Codec$dJson$dUnidirectional$dValue.toString(j._1);
+              if ($1.tag === "Left") { return Data$dEither.$Either("Left", $0($1._1)); }
+              if ($1.tag === "Right") { return Data$dEither.$Either("Right", Data$dMaybe.$Maybe("Just", $1._1)); }
             }
             $runtime.fail();
           }
@@ -71,12 +78,10 @@ const decoder = /* #__PURE__ */ (() => {
           k => j => {
             if (j.tag === "Nothing") { return Data$dEither.$Either("Right", Data$dMaybe.Nothing); }
             if (j.tag === "Just") {
-              return Codec$dJson$dUnidirectional$dValue.withKey(k)((() => {
-                const $0 = Codec$dJson$dUnidirectional$dValue.toString(j._1);
-                if ($0.tag === "Left") { return Data$dEither.$Either("Left", $0._1); }
-                if ($0.tag === "Right") { return Data$dEither.$Either("Right", Data$dMaybe.$Maybe("Just", $0._1)); }
-                $runtime.fail();
-              })());
+              const $0 = Codec$dJson$dUnidirectional$dValue.AtKey(k);
+              const $1 = Codec$dJson$dUnidirectional$dValue.toString(j._1);
+              if ($1.tag === "Left") { return Data$dEither.$Either("Left", $0($1._1)); }
+              if ($1.tag === "Right") { return Data$dEither.$Either("Right", Data$dMaybe.$Maybe("Just", $1._1)); }
             }
             $runtime.fail();
           }
@@ -107,9 +112,14 @@ const decoder = /* #__PURE__ */ (() => {
               Data$dMaybe.Nothing,
               k => j => {
                 if (j.tag === "Nothing") {
-                  return Data$dEither.$Either("Left", Data$dList$dTypes.$List("Cons", "Missing field, " + Data$dShow.showStringImpl(k), Data$dList$dTypes.Nil));
+                  return Data$dEither.$Either("Left", Codec$dJson$dUnidirectional$dValue.$DecodeError("DecodeError", "Missing field, " + Data$dShow.showStringImpl(k)));
                 }
-                if (j.tag === "Just") { return Codec$dJson$dUnidirectional$dValue.withKey(k)(Codec$dJson$dUnidirectional$dValue.toBoolean(j._1)); }
+                if (j.tag === "Just") {
+                  const $0 = Codec$dJson$dUnidirectional$dValue.AtKey(k);
+                  const $1 = Codec$dJson$dUnidirectional$dValue.toBoolean(j._1);
+                  if ($1.tag === "Left") { return Data$dEither.$Either("Left", $0($1._1)); }
+                  if ($1.tag === "Right") { return Data$dEither.$Either("Right", $1._1); }
+                }
                 $runtime.fail();
               }
             )
@@ -123,12 +133,10 @@ const decoder = /* #__PURE__ */ (() => {
               k => j => {
                 if (j.tag === "Nothing") { return Data$dEither.$Either("Right", Data$dMaybe.Nothing); }
                 if (j.tag === "Just") {
-                  return Codec$dJson$dUnidirectional$dValue.withKey(k)((() => {
-                    const $0 = Codec$dJson$dUnidirectional$dValue.toBoolean(j._1);
-                    if ($0.tag === "Left") { return Data$dEither.$Either("Left", $0._1); }
-                    if ($0.tag === "Right") { return Data$dEither.$Either("Right", Data$dMaybe.$Maybe("Just", $0._1)); }
-                    $runtime.fail();
-                  })());
+                  const $0 = Codec$dJson$dUnidirectional$dValue.AtKey(k);
+                  const $1 = Codec$dJson$dUnidirectional$dValue.toBoolean(j._1);
+                  if ($1.tag === "Left") { return Data$dEither.$Either("Left", $0($1._1)); }
+                  if ($1.tag === "Right") { return Data$dEither.$Either("Right", Data$dMaybe.$Maybe("Just", $1._1)); }
                 }
                 $runtime.fail();
               }
@@ -143,15 +151,18 @@ const decoder = /* #__PURE__ */ (() => {
             Data$dMaybe.Nothing,
             k => j => {
               if (j.tag === "Nothing") {
-                return Data$dEither.$Either("Left", Data$dList$dTypes.$List("Cons", "Missing field, " + Data$dShow.showStringImpl(k), Data$dList$dTypes.Nil));
+                return Data$dEither.$Either("Left", Codec$dJson$dUnidirectional$dValue.$DecodeError("DecodeError", "Missing field, " + Data$dShow.showStringImpl(k)));
               }
               if (j.tag === "Just") {
-                return Codec$dJson$dUnidirectional$dValue.withKey(k)((() => {
-                  const $1 = Codec$dJson$dUnidirectional$dValue.toJObject(j._1);
-                  if ($1.tag === "Left") { return Data$dEither.$Either("Left", $1._1); }
-                  if ($1.tag === "Right") { return $0($1._1); }
+                const $1 = Codec$dJson$dUnidirectional$dValue.AtKey(k);
+                const $2 = Codec$dJson$dUnidirectional$dValue.toJObject(j._1);
+                const $3 = (() => {
+                  if ($2.tag === "Left") { return Data$dEither.$Either("Left", $2._1); }
+                  if ($2.tag === "Right") { return $0($2._1); }
                   $runtime.fail();
-                })());
+                })();
+                if ($3.tag === "Left") { return Data$dEither.$Either("Left", $1($3._1)); }
+                if ($3.tag === "Right") { return Data$dEither.$Either("Right", $3._1); }
               }
               $runtime.fail();
             }

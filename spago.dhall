@@ -2,12 +2,10 @@
 , dependencies =
   [ "argonaut-core"
   , "arrays"
-  , "control"
-  , "dodo-printer"
+  , "bifunctors"
   , "either"
   , "foldable-traversable"
   , "foreign-object"
-  , "functions"
   , "identity"
   , "integers"
   , "lists"

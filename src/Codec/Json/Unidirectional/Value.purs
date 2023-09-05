@@ -1,5 +1,3 @@
--- @inline export withIndex arity=1
--- @inline export wthKey arity=1
 -- @inline export withAttempts arity=2
 -- @inline export altAccumulateLazy arity=2
 -- @inline export underIndex' arity=1
@@ -44,7 +42,9 @@
 -- @inline export fromRecordObjCons(..).fromRecordObj arity=4
 -- @inline export fromRecordObjFailure(..).fromRecordObj always
 module Codec.Json.Unidirectional.Value
-  ( coerce1
+  ( DecodeError(..)
+  , printDecodeError
+  , coerce1
   , fromVoid
   , toVoid
   , fromUnit
@@ -72,7 +72,6 @@ module Codec.Json.Unidirectional.Value
   , fromJArray
   , toJArray
   , underIndex
-  , underIndex'
   , fromArray
   , toArray
   , fromArray2
@@ -88,7 +87,6 @@ module Codec.Json.Unidirectional.Value
   , fromJObject
   , toJObject
   , underKey
-  , underKey'
   , fromObject
   , toObject
   , fromObjSingleton
@@ -148,22 +146,24 @@ import Prelude
 import Data.Argonaut.Core (Json, caseJson)
 import Data.Argonaut.Core as Json
 import Data.Array as Array
-import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Array.NonEmpty as NEA
+import Data.Array.NonEmpty.Internal (NonEmptyArray)
 import Data.Bifunctor (lmap)
 import Data.Bitraversable (bitraverse)
 import Data.Either (Either(..), either, note)
-import Data.Foldable (foldl)
+import Data.Foldable (foldMap, foldl)
 import Data.FoldableWithIndex (foldlWithIndex)
+import Data.Generic.Rep (class Generic)
 import Data.Identity (Identity(..))
 import Data.Int as Int
 import Data.List (List(..))
 import Data.List as List
 import Data.List.NonEmpty as NEL
-import Data.List.Types (NonEmptyList)
+import Data.List.Types (NonEmptyList, (:))
 import Data.Map (Map)
 import Data.Map as Map
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Monoid (power)
 import Data.Newtype (class Newtype, unwrap)
 import Data.NonEmpty (NonEmpty(..))
 import Data.Nullable (Nullable, notNull, null, toMaybe)
@@ -171,6 +171,7 @@ import Data.Set (Set)
 import Data.Set as Set
 import Data.Set.NonEmpty (NonEmptySet)
 import Data.Set.NonEmpty as NonEmptySet
+import Data.Show.Generic (genericShow)
 import Data.String (CodePoint, codePointAt)
 import Data.String as SCP
 import Data.String.CodeUnits (charAt)
@@ -195,13 +196,34 @@ import Safe.Coerce (coerce)
 import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
 
-withIndex :: forall a. Int -> Either (List String) a -> Either (List String) a
-withIndex idx = lmap (Cons $ "[" <> show idx <> "]")
+data DecodeError
+  = AtKey String DecodeError
+  | AtIndex Int DecodeError
+  | DecodeError String
+  | AccumulateError (List DecodeError)
 
-withKey :: forall a. String -> Either (List String) a -> Either (List String) a
-withKey key = lmap (Cons $ "." <> show key)
+derive instance Eq DecodeError
+derive instance Generic DecodeError _
+instance Show DecodeError where
+  show x = genericShow x
 
-withAttempts :: forall a j b. NonEmptyArray a -> (a -> j -> Either (List String) b) -> j -> Either (List String) b
+accumulateErrors :: DecodeError -> DecodeError -> DecodeError
+accumulateErrors = case _, _ of
+  AccumulateError first', next -> AccumulateError $ next : first'
+  first, next -> AccumulateError $ next : first : Nil
+
+printDecodeError :: DecodeError -> String
+printDecodeError = go 0 "ROOT"
+  where
+  go indent acc = case _ of
+    AtKey k next -> go indent (acc <> "." <> show k) next
+    AtIndex i next -> go indent (acc <> "[" <> show i <> "]") next
+    AccumulateError ls -> do
+      let newlineIndent = "\n" <> power "  " indent
+      acc <> (foldMap (go (indent + 1) newlineIndent) $ List.reverse ls)
+    DecodeError msg -> acc <> " - " <> msg
+
+withAttempts :: forall a j b. NonEmptyArray a -> (a -> j -> Either DecodeError b) -> j -> Either DecodeError b
 withAttempts decoders fn j = go 0
   where
   lastIdx = NEA.length decoders - 1
@@ -211,20 +233,20 @@ withAttempts decoders fn j = go 0
       | idx == lastIdx -> x
       | otherwise -> go (idx + 1)
 
-altAccumulateLazy :: forall a. (Json -> Either (List String) a) -> (Json -> Either (List String) a) -> Json -> Either (List String) a
+altAccumulateLazy :: forall a. (Json -> Either DecodeError a) -> (Json -> Either DecodeError a) -> Json -> Either DecodeError a
 altAccumulateLazy f g j = case f j of
   x@(Right _) -> x
   (Left e1) -> case g j of
     x@(Right _) -> x
-    Left e2 -> Left $ e1 <> e2
+    Left e2 -> Left $ accumulateErrors e1 e2
 
 fromVoid :: Void -> Json
 fromVoid = absurd
 
-toVoid :: Json -> Either (List String) Void
-toVoid _ = Left $ pure "Decoding a value to Void is impossible"
+toVoid :: Json -> Either DecodeError Void
+toVoid _ = Left $ DecodeError $ "Decoding a value to Void is impossible"
 
-coerce1 :: forall n a. Coercible n a => (a -> n) -> Either (List String) a -> Either (List String) n
+coerce1 :: forall n a. Coercible n a => (a -> n) -> Either DecodeError a -> Either DecodeError n
 coerce1 _ = coerce
 
 fromJNull :: Json
@@ -233,58 +255,58 @@ fromJNull = Json.jsonNull
 fromUnit :: Unit -> Json
 fromUnit = const fromJNull
 
-toJNull :: Json -> Either (List String) Unit
+toJNull :: Json -> Either DecodeError Unit
 toJNull json =
   caseJson
     pure
-    (\_ -> Left $ pure "Expected a value of type Null but got Boolean")
-    (\_ -> Left $ pure "Expected a value of type Null but got Number")
-    (\_ -> Left $ pure "Expected a value of type Null but got String")
-    (\_ -> Left $ pure "Expected a value of type Null but got Array")
-    (\_ -> Left $ pure "Expected a value of type Null but got Object")
+    (\_ -> Left $ DecodeError $ "Expected a value of type Null but got Boolean")
+    (\_ -> Left $ DecodeError $ "Expected a value of type Null but got Number")
+    (\_ -> Left $ DecodeError $ "Expected a value of type Null but got String")
+    (\_ -> Left $ DecodeError $ "Expected a value of type Null but got Array")
+    (\_ -> Left $ DecodeError $ "Expected a value of type Null but got Object")
     json
 
-toNullDefaultOrA :: forall a. a -> (Json -> Either (List String) a) -> Json -> Either (List String) a
+toNullDefaultOrA :: forall a. a -> (Json -> Either DecodeError a) -> Json -> Either DecodeError a
 toNullDefaultOrA def f = altAccumulateLazy (\j -> def <$ toJNull j) f
 
 fromNullNothingOrJust :: forall a. (a -> Json) -> Maybe a -> Json
 fromNullNothingOrJust f = maybe Json.jsonNull f
 
-toNullNothingOrJust :: forall a. (Json -> Either (List String) a) -> Json -> Either (List String) (Maybe a)
+toNullNothingOrJust :: forall a. (Json -> Either DecodeError a) -> Json -> Either DecodeError (Maybe a)
 toNullNothingOrJust f = toNullDefaultOrA Nothing (map Just <$> f)
 
 fromNullable :: forall a. (a -> Json) -> Nullable a -> Json
 fromNullable fromA = toMaybe >>> fromNullNothingOrJust fromA
 
-toNullable :: forall a. (Json -> Either (List String) a) -> Json -> Either (List String) (Nullable a)
+toNullable :: forall a. (Json -> Either DecodeError a) -> Json -> Either DecodeError (Nullable a)
 toNullable toA = altAccumulateLazy (\j -> null <$ toJNull j) (\j -> notNull <$> toA j)
 
 fromBoolean :: Boolean -> Json
 fromBoolean = Json.fromBoolean
 
-toBoolean :: Json -> Either (List String) Boolean
+toBoolean :: Json -> Either DecodeError Boolean
 toBoolean json =
   caseJson
-    (\_ -> Left $ pure "Expected a value of type Boolean but got Null")
+    (\_ -> Left $ DecodeError $ "Expected a value of type Boolean but got Null")
     pure
-    (\_ -> Left $ pure "Expected a value of type Boolean but got Number")
-    (\_ -> Left $ pure "Expected a value of type Boolean but got String")
-    (\_ -> Left $ pure "Expected a value of type Boolean but got Array")
-    (\_ -> Left $ pure "Expected a value of type Boolean but got Object")
+    (\_ -> Left $ DecodeError $ "Expected a value of type Boolean but got Number")
+    (\_ -> Left $ DecodeError $ "Expected a value of type Boolean but got String")
+    (\_ -> Left $ DecodeError $ "Expected a value of type Boolean but got Array")
+    (\_ -> Left $ DecodeError $ "Expected a value of type Boolean but got Object")
     json
 
 fromNumber :: Number -> Json
 fromNumber = Json.fromNumber
 
-toNumber :: Json -> Either (List String) Number
+toNumber :: Json -> Either DecodeError Number
 toNumber json =
   caseJson
-    (\_ -> Left $ pure "Expected a value of type Number but got Null")
-    (\_ -> Left $ pure "Expected a value of type Number but got Boolean")
+    (\_ -> Left $ DecodeError $ "Expected a value of type Number but got Null")
+    (\_ -> Left $ DecodeError $ "Expected a value of type Number but got Boolean")
     pure
-    (\_ -> Left $ pure "Expected a value of type Number but got String")
-    (\_ -> Left $ pure "Expected a value of type Number but got Array")
-    (\_ -> Left $ pure "Expected a value of type Number but got Object")
+    (\_ -> Left $ DecodeError $ "Expected a value of type Number but got String")
+    (\_ -> Left $ DecodeError $ "Expected a value of type Number but got Array")
+    (\_ -> Left $ DecodeError $ "Expected a value of type Number but got Object")
     json
 
 fromInt :: Int -> Json
@@ -293,69 +315,62 @@ fromInt = Int.toNumber >>> fromNumber
 fromString :: String -> Json
 fromString = Json.fromString
 
-toInt :: Json -> Either (List String) Int
-toInt = toNumber >=> (\n -> note (pure $ "could not convert Number to Int: " <> show n) $ Int.fromNumber n)
+toInt :: Json -> Either DecodeError Int
+toInt = toNumber >=> (\n -> note (DecodeError "Could not convert Number to Int") $ Int.fromNumber n)
 
-toString :: Json -> Either (List String) String
+toString :: Json -> Either DecodeError String
 toString json =
   caseJson
-    (\_ -> Left $ pure "Expected a value of type String but got Null")
-    (\_ -> Left $ pure "Expected a value of type String but got Boolean")
-    (\_ -> Left $ pure "Expected a value of type String but got Number")
+    (\_ -> Left $ DecodeError $ "Expected a value of type String but got Null")
+    (\_ -> Left $ DecodeError $ "Expected a value of type String but got Boolean")
+    (\_ -> Left $ DecodeError $ "Expected a value of type String but got Number")
     pure
-    (\_ -> Left $ pure "Expected a value of type String but got Array")
-    (\_ -> Left $ pure "Expected a value of type String but got Object")
+    (\_ -> Left $ DecodeError $ "Expected a value of type String but got Array")
+    (\_ -> Left $ DecodeError $ "Expected a value of type String but got Object")
     json
 
 fromChar :: Char -> Json
 fromChar = SCU.singleton >>> fromString
 
-toChar :: Json -> Either (List String) Char
-toChar = toString >=> (note (pure "Could not get char at index 0 in String") <<< charAt 0)
+toChar :: Json -> Either DecodeError Char
+toChar = toString >=> (note (DecodeError "Could not get char at index 0 in String") <<< charAt 0)
 
 fromCodePoint :: CodePoint -> Json
 fromCodePoint = SCP.singleton >>> fromString
 
-toCodePoint :: Json -> Either (List String) CodePoint
-toCodePoint = toString >=> (\s -> note (pure $ "Could not get code point from String: " <> show s) $ codePointAt 0 s)
+toCodePoint :: Json -> Either DecodeError CodePoint
+toCodePoint = toString >=> (\s -> note (DecodeError "Could not get code point from String") $ codePointAt 0 s)
 
 fromNonEmptyString :: NonEmptyString -> Json
 fromNonEmptyString (NonEmptyString s) = fromString s
 
-toNonEmptyString :: Json -> Either (List String) NonEmptyString
-toNonEmptyString = toString >=> (note (pure $ "Received empty string") <<< NonEmptyString.fromString)
+toNonEmptyString :: Json -> Either DecodeError NonEmptyString
+toNonEmptyString = toString >=> (note (DecodeError "Received empty string") <<< NonEmptyString.fromString)
 
 fromJArray :: Array Json -> Json
 fromJArray = Json.fromArray
 
-toJArray :: Json -> Either (List String) (Array Json)
+toJArray :: Json -> Either DecodeError (Array Json)
 toJArray json =
   caseJson
-    (\_ -> Left $ pure "Expected a value of type Array but got Null")
-    (\_ -> Left $ pure "Expected a value of type Array but got Boolean")
-    (\_ -> Left $ pure "Expected a value of type Array but got Number")
-    (\_ -> Left $ pure "Expected a value of type Array but got String")
+    (\_ -> Left $ DecodeError $ "Expected a value of type Array but got Null")
+    (\_ -> Left $ DecodeError $ "Expected a value of type Array but got Boolean")
+    (\_ -> Left $ DecodeError $ "Expected a value of type Array but got Number")
+    (\_ -> Left $ DecodeError $ "Expected a value of type Array but got String")
     pure
-    (\_ -> Left $ pure "Expected a value of type Array but got Object")
+    (\_ -> Left $ DecodeError $ "Expected a value of type Array but got Object")
     json
 
-underIndex' :: forall a. Int -> (Maybe Json -> Either (List String) a) -> Array Json -> Either (List String) a
-underIndex' idx f arr = do
-  let res = Array.index arr idx
-  case res of
-    Nothing -> f res
-    Just _ -> withIndex idx $ f res
-
-underIndex :: forall a. Int -> (Json -> Either (List String) a) -> Array Json -> Either (List String) a
-underIndex idx f arr = arr # underIndex' idx case _ of
-  Nothing -> Left $ pure $ "Missing index: " <> show idx
-  Just j -> withIndex idx $ f j
+underIndex :: forall a. Int -> (Json -> Either DecodeError a) -> Array Json -> Either DecodeError a
+underIndex idx f arr = case Array.index arr idx of
+  Nothing -> Left $ AtIndex idx $ DecodeError "Missing index"
+  Just j -> lmap (AtIndex idx) $ f j
 
 fromArray :: forall a. (a -> Json) -> Array a -> Json
 fromArray fromA = map fromA >>> fromJArray
 
-toArray :: forall a. (Json -> Either (List String) a) -> Json -> Either (List String) (Array a)
-toArray toElem = toJArray >=> traverseWithIndex (\i j -> withIndex i $ toElem j)
+toArray :: forall a. (Json -> Either DecodeError a) -> Json -> Either DecodeError (Array a)
+toArray toElem = toJArray >=> traverseWithIndex (\i j -> lmap (AtIndex i) $ toElem j)
 
 fromArray2 :: Json -> Json -> Json
 fromArray2 a b = fromJArray [ a, b ]
@@ -363,16 +378,16 @@ fromArray2 a b = fromJArray [ a, b ]
 toArray2
   :: forall a b x
    . (a -> b -> x)
-  -> (Json -> Either (List String) a)
-  -> (Json -> Either (List String) b)
+  -> (Json -> Either DecodeError a)
+  -> (Json -> Either DecodeError b)
   -> Json
-  -> Either (List String) x
+  -> Either DecodeError x
 toArray2 x a' b' = toJArray >=> case _ of
   [ a, b ] ->
     x
       <$> a' a
       <*> b' b
-  arr -> Left $ pure $ "Expected array of length 2 but array had length " <> show (Array.length arr)
+  _ -> Left $ DecodeError "Expected array of length 2"
 
 fromArray3 :: Json -> Json -> Json -> Json
 fromArray3 a b c = fromJArray [ a, b, c ]
@@ -380,18 +395,18 @@ fromArray3 a b c = fromJArray [ a, b, c ]
 toArray3
   :: forall a b c x
    . (a -> b -> c -> x)
-  -> (Json -> Either (List String) a)
-  -> (Json -> Either (List String) b)
-  -> (Json -> Either (List String) c)
+  -> (Json -> Either DecodeError a)
+  -> (Json -> Either DecodeError b)
+  -> (Json -> Either DecodeError c)
   -> Json
-  -> Either (List String) x
+  -> Either DecodeError x
 toArray3 x a' b' c' = toJArray >=> case _ of
   [ a, b, c ] ->
     x
       <$> a' a
       <*> b' b
       <*> c' c
-  arr -> Left $ pure $ "Expected array of length 3 but array had length " <> show (Array.length arr)
+  _ -> Left $ DecodeError "Expected array of length 3"
 
 fromArray4 :: Json -> Json -> Json -> Json -> Json
 fromArray4 a b c d = fromJArray [ a, b, c, d ]
@@ -399,12 +414,12 @@ fromArray4 a b c d = fromJArray [ a, b, c, d ]
 toArray4
   :: forall a b c d x
    . (a -> b -> c -> d -> x)
-  -> (Json -> Either (List String) a)
-  -> (Json -> Either (List String) b)
-  -> (Json -> Either (List String) c)
-  -> (Json -> Either (List String) d)
+  -> (Json -> Either DecodeError a)
+  -> (Json -> Either DecodeError b)
+  -> (Json -> Either DecodeError c)
+  -> (Json -> Either DecodeError d)
   -> Json
-  -> Either (List String) x
+  -> Either DecodeError x
 toArray4 x a' b' c' d' = toJArray >=> case _ of
   [ a, b, c, d ] ->
     x
@@ -412,7 +427,7 @@ toArray4 x a' b' c' d' = toJArray >=> case _ of
       <*> b' b
       <*> c' c
       <*> d' d
-  arr -> Left $ pure $ "Expected array of length 4 but array had length " <> show (Array.length arr)
+  _ -> Left $ DecodeError "Expected array of length 4"
 
 fromArray5 :: Json -> Json -> Json -> Json -> Json -> Json
 fromArray5 a b c d e = fromJArray [ a, b, c, d, e ]
@@ -420,13 +435,13 @@ fromArray5 a b c d e = fromJArray [ a, b, c, d, e ]
 toArray5
   :: forall a b c d e x
    . (a -> b -> c -> d -> e -> x)
-  -> (Json -> Either (List String) a)
-  -> (Json -> Either (List String) b)
-  -> (Json -> Either (List String) c)
-  -> (Json -> Either (List String) d)
-  -> (Json -> Either (List String) e)
+  -> (Json -> Either DecodeError a)
+  -> (Json -> Either DecodeError b)
+  -> (Json -> Either DecodeError c)
+  -> (Json -> Either DecodeError d)
+  -> (Json -> Either DecodeError e)
   -> Json
-  -> Either (List String) x
+  -> Either DecodeError x
 toArray5 x a' b' c' d' e' = toJArray >=> case _ of
   [ a, b, c, d, e ] ->
     x
@@ -435,51 +450,44 @@ toArray5 x a' b' c' d' e' = toJArray >=> case _ of
       <*> c' c
       <*> d' d
       <*> e' e
-  arr -> Left $ pure $ "Expected array of length 5 but array had length " <> show (Array.length arr)
+  _ -> Left $ DecodeError "Expected array of length 5"
 
 fromNonEmptyArray :: forall a. (a -> Json) -> NonEmptyArray a -> Json
 fromNonEmptyArray fromA = NEA.toArray >>> fromArray fromA
 
-toNonEmptyArray :: forall a. (Json -> Either (List String) a) -> Json -> Either (List String) (NonEmptyArray a)
-toNonEmptyArray toElem = toArray toElem >=> (note (pure "Received empty array") <<< NEA.fromArray)
+toNonEmptyArray :: forall a. (Json -> Either DecodeError a) -> Json -> Either DecodeError (NonEmptyArray a)
+toNonEmptyArray toElem = toArray toElem >=> (note (DecodeError "Received empty array") <<< NEA.fromArray)
 
 fromJObject :: Object Json -> Json
 fromJObject = Json.fromObject
 
-toJObject :: Json -> Either (List String) (Object Json)
+toJObject :: Json -> Either DecodeError (Object Json)
 toJObject json =
   caseJson
-    (\_ -> Left $ pure "Expected a value of type Object but got Null")
-    (\_ -> Left $ pure "Expected a value of type Object but got Boolean")
-    (\_ -> Left $ pure "Expected a value of type Object but got Number")
-    (\_ -> Left $ pure "Expected a value of type Object but got String")
-    (\_ -> Left $ pure "Expected a value of type Object but got Array")
+    (\_ -> Left $ DecodeError "Expected a value of type Object but got Null")
+    (\_ -> Left $ DecodeError "Expected a value of type Object but got Boolean")
+    (\_ -> Left $ DecodeError "Expected a value of type Object but got Number")
+    (\_ -> Left $ DecodeError "Expected a value of type Object but got String")
+    (\_ -> Left $ DecodeError "Expected a value of type Object but got Array")
     pure
     json
 
-underKey' :: forall a. String -> (Maybe Json -> Either (List String) a) -> Object Json -> Either (List String) a
-underKey' key f obj = do
-  let res = Object.lookup key obj
-  case res of
-    Nothing -> f res
-    Just _ -> withKey key $ f res
-
-underKey :: forall a. String -> (Json -> Either (List String) a) -> Object Json -> Either (List String) a
-underKey key f obj = obj # underKey' key case _ of
-  Nothing -> Left $ pure $ "Missing key, " <> show key
-  Just j -> withKey key $ f j
+underKey :: forall a. String -> (Json -> Either DecodeError a) -> Object Json -> Either DecodeError a
+underKey key f obj = case Object.lookup key obj of
+  Nothing -> Left $ AtKey key $ DecodeError "Missing key"
+  Just j -> lmap (AtKey key) $ f j
 
 fromObject :: forall a. (a -> Json) -> Object a -> Json
 fromObject fromA = map fromA >>> fromJObject
 
-toObject :: forall a. (Json -> Either (List String) a) -> Json -> Either (List String) (Object a)
-toObject toElem = toJObject >=> traverseWithIndex (\k j -> withKey k $ toElem j)
+toObject :: forall a. (Json -> Either DecodeError a) -> Json -> Either DecodeError (Object a)
+toObject toElem = toJObject >=> traverseWithIndex (\k j -> lmap (AtKey k) $ toElem j)
 
 fromObjSingleton :: String -> Json -> Json
 fromObjSingleton k v = fromJObject $ Object.singleton k v
 
-toObjSingleton :: forall a. String -> (Maybe Json -> Either (List String) a) -> Json -> Either (List String) a
-toObjSingleton k f = toJObject >=> (\j -> underKey' k f j)
+toObjSingleton :: forall a. String -> (Json -> Either DecodeError a) -> Json -> Either DecodeError a
+toObjSingleton k f = toJObject >=> (\j -> underKey k f j)
 
 fromPropArray :: Array (Tuple String Json) -> Json
 fromPropArray = fromJObject <<< Array.foldl (\acc (Tuple k v) -> Object.insert k v acc) Object.empty
@@ -487,7 +495,7 @@ fromPropArray = fromJObject <<< Array.foldl (\acc (Tuple k v) -> Object.insert k
 fromIdentity :: forall a. (a -> Json) -> Identity a -> Json
 fromIdentity fromA (Identity a) = fromA a
 
-toIdentity :: forall a. (Json -> Either (List String) a) -> Json -> Either (List String) (Identity a)
+toIdentity :: forall a. (Json -> Either DecodeError a) -> Json -> Either DecodeError (Identity a)
 toIdentity f = coerce f
 
 fromMaybeTagged :: forall a. (a -> Json) -> Maybe a -> Json
@@ -497,15 +505,15 @@ fromMaybeTagged fromA =
   where
   tagged tag j = Object.fromFoldable [ Tuple "tag" $ fromString tag, Tuple "value" j ]
 
-toMaybeTagged :: forall a. (Json -> Either (List String) a) -> Json -> Either (List String) (Maybe a)
+toMaybeTagged :: forall a. (Json -> Either DecodeError a) -> Json -> Either DecodeError (Maybe a)
 toMaybeTagged toElem = toJObject >=> \jo -> do
   tag <- jo # underKey "tag" toString
   case tag of
     "Just" -> (map Just <$> underKey "value" toElem) jo
     "Nothing" ->
       pure Nothing
-    unknownTag ->
-      Left $ pure $ "Tag was not 'Just' or 'Nothing': " <> unknownTag
+    _ ->
+      Left $ DecodeError "Tag was not 'Just' or 'Nothing'."
 
 fromEither :: forall a b. (a -> Json) -> (b -> Json) -> Either a b -> Json
 fromEither fromA fromB =
@@ -516,17 +524,17 @@ fromEither fromA fromB =
 
 toEither
   :: forall a b
-   . (Json -> Either (List String) a)
-  -> (Json -> Either (List String) b)
+   . (Json -> Either DecodeError a)
+  -> (Json -> Either DecodeError b)
   -> Json
-  -> Either (List String) (Either a b)
+  -> Either DecodeError (Either a b)
 toEither toLeft toRight = toJObject >=> \jo -> do
   tag <- underKey "tag" toString jo
   case tag of
     "Left" -> Left <$> underKey "value" toLeft jo
     "Right" -> Right <$> underKey "value" toRight jo
-    unknownTag ->
-      Left $ pure $ "Tag was not 'Left' or 'Right': " <> unknownTag
+    _ ->
+      Left $ DecodeError "Tag was not 'Left' or 'Right'"
 
 fromTuple :: forall a b. (a -> Json) -> (b -> Json) -> Tuple a b -> Json
 fromTuple fromA fromB (Tuple a b) =
@@ -537,10 +545,10 @@ fromTuple fromA fromB (Tuple a b) =
 
 toTuple
   :: forall a b
-   . (Json -> Either (List String) a)
-  -> (Json -> Either (List String) b)
+   . (Json -> Either DecodeError a)
+  -> (Json -> Either DecodeError b)
   -> Json
-  -> Either (List String) (Tuple a b)
+  -> Either DecodeError (Tuple a b)
 toTuple toA toB =
   toArray2
     Tuple
@@ -563,10 +571,10 @@ fromThese fromA fromB =
 
 toThese
   :: forall a b
-   . (Json -> Either (List String) a)
-  -> (Json -> Either (List String) b)
+   . (Json -> Either DecodeError a)
+  -> (Json -> Either DecodeError b)
   -> Json
-  -> Either (List String) (These a b)
+  -> Either DecodeError (These a b)
 toThese toA toB = toJObject >=> \jo -> do
   tag <- underKey "tag" toString jo
   case tag of
@@ -576,8 +584,8 @@ toThese toA toB = toJObject >=> \jo -> do
       Both
         <$> (underKey "this" toA jo)
         <*> (underKey "that" toB jo)
-    unknownTag ->
-      Left $ pure $ "Tag was not 'This', 'That', or 'Both': " <> unknownTag
+    _ ->
+      Left $ DecodeError "Tag was not 'This', 'That', or 'Both'"
 
 fromNonEmpty :: forall f a. (a -> Json) -> (f a -> Json) -> NonEmpty f a -> Json
 fromNonEmpty fromHead fromTail (NonEmpty a fa) =
@@ -589,9 +597,9 @@ fromNonEmpty fromHead fromTail (NonEmpty a fa) =
 
 toNonEmpty
   :: forall g a
-   . (Json -> Either (List String) a)
-  -> (Json -> Either (List String) (g a))
-  -> (Json -> Either (List String) (NonEmpty g a))
+   . (Json -> Either DecodeError a)
+  -> (Json -> Either DecodeError (g a))
+  -> (Json -> Either DecodeError (NonEmpty g a))
 toNonEmpty toHead toTail = toJObject >=> \jo ->
   NonEmpty
     <$> (underKey "head" toHead jo)
@@ -602,9 +610,9 @@ fromList fromA = List.foldl (\arr -> Array.snoc arr <<< fromA) [] >>> fromJArray
 
 toList
   :: forall a
-   . (Json -> Either (List String) a)
+   . (Json -> Either DecodeError a)
   -> Json
-  -> Either (List String) (List a)
+  -> Either DecodeError (List a)
 toList toElem = toArray toElem >>> map List.fromFoldable
 
 fromNonEmptyList :: forall a. (a -> Json) -> (NonEmptyList a -> Json)
@@ -612,10 +620,10 @@ fromNonEmptyList fromA = NEL.foldl (\arr -> Array.snoc arr <<< fromA) [] >>> fro
 
 toNonEmptyList
   :: forall a
-   . (Json -> Either (List String) a)
+   . (Json -> Either DecodeError a)
   -> Json
-  -> Either (List String) (NonEmptyList a)
-toNonEmptyList toA = toList toA >=> (note (pure $ "Received empty list") <<< NEL.fromList)
+  -> Either DecodeError (NonEmptyList a)
+toNonEmptyList toA = toList toA >=> (note (DecodeError "Received empty list") <<< NEL.fromList)
 
 fromMap :: forall k v. (k -> Json) -> (v -> Json) -> Map k v -> Json
 fromMap fromKey fromValue =
@@ -633,10 +641,10 @@ fromMap fromKey fromValue =
 toMap
   :: forall k v
    . Ord k
-  => (Json -> Either (List String) k)
-  -> (Json -> Either (List String) v)
+  => (Json -> Either DecodeError k)
+  -> (Json -> Either DecodeError v)
   -> Json
-  -> Either (List String) (Map k v)
+  -> Either DecodeError (Map k v)
 toMap toKey toValue =
   toArray
     ( toJObject >=> \jo ->
@@ -653,9 +661,9 @@ fromSet fromA = foldl (\arr -> Array.snoc arr <<< fromA) [] >>> fromJArray
 toSet
   :: forall a
    . Ord a
-  => (Json -> Either (List String) a)
+  => (Json -> Either DecodeError a)
   -> Json
-  -> Either (List String) (Set a)
+  -> Either DecodeError (Set a)
 toSet toA = toArray toA >>> map Set.fromFoldable
 
 fromNonEmptySet :: forall a. (a -> Json) -> NonEmptySet a -> Json
@@ -664,10 +672,10 @@ fromNonEmptySet fromA = NonEmptySet.toSet >>> fromSet fromA
 toNonEmptySet
   :: forall a
    . Ord a
-  => (Json -> Either (List String) a)
+  => (Json -> Either DecodeError a)
   -> Json
-  -> Either (List String) (NonEmptySet a)
-toNonEmptySet toA = toArray toA >=> (note (pure $ "Received empty set") <<< NonEmptySet.fromSet <<< Set.fromFoldable)
+  -> Either DecodeError (NonEmptySet a)
+toNonEmptySet toA = toArray toA >=> (note (DecodeError "Received empty set") <<< NonEmptySet.fromSet <<< Set.fromFoldable)
 
 -- | All labels must have a function of type: `FromRecordCodec a`
 fromRecord
@@ -688,7 +696,7 @@ toRecord
   => ToRecordObj codecsRL { | codecs } { | values }
   => { | codecs }
   -> Json
-  -> Either (List String) { | values }
+  -> Either DecodeError { | values }
 toRecord codecs = toJObject >=>
   toRecordObj (Proxy :: Proxy codecsRL) codecs
 
@@ -712,14 +720,14 @@ toRecordN
   => ({ | values } -> n)
   -> { | codecs }
   -> Json
-  -> Either (List String) n
+  -> Either DecodeError n
 toRecordN f codecs = coerce1 f <<< toRecord codecs
 
 -- | Iterates through the underlying array.
 -- | - key: uses the `str` in `Just str` or the record label if `Nothing`
 -- | - f: the key used on the object and the result of looking up that key in the object
 -- | - return: `Nothing` if the decoding failed; `Just` if it succeeded.
-newtype ToRecordCodec a = ToRecordCodec (Either a (NonEmptyArray (Tuple (Maybe String) (String -> Maybe Json -> Either (List String) a))))
+newtype ToRecordCodec a = ToRecordCodec (Either a (NonEmptyArray (Tuple (Maybe String) (String -> Maybe Json -> Either DecodeError a))))
 
 newtype FromRecordCodec a = FromRecordCodec (Tuple (Maybe String) (String -> a -> Maybe Json))
 
@@ -729,20 +737,20 @@ toStatic a = ToRecordCodec $ Left a
 fromRequired :: forall a. (a -> Json) -> FromRecordCodec a
 fromRequired f = FromRecordCodec $ Tuple Nothing \_ -> Just <<< f
 
-toRequired :: forall a. (Json -> Either (List String) a) -> ToRecordCodec a
+toRequired :: forall a. (Json -> Either DecodeError a) -> ToRecordCodec a
 toRequired f = ToRecordCodec $ Right $ NEA.singleton $ Tuple Nothing \k j ->
   case j of
-    Nothing -> Left $ pure $ "Missing field, " <> show k
-    Just j' -> withKey k $ f j'
+    Nothing -> Left $ DecodeError $ "Missing field, " <> show k
+    Just j' -> lmap (AtKey k) $ f j'
 
 fromRequiredRename :: forall a. String -> (a -> Json) -> FromRecordCodec a
 fromRequiredRename str f = FromRecordCodec $ Tuple (Just str) \_ -> Just <<< f
 
-toRequiredRename :: forall a. String -> (Json -> Either (List String) a) -> ToRecordCodec a
+toRequiredRename :: forall a. String -> (Json -> Either DecodeError a) -> ToRecordCodec a
 toRequiredRename jsonLbl f = ToRecordCodec $ Right $ NEA.singleton $ Tuple (Just jsonLbl) \k j ->
   case j of
-    Nothing -> Left $ pure $ "Missing field, " <> show k
-    Just j' -> withKey k $ f j'
+    Nothing -> Left $ DecodeError $ "Missing field, " <> show k
+    Just j' -> lmap (AtKey k) $ f j'
 
 -- | If Nothing, does not add the coressponding key
 -- | If Just, adds the key and the encoded value to the JObject
@@ -750,33 +758,33 @@ fromOption :: forall a. (a -> Json) -> FromRecordCodec (Maybe a)
 fromOption f = FromRecordCodec $ Tuple Nothing \_ -> map f
 
 -- | Succeeds with Nothing if key wasn't found or with Just if key was found and value was succesfully tod.
-toOption :: forall a. (Json -> Either (List String) a) -> ToRecordCodec (Maybe a)
+toOption :: forall a. (Json -> Either DecodeError a) -> ToRecordCodec (Maybe a)
 toOption f = toOptionDefault Nothing (map Just <$> f)
 
 fromOptionRename :: forall a. String -> (a -> Json) -> FromRecordCodec (Maybe a)
 fromOptionRename str f = FromRecordCodec $ Tuple (Just str) \_ -> map f
 
-toOptionRename :: forall a. String -> (Json -> Either (List String) a) -> ToRecordCodec (Maybe a)
+toOptionRename :: forall a. String -> (Json -> Either DecodeError a) -> ToRecordCodec (Maybe a)
 toOptionRename rename f = toOptionDefaultRename rename Nothing (map Just <$> f)
 
-toOptionDefault :: forall a. a -> (Json -> Either (List String) a) -> ToRecordCodec a
+toOptionDefault :: forall a. a -> (Json -> Either DecodeError a) -> ToRecordCodec a
 toOptionDefault a f = ToRecordCodec $ Right $ NEA.singleton $ Tuple Nothing \k j ->
   case j of
     Nothing -> pure a
-    Just j' -> withKey k $ f j'
+    Just j' -> lmap (AtKey k) $ f j'
 
-toOptionDefaultRename :: forall a. String -> a -> (Json -> Either (List String) a) -> ToRecordCodec a
+toOptionDefaultRename :: forall a. String -> a -> (Json -> Either DecodeError a) -> ToRecordCodec a
 toOptionDefaultRename jsonLbl a f = ToRecordCodec $ Right $ NEA.singleton $ Tuple (Just jsonLbl) \k j ->
   case j of
     Nothing -> pure a
-    Just j' -> withKey k $ f j'
+    Just j' -> lmap (AtKey k) $ f j'
 
 fromOptionArray :: forall a. (a -> Json) -> FromRecordCodec (Array a)
 fromOptionArray f = FromRecordCodec $ Tuple Nothing \_ arr ->
   if Array.length arr == 0 then Nothing
   else Just $ fromArray f arr
 
-toOptionArray :: forall a. (Json -> Either (List String) a) -> ToRecordCodec (Array a)
+toOptionArray :: forall a. (Json -> Either DecodeError a) -> ToRecordCodec (Array a)
 toOptionArray f = ToRecordCodec $ Right $ NEA.singleton $ Tuple Nothing \_ j -> case j of
   Nothing -> pure []
   Just j' -> toArray f j'
@@ -786,14 +794,14 @@ fromOptionAssocArray k' v' = FromRecordCodec $ Tuple Nothing \_ arr ->
   if Array.length arr == 0 then Nothing
   else Just $ Json.fromObject $ Array.foldl (\acc (Tuple k v) -> Object.insert (k' k) (v' v) acc) Object.empty arr
 
-toOptionAssocArray :: forall a b. (String -> Either (List String) a) -> (Json -> Either (List String) b) -> ToRecordCodec (Array (Tuple a b))
+toOptionAssocArray :: forall a b. (String -> Either DecodeError a) -> (Json -> Either DecodeError b) -> ToRecordCodec (Array (Tuple a b))
 toOptionAssocArray k' v' = ToRecordCodec $ Right $ NEA.singleton $ Tuple Nothing \_ j -> case j of
   Nothing -> pure []
   Just j' -> (Object.toUnfoldable <$> toJObject j') >>= traverse (bitraverse k' v')
 
 class ToRecordObj :: RowList Type -> Type -> Type -> Constraint
 class ToRecordObj codecsRL codecs values | codecsRL -> codecs values where
-  toRecordObj :: Proxy codecsRL -> codecs -> Object Json -> Either (List String) values
+  toRecordObj :: Proxy codecsRL -> codecs -> Object Json -> Either DecodeError values
 
 instance toRecordObjNil :: ToRecordObj RL.Nil {} {} where
   toRecordObj _ _ _ = pure {}
@@ -807,19 +815,30 @@ instance toRecordObjCons ::
   ) =>
   ToRecordObj (RL.Cons sym (ToRecordCodec a) codecTail) { | codecs } { | values } where
   toRecordObj _ codecs j = do
-    rec <- toRecordObj (Proxy :: Proxy codecTail) codecsRest j
+    rec <- onLeft (toRecordObj (Proxy :: Proxy codecTail) codecsRest j) \e1 ->
+      case keyDecoders of
+        Right decs | Left e2 <- decodeNextField decs -> Left $ accumulateErrors e1 e2
+        _ -> Left e1
     a <- case keyDecoders of
-      Left a' ->
-        pure a'
-      Right decs -> do
-        j # withAttempts decs \(Tuple keyRename decoder) j' -> do
-          let key = fromMaybe lbl keyRename
-          decoder key (Object.lookup key j')
+      Left a' -> pure a'
+      Right decs -> decodeNextField decs
     pure $ Record.insert _lbl a rec
     where
+    onLeft :: forall e x. Either e x -> (e -> Either e x) -> Either e x
+    onLeft l f = case l of
+      Left l' -> f l'
+      x@(Right _) -> x
+
+    decodeNextField :: NonEmptyArray (Tuple (Maybe String) (String -> Maybe Json -> Either DecodeError a)) -> Either DecodeError a
+    decodeNextField decoders =
+      j # withAttempts decoders \(Tuple keyRename decoder) j' -> do
+        let key = fromMaybe lbl keyRename
+        decoder key (Object.lookup key j')
     lbl = reflectSymbol _lbl
     _lbl = (Proxy :: Proxy sym)
     (ToRecordCodec keyDecoders) = Record.get _lbl codecs
+
+    codecsRest :: { | cRest }
     codecsRest = unsafeCoerce codecs
 else instance toRecordObjFailure ::
   ( Fail

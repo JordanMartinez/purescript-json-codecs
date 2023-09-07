@@ -8,7 +8,8 @@
 -- @inline export underKey arity=1
 -- @inline export toIdentity arity=1
 -- @inline export toMaybeTagged arity=1
--- @inline export toEither arity=1
+-- @inline export toEitherTagged arity=1
+-- @inline export toEitherSingle arity=1
 -- @inline export toTuple arity=1
 -- @inline export toThese arity=1
 -- @inline export toNonEmpty arity=1
@@ -17,7 +18,6 @@
 -- @inline export toMap arity=1
 -- @inline export toSet arity=1
 -- @inline export toNonEmptySet arity=1
--- @inline export toEither arity=1
 -- @inline export fromRecord arity=2
 -- @inline export toRecord arity=2
 -- @inline export fromRecordN arity=3
@@ -115,8 +115,10 @@ module Codec.Json.Unidirectional.Value
   , toIdentity
   , fromMaybeTagged
   , toMaybeTagged
-  , fromEither
-  , toEither
+  , fromEitherTagged
+  , toEitherTagged
+  , fromEitherSingle
+  , toEitherSingle
   , fromTuple
   , toTuple
   , fromThese
@@ -586,26 +588,41 @@ toMaybeTagged toElem = toJObject >=> \jo -> do
     _ ->
       Left $ DecodeError "Tag was not 'Just' or 'Nothing'."
 
-fromEither :: forall a b. (a -> Json) -> (b -> Json) -> Either a b -> Json
-fromEither fromA fromB =
+fromEitherTagged :: forall a b. (a -> Json) -> (b -> Json) -> Either a b -> Json
+fromEitherTagged fromA fromB =
   either (tagged "Left" <<< fromA) (tagged "Right" <<< fromB)
     >>> fromJObject
   where
   tagged tag j = Object.fromFoldable [ Tuple "tag" $ fromString tag, Tuple "value" j ]
 
-toEither
+toEitherTagged
   :: forall a b
    . (Json -> Either DecodeError a)
   -> (Json -> Either DecodeError b)
   -> Json
   -> Either DecodeError (Either a b)
-toEither toLeft toRight = toJObject >=> \jo -> do
+toEitherTagged toLeft toRight = toJObject >=> \jo -> do
   tag <- underKey "tag" toString jo
   case tag of
     "Left" -> Left <$> underKey "value" toLeft jo
     "Right" -> Right <$> underKey "value" toRight jo
     _ ->
       Left $ DecodeError "Tag was not 'Left' or 'Right'"
+
+fromEitherSingle :: forall a b. (a -> Json) -> (b -> Json) -> Either a b -> Json
+fromEitherSingle fromA fromB =
+  either (fromObjSingleton "Left" <<< fromA) (fromObjSingleton "Right" <<< fromB)
+
+toEitherSingle
+  :: forall a b
+   . (Json -> Either DecodeError a)
+  -> (Json -> Either DecodeError b)
+  -> Json
+  -> Either DecodeError (Either a b)
+toEitherSingle toLeft toRight =
+  altAccumulateKleisli
+    (toObjSingleton "Left" toLeft >>> map Left)
+    (toObjSingleton "Right" toRight >>> map Right)
 
 fromTuple :: forall a b. (a -> Json) -> (b -> Json) -> Tuple a b -> Json
 fromTuple fromA fromB (Tuple a b) =

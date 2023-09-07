@@ -168,7 +168,6 @@ import Data.Array as Array
 import Data.Array.NonEmpty as NEA
 import Data.Array.NonEmpty.Internal (NonEmptyArray)
 import Data.Bifunctor (lmap)
-import Data.Bitraversable (bitraverse)
 import Data.Either (Either(..), either, note)
 import Data.Foldable (foldMap, foldl)
 import Data.FoldableWithIndex (foldlWithIndex)
@@ -931,7 +930,17 @@ toOptionAssocArray :: forall a b. (String -> Either DecodeError a) -> (Json -> E
 toOptionAssocArray k' v' = ToProp $ mkFn2 \lookupFn recLabel ->
   case lookupFn recLabel of
     Nothing -> pure []
-    Just j' -> lmap (AtKey recLabel) $ ((Object.toUnfoldable <$> toJObject j') >>= traverse (bitraverse k' v'))
+    Just j' -> lmap (AtKey recLabel) $
+      ( (Object.toUnfoldable <$> toJObject j') >>= traverse \(Tuple k v) ->
+          lmap (AtKey k) do
+            Tuple
+              <$>
+                ( k' k # lmap case _ of
+                    DecodeError err -> DecodeError $ "while decoding the key " <> show k <> " - " <> err
+                    x -> x
+                )
+              <*> v' v
+      )
 
 class ToRecordObj :: RowList Type -> Type -> Type -> Constraint
 class ToRecordObj codecsRL codecs values | codecsRL -> codecs values where

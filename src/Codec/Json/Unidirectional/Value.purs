@@ -434,9 +434,9 @@ toJArray json =
     json
 
 underIndex :: forall a. Int -> (Json -> Either DecodeError a) -> Array Json -> Either DecodeError a
-underIndex idx f arr = case Array.index arr idx of
-  Nothing -> Left $ AtIndex idx $ DecodeError "Missing index"
-  Just j -> lmap (AtIndex idx) $ f j
+underIndex idx f arr = lmap (AtIndex idx) case Array.index arr idx of
+  Nothing -> Left $ DecodeError "Missing index"
+  Just j -> f j
 
 fromArray :: forall a. (a -> Json) -> Array a -> Json
 fromArray fromA = map fromA >>> fromJArray
@@ -545,9 +545,9 @@ toJObject json =
     json
 
 underKey :: forall a. String -> (Json -> Either DecodeError a) -> Object Json -> Either DecodeError a
-underKey key f obj = case Object.lookup key obj of
-  Nothing -> Left $ AtKey key $ DecodeError "Missing key"
-  Just j -> lmap (AtKey key) $ f j
+underKey key f obj = lmap (AtKey key) case Object.lookup key obj of
+  Nothing -> Left $ DecodeError "Missing key"
+  Just j -> f j
 
 fromObject :: forall a. (a -> Json) -> Object a -> Json
 fromObject fromA = map fromA >>> fromJObject
@@ -871,18 +871,18 @@ fromRequired f = FromProp $ (Just <<< Tuple Nothing) <$> f
 
 toRequired :: forall a. (Json -> Either DecodeError a) -> ToProp a
 toRequired f = ToProp $ mkFn2 \lookupFn recLabel ->
-  case lookupFn recLabel of
-    Nothing -> Left $ AtKey recLabel $ DecodeError $ "Missing field"
-    Just j' -> lmap (AtKey recLabel) $ f j'
+  lmap (AtKey recLabel) case lookupFn recLabel of
+    Nothing -> Left $ DecodeError $ "Missing field"
+    Just j' -> f j'
 
 fromRequiredRename :: forall a. String -> (a -> Json) -> FromProp a
 fromRequiredRename str f = FromProp $ (Just <<< Tuple (Just str)) <$> f
 
 toRequiredRename :: forall a. String -> (Json -> Either DecodeError a) -> ToProp a
 toRequiredRename jsonLbl f = ToProp $ mkFn2 \lookupFn _ ->
-  case lookupFn jsonLbl of
-    Nothing -> Left $ AtKey jsonLbl $ DecodeError "Missing field"
-    Just j' -> lmap (AtKey jsonLbl) $ f j'
+  lmap (AtKey jsonLbl) case lookupFn jsonLbl of
+    Nothing -> Left $ DecodeError "Missing field"
+    Just j' -> f j'
 
 -- | If Nothing, does not add the coressponding key
 -- | If Just, adds the key and the encoded value to the JObject

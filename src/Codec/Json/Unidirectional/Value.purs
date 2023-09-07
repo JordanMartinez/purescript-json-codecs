@@ -56,6 +56,7 @@ module Codec.Json.Unidirectional.Value
   , accumulateErrors
   , altAccumulateLazy
   , printDecodeError
+  , printDecodeError'
   , coerce1
   , class FromPrimitive
   , fromPrimitive
@@ -237,14 +238,18 @@ accumulateErrors = case _, _ of
   first, next -> AccumulateError $ next : first : Nil
 
 printDecodeError :: DecodeError -> String
-printDecodeError = go 1 "ROOT"
+printDecodeError = printDecodeError' 1
+
+printDecodeError' :: Int -> DecodeError -> String
+printDecodeError' firstIdent = go initialIdent (mkIndent (initialIdent - 1) <> "ROOT")
   where
+  initialIdent = max 1 firstIdent
+  mkIndent amt = power "  " amt
   go indent acc = case _ of
     AtKey k next -> go indent (acc <> "." <> show k) next
     AtIndex i next -> go indent (acc <> "[" <> show i <> "]") next
     AccumulateError ls -> do
-      let newlineIndent = "\n" <> power "  " indent
-      acc <> (foldMap (go (indent + 1) newlineIndent) $ List.reverse ls)
+      acc <> (foldMap (go (indent + 1) ("\n" <> mkIndent indent)) $ List.reverse ls)
     DecodeError msg -> acc <> " - " <> msg
 
 -- | Tries the first codec. If it fails, tries the second codec. If it fails, 

@@ -1,4 +1,4 @@
--- @inline export altAccumulateKleisli arity=2
+-- @inline export altAccumulate arity=2
 -- @inline export altAccumulateLazy arity=1
 -- @inline export fromPrimitiveArray(..).fromPrimitive arity=1
 -- @inline export fromPrimitiveObject(..).fromPrimitive arity=1
@@ -55,7 +55,7 @@
 module Codec.Json.Unidirectional.Value
   ( DecodeError(..)
   , accumulateErrors
-  , altAccumulateKleisli
+  , altAccumulate
   , altAccumulateLazy
   , printDecodeError
   , printDecodeError'
@@ -234,7 +234,7 @@ derive instance Generic DecodeError _
 instance Show DecodeError where
   show x = genericShow x
 
--- | Prefer to use `altAccumulateKleisli` or `altAccumulateLazy`.
+-- | Prefer to use `altAccumulate` or `altAccumulateLazy`.
 -- | The first error arg is assumed to have happened before the second error arg.
 accumulateErrors :: DecodeError -> DecodeError -> DecodeError
 accumulateErrors = case _, _ of
@@ -258,8 +258,8 @@ printDecodeError' firstIdent = go initialIdent (mkIndent (initialIdent - 1) <> "
 
 -- | Tries the first codec. If it fails, tries the second codec. If it fails, 
 -- | errors from both are accumulated. Succeeds if either of the two codecs succeed.
-altAccumulateKleisli :: forall a. (Json -> Either DecodeError a) -> (Json -> Either DecodeError a) -> Json -> Either DecodeError a
-altAccumulateKleisli f g j = case f j of
+altAccumulate :: forall a. (Json -> Either DecodeError a) -> (Json -> Either DecodeError a) -> Json -> Either DecodeError a
+altAccumulate f g j = case f j of
   x@(Right _) -> x
   (Left e1) -> case g j of
     x@(Right _) -> x
@@ -340,7 +340,7 @@ toJNull json =
     json
 
 toNullDefaultOrA :: forall a. a -> (Json -> Either DecodeError a) -> Json -> Either DecodeError a
-toNullDefaultOrA def f = altAccumulateKleisli (\j -> def <$ toJNull j) f
+toNullDefaultOrA def f = altAccumulate (\j -> def <$ toJNull j) f
 
 fromNullNothingOrJust :: forall a. (a -> Json) -> Maybe a -> Json
 fromNullNothingOrJust f = maybe Json.jsonNull f
@@ -352,7 +352,7 @@ fromNullable :: forall a. (a -> Json) -> Nullable a -> Json
 fromNullable fromA = toMaybe >>> fromNullNothingOrJust fromA
 
 toNullable :: forall a. (Json -> Either DecodeError a) -> Json -> Either DecodeError (Nullable a)
-toNullable toA = altAccumulateKleisli (\j -> null <$ toJNull j) (\j -> notNull <$> toA j)
+toNullable toA = altAccumulate (\j -> null <$ toJNull j) (\j -> notNull <$> toA j)
 
 fromBoolean :: Boolean -> Json
 fromBoolean = Json.fromBoolean
@@ -620,7 +620,7 @@ toEitherSingle
   -> Json
   -> Either DecodeError (Either a b)
 toEitherSingle toLeft toRight =
-  altAccumulateKleisli
+  altAccumulate
     (toObjSingleton "Left" toLeft >>> map Left)
     (toObjSingleton "Right" toRight >>> map Right)
 

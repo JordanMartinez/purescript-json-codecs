@@ -54,6 +54,7 @@
 module Codec.Json.Unidirectional.Value
   ( DecodeError(..)
   , accumulateErrors
+  , altAccumulateLazy
   , printDecodeError
   , coerce1
   , class FromPrimitive

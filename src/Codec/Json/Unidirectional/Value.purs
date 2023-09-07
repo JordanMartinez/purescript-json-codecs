@@ -65,9 +65,10 @@ module Codec.Json.Unidirectional.Value
   , class AllPrimitive
   , fromVoid
   , toVoid
-  , fromUnit
   , fromJNull
+  , fromNull
   , toJNull
+  , fromUnit
   , toNullDefaultOrA
   , fromNullNothingOrJust
   , toNullNothingOrJust
@@ -322,6 +323,9 @@ fromJNull = Json.jsonNull
 
 fromUnit :: Unit -> Json
 fromUnit = const fromJNull
+
+fromNull :: forall a. a -> Json
+fromNull = const fromJNull
 
 toJNull :: Json -> Either DecodeError Unit
 toJNull json =

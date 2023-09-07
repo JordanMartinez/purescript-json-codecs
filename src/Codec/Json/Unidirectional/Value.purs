@@ -428,12 +428,12 @@ fromArray2 a b = fromJArray [ a, b ]
 
 toArray2
   :: forall a b x
-   . (a -> b -> x)
-  -> (Json -> Either DecodeError a)
+   . (Json -> Either DecodeError a)
   -> (Json -> Either DecodeError b)
+  -> (a -> b -> x)
   -> Json
   -> Either DecodeError x
-toArray2 x a' b' = toJArray >=> case _ of
+toArray2 a' b' x = toJArray >=> case _ of
   [ a, b ] ->
     x
       <$> (lmap (AtIndex 0) $ a' a)
@@ -445,13 +445,13 @@ fromArray3 a b c = fromJArray [ a, b, c ]
 
 toArray3
   :: forall a b c x
-   . (a -> b -> c -> x)
-  -> (Json -> Either DecodeError a)
+   . (Json -> Either DecodeError a)
   -> (Json -> Either DecodeError b)
   -> (Json -> Either DecodeError c)
+  -> (a -> b -> c -> x)
   -> Json
   -> Either DecodeError x
-toArray3 x a' b' c' = toJArray >=> case _ of
+toArray3 a' b' c' x = toJArray >=> case _ of
   [ a, b, c ] ->
     x
       <$> (lmap (AtIndex 0) $ a' a)
@@ -464,14 +464,14 @@ fromArray4 a b c d = fromJArray [ a, b, c, d ]
 
 toArray4
   :: forall a b c d x
-   . (a -> b -> c -> d -> x)
-  -> (Json -> Either DecodeError a)
+   . (Json -> Either DecodeError a)
   -> (Json -> Either DecodeError b)
   -> (Json -> Either DecodeError c)
   -> (Json -> Either DecodeError d)
+  -> (a -> b -> c -> d -> x)
   -> Json
   -> Either DecodeError x
-toArray4 x a' b' c' d' = toJArray >=> case _ of
+toArray4 a' b' c' d' x = toJArray >=> case _ of
   [ a, b, c, d ] ->
     x
       <$> (lmap (AtIndex 0) $ a' a)
@@ -485,15 +485,15 @@ fromArray5 a b c d e = fromJArray [ a, b, c, d, e ]
 
 toArray5
   :: forall a b c d e x
-   . (a -> b -> c -> d -> e -> x)
-  -> (Json -> Either DecodeError a)
+   . (Json -> Either DecodeError a)
   -> (Json -> Either DecodeError b)
   -> (Json -> Either DecodeError c)
   -> (Json -> Either DecodeError d)
   -> (Json -> Either DecodeError e)
+  -> (a -> b -> c -> d -> e -> x)
   -> Json
   -> Either DecodeError x
-toArray5 x a' b' c' d' e' = toJArray >=> case _ of
+toArray5 a' b' c' d' e' x = toJArray >=> case _ of
   [ a, b, c, d, e ] ->
     x
       <$> (lmap (AtIndex 0) $ a' a)
@@ -602,9 +602,9 @@ toTuple
   -> Either DecodeError (Tuple a b)
 toTuple toA toB =
   toArray2
-    Tuple
     toA
     toB
+    Tuple
 
 fromThese :: forall a b. (a -> Json) -> (b -> Json) -> These a b -> Json
 fromThese fromA fromB =

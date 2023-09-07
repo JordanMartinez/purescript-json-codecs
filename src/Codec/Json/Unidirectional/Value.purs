@@ -1,4 +1,5 @@
--- @inline export altAccumulateLazy arity=2
+-- @inline export altAccumulateKleisli arity=2
+-- @inline export altAccumulateLazy arity=1
 -- @inline export fromPrimitiveArray(..).fromPrimitive arity=1
 -- @inline export fromPrimitiveObject(..).fromPrimitive arity=1
 -- @inline export fromPrimitiveRecord(..).fromPrimitive arity=2
@@ -54,6 +55,7 @@
 module Codec.Json.Unidirectional.Value
   ( DecodeError(..)
   , accumulateErrors
+  , altAccumulateKleisli
   , altAccumulateLazy
   , printDecodeError
   , printDecodeError'
@@ -230,7 +232,7 @@ derive instance Generic DecodeError _
 instance Show DecodeError where
   show x = genericShow x
 
--- | Prefer to use `altAccumulateLazy`.
+-- | Prefer to use `altAccumulateKleisli` or `altAccumulateLazy`.
 -- | The first error arg is assumed to have happened before the second error arg.
 accumulateErrors :: DecodeError -> DecodeError -> DecodeError
 accumulateErrors = case _, _ of
@@ -254,10 +256,19 @@ printDecodeError' firstIdent = go initialIdent (mkIndent (initialIdent - 1) <> "
 
 -- | Tries the first codec. If it fails, tries the second codec. If it fails, 
 -- | errors from both are accumulated. Succeeds if either of the two codecs succeed.
-altAccumulateLazy :: forall a. (Json -> Either DecodeError a) -> (Json -> Either DecodeError a) -> Json -> Either DecodeError a
-altAccumulateLazy f g j = case f j of
+altAccumulateKleisli :: forall a. (Json -> Either DecodeError a) -> (Json -> Either DecodeError a) -> Json -> Either DecodeError a
+altAccumulateKleisli f g j = case f j of
   x@(Right _) -> x
   (Left e1) -> case g j of
+    x@(Right _) -> x
+    Left e2 -> Left $ accumulateErrors e1 e2
+
+-- | Tries the first codec. If it fails, tries the second codec. If it fails, 
+-- | errors from both are accumulated. Succeeds if either of the two codecs succeed.
+altAccumulateLazy :: forall a. Either DecodeError a -> (Unit -> Either DecodeError a) -> Either DecodeError a
+altAccumulateLazy f g = case f of
+  x@(Right _) -> x
+  (Left e1) -> case g unit of
     x@(Right _) -> x
     Left e2 -> Left $ accumulateErrors e1 e2
 
@@ -324,7 +335,7 @@ toJNull json =
     json
 
 toNullDefaultOrA :: forall a. a -> (Json -> Either DecodeError a) -> Json -> Either DecodeError a
-toNullDefaultOrA def f = altAccumulateLazy (\j -> def <$ toJNull j) f
+toNullDefaultOrA def f = altAccumulateKleisli (\j -> def <$ toJNull j) f
 
 fromNullNothingOrJust :: forall a. (a -> Json) -> Maybe a -> Json
 fromNullNothingOrJust f = maybe Json.jsonNull f
@@ -336,7 +347,7 @@ fromNullable :: forall a. (a -> Json) -> Nullable a -> Json
 fromNullable fromA = toMaybe >>> fromNullNothingOrJust fromA
 
 toNullable :: forall a. (Json -> Either DecodeError a) -> Json -> Either DecodeError (Nullable a)
-toNullable toA = altAccumulateLazy (\j -> null <$ toJNull j) (\j -> notNull <$> toA j)
+toNullable toA = altAccumulateKleisli (\j -> null <$ toJNull j) (\j -> notNull <$> toA j)
 
 fromBoolean :: Boolean -> Json
 fromBoolean = Json.fromBoolean

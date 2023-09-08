@@ -51,7 +51,7 @@ The structured approach can be represented in a few different ways, but somethin
 type JsonPath_1 = List (Either Int String)
   -- Nil = Root
   -- Cons (Left i) -- "under index, " <> show i <> ", "
-  -- Cons (Left i) -- "under key, " <> show k <> ", "
+  -- Cons (Right String) -- "under key, " <> show k <> ", "
 
 -- A more human-readable encoding would be:
 data JsonPath
@@ -69,11 +69,30 @@ When Json decoding succeeds, any overhead from the possible error message is poi
 1. run the codec using an error type like `Maybe` above to prioritize speed
 1. upon failure run the decoder again using an information-rich error
 
-Unfortunately, because we don't have specialization in PureScript, the above approach does not work. So, this library tries to get the best of both worlds via `Either DecodeError`.
+With the advent of Visible Type Applications (VTAs), we could write the following code...
+```purs
+decodeX :: forall @f a. Applicative f => (forall @g. IsJsonDecoder g => Json -> g a) -> Json -> f a
+decodeX decoder j = case decoder @Maybe j of
+  Just a -> pure a
+  Nothing -> decoder @f j
+```
+
+... which reads as:
+1. Decode the JSON using the fast codec via Maybe. On the happy path of having a `Json` value that is valid, this is the fastest way to get an `a` out of it. When it succeeds, wrap it within the `f` monad.
+1. If the fast one fails, decode the JSON again but using a decoder monad `f` with more descriptive error messages.
+
+Unfortunately, the above approach doesn't get us what we want due to type class dictionary overhead. While using `Maybe` should be fast, the type class dictionary makes it slower than just using `Either` as-is. Even if we did have specialization, this approach increases one's bundle sizes because the same decoders must be stored once for each monad. 
+
+So, this library tries to get the best tradeoff via `Either DecodeError`:
+- slightly slower than just using `Maybe`
+- still faster than `Either JsonDecodeError`
+- still fairly debuggable
+- still allows error accumulation (unlike `JsonDecodeError`)
+- still allows custom error messages (unlike `JsonDecodeError`)
 
 ## DecodeError
 
 Via [the benchmarks](./bench/results), I learned
-- using an error type of `String`, adding path information via`lmap (append $ "." <> show key)`, and printing via `identity` is slower than other methods
-- using an error type of `List String`, adding path information via `lmap (Cons $ "." <> show key)`, and printing via `fold` is slower than other methods
+- using an error type of `String`, adding path information via`lmap (append $ "." <> show key)`, and printing via `identity` is slower than other methods. It seems the overhead of `show` is what causes the slow down.
+- using an error type of `List String`, adding path information via `lmap (Cons $ "." <> show key)`, and printing via `fold` is slower than other methods.
 - using an error type of `DecodeError`, adding path information via `lmap (AtKey key)`, and printing via `printDecodeError` is the current fastest known method if one wants errors. If errors are not desired then `Maybe a` is the fastest decoding monad.

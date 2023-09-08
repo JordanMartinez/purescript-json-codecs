@@ -178,10 +178,10 @@ import Data.Function.Uncurried (Fn2, mkFn2, runFn2)
 import Data.Generic.Rep (class Generic)
 import Data.Identity (Identity(..))
 import Data.Int as Int
-import Data.List (List(..))
+import Data.List (List)
 import Data.List as List
 import Data.List.NonEmpty as NEL
-import Data.List.Types (NonEmptyList, (:))
+import Data.List.Types (NonEmptyList, nelCons)
 import Data.Map (Map)
 import Data.Map as Map
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
@@ -228,7 +228,7 @@ data DecodeError
   | DecodeError String
   -- | Stores a reversed list of errors that happened at the same path.
   -- | The error at `head` happened AFTER the errors in `tail`.
-  | AccumulateError (List DecodeError)
+  | AccumulateError (NonEmptyList DecodeError)
 
 derive instance Eq DecodeError
 derive instance Generic DecodeError _
@@ -239,33 +239,46 @@ instance Show DecodeError where
 -- | The first error arg is assumed to have happened before the second error arg.
 accumulateErrors :: DecodeError -> DecodeError -> DecodeError
 accumulateErrors = case _, _ of
-  AccumulateError first', next -> AccumulateError $ next : first'
-  first, next -> AccumulateError $ next : first : Nil
+  AccumulateError first', next -> AccumulateError $ nelCons next first'
+  first, next -> AccumulateError $ nelCons next $ NEL.singleton first
 
--- | Pretty-prints the decode error over a multi-line string
+-- | Pretty-prints the decode error over a multi-line string.
+-- | Assumes that all keys, hints, and decode error messages are single-line `String`s.
 printDecodeError :: DecodeError -> String
 printDecodeError = printDecodeError' 1
 
 -- | Same as `printDecodeError` but allows one to change where the initial indent begins.
 -- | where an indent is two space characters.
+-- | Assumes that all keys, hints, and decode error messages are single-line `String`s.
 printDecodeError' :: Int -> DecodeError -> String
-printDecodeError' firstIdent = unsafePrintDecodeError initialIdent sep ((power sep $ (initialIdent - 1)) <> "ROOT")
+printDecodeError' firstIdent = unsafePrintDecodeError true initialIdent sep ((power sep $ (initialIdent - 1)) <> "ROOT")
   where
   sep = "  "
   initialIdent = max 1 firstIdent
 
 -- | Unsafe because no checking is done on the `Int` arg to determine
--- | if it's `>=1`
+-- | if it's `>=1`.
 -- |
--- | Fully control how much to indent each error in `AccumulateError` and what to use as
--- | a "tab"-like string sequence.
-unsafePrintDecodeError :: Int -> String -> String -> DecodeError -> String
-unsafePrintDecodeError indent sep acc = case _ of
-  DecodeError msg -> acc <> " - " <> msg
-  AtKey k next -> unsafePrintDecodeError indent sep (acc <> "." <> show k) next
-  AtIndex i next -> unsafePrintDecodeError indent sep (acc <> "[" <> show i <> "]") next
-  AccumulateError ls -> do
-    acc <> (foldMap (unsafePrintDecodeError (indent + 1) sep ("\n" <> power sep indent)) $ List.reverse ls)
+-- | Fully control whether we're inside an `AccumulateError` context,
+-- | how much to indent each error in `AccumulateError`, and 
+-- | what to use as a "tab"-like string sequence.
+-- | Assumes that all keys, hints, and decode error messages are single-line `String`s.
+unsafePrintDecodeError :: Boolean -> Int -> String -> String -> DecodeError -> String
+unsafePrintDecodeError applyIndent indent sep acc = case _ of
+  DecodeError msg ->
+    acc <> " - " <> msg
+  AtKey k next ->
+    unsafePrintDecodeError true indent sep (acc <> "." <> show k) next
+  AtIndex i next ->
+    unsafePrintDecodeError true indent sep (acc <> "[" <> show i <> "]") next
+  AccumulateError ls
+    | applyIndent -> do
+        acc
+          <> foldMap (unsafePrintDecodeError false (indent + 1) sep ("\n" <> power sep indent)) ls
+    | otherwise ->
+        acc
+          <> unsafePrintDecodeError false indent sep "" (NEL.head ls)
+          <> foldMap (unsafePrintDecodeError false indent sep ("\n" <> power sep (indent - 1))) (NEL.tail ls)
 
 -- | Tries the first codec. If it fails, tries the second codec. If it fails, 
 -- | errors from both are accumulated. Succeeds if either of the two codecs succeed.

@@ -90,7 +90,53 @@ So, this library tries to get the best tradeoff via `Either DecodeError`:
 - still allows error accumulation (unlike `JsonDecodeError`)
 - still allows custom error messages (unlike `JsonDecodeError`)
 
+### Allowing Hints
+
+It might be useful to allow the end-user to add hints at various points. For example, adding "while decoding type `Foo`" to the final error message. This can add context to the intent of the decoder at specific points in the JSON path.
+
+While desirable, the problem is how to print the resulting error message in light of accumulated errors. One strategy is to print the hint to the right of the path.
+
+```
+ROOT."path"."to"."some"."place" (here is a hint)
+  [0] - Expected Array but got Null
+```
+
+But what happens when there is an interleaving of JSON path and hint, such that one gets somethng like this:
+```
+ROOT."path" <hint> ."to" <hint> ."some" <hint> ."place" <hint>
+```
+
+The problem here is that the hints drown out the full JSON path.
+
+Another strategy might be to print the hint and then indent and print the error it wraps:
+```
+ROOT."path"
+  <hint>
+    ."to"
+      <hint>
+        ."some"
+          <hint>
+            ."place"
+              <hint>
+                [0] Expected Array but got Null
+```
+
+While this can work, it again drowns out the full JSON path. Moreover, too many hints everywhere could do more harm than good. 
+
+So, I chose not to include hints in the `DecodeError` type (shown next). Since one will often need to add logging statements to the decoder to see what's going on, they can abuse the `AtKey` constructor to insert such hint information temporarily exactly where they need it, debug the problem, and then remove the abuse.
+
 ## DecodeError
+
+```purs
+data DecodeError
+  -- path information
+  = AtKey String DecodeError
+  | AtIndex Int DecodeError
+  -- leaf error
+  | DecodeError String
+  -- allows opt-in accumulation without needing to use `Semigroup.V` newtype
+  | AccumulateError (NonEmptyList DecodeError)
+```
 
 Via [the benchmarks](./bench/results), I learned
 - using an error type of `String`, adding path information via`lmap (append $ "." <> show key)`, and printing via `identity` is slower than other methods. It seems the overhead of `show` is what causes the slow down.

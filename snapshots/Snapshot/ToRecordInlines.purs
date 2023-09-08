@@ -1,4 +1,4 @@
--- @inline export Snapshot.ToRecordInlines.decoder arity=1
+-- @inline export decoder arity=1
 module Snapshot.ToRecordInlines where
 
 import Prelude

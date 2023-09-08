@@ -59,6 +59,7 @@ module Codec.Json.Unidirectional.Value
   , altAccumulateLazy
   , printDecodeError
   , printDecodeError'
+  , unsafePrintDecodeError
   , coerce1
   , class FromPrimitive
   , fromPrimitive
@@ -241,20 +242,30 @@ accumulateErrors = case _, _ of
   AccumulateError first', next -> AccumulateError $ next : first'
   first, next -> AccumulateError $ next : first : Nil
 
+-- | Pretty-prints the decode error over a multi-line string
 printDecodeError :: DecodeError -> String
 printDecodeError = printDecodeError' 1
 
+-- | Same as `printDecodeError` but allows one to change where the initial indent begins.
+-- | where an indent is two space characters.
 printDecodeError' :: Int -> DecodeError -> String
-printDecodeError' firstIdent = go initialIdent (mkIndent (initialIdent - 1) <> "ROOT")
+printDecodeError' firstIdent = unsafePrintDecodeError initialIdent sep ((power sep $ (initialIdent - 1)) <> "ROOT")
   where
+  sep = "  "
   initialIdent = max 1 firstIdent
-  mkIndent amt = power "  " amt
-  go indent acc = case _ of
-    AtKey k next -> go indent (acc <> "." <> show k) next
-    AtIndex i next -> go indent (acc <> "[" <> show i <> "]") next
-    AccumulateError ls -> do
-      acc <> (foldMap (go (indent + 1) ("\n" <> mkIndent indent)) $ List.reverse ls)
-    DecodeError msg -> acc <> " - " <> msg
+
+-- | Unsafe because no checking is done on the `Int` arg to determine
+-- | if it's `>=1`
+-- |
+-- | Fully control how much to indent each error in `AccumulateError` and what to use as
+-- | a "tab"-like string sequence.
+unsafePrintDecodeError :: Int -> String -> String -> DecodeError -> String
+unsafePrintDecodeError indent sep acc = case _ of
+  DecodeError msg -> acc <> " - " <> msg
+  AtKey k next -> unsafePrintDecodeError indent sep (acc <> "." <> show k) next
+  AtIndex i next -> unsafePrintDecodeError indent sep (acc <> "[" <> show i <> "]") next
+  AccumulateError ls -> do
+    acc <> (foldMap (unsafePrintDecodeError (indent + 1) sep ("\n" <> power sep indent)) $ List.reverse ls)
 
 -- | Tries the first codec. If it fails, tries the second codec. If it fails, 
 -- | errors from both are accumulated. Succeeds if either of the two codecs succeed.

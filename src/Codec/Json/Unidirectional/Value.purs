@@ -58,7 +58,6 @@ module Codec.Json.Unidirectional.Value
   , altAccumulate
   , altAccumulateLazy
   , printDecodeError
-  , printDecodeError'
   , unsafePrintDecodeError
   , coerce1
   , class FromPrimitive
@@ -244,22 +243,14 @@ accumulateErrors = case _, _ of
 
 -- | Pretty-prints the decode error over a multi-line string.
 -- | Assumes that all keys, hints, and decode error messages are single-line `String`s.
+-- | Indents using two spaces.
 printDecodeError :: DecodeError -> String
-printDecodeError = printDecodeError' 1
-
--- | Same as `printDecodeError` but allows one to change where the initial indent begins.
--- | where an indent is two space characters.
--- | Assumes that all keys, hints, and decode error messages are single-line `String`s.
-printDecodeError' :: Int -> DecodeError -> String
-printDecodeError' firstIdent = unsafePrintDecodeError true initialIdent sep ((power sep $ (initialIdent - 1)) <> "ROOT")
-  where
-  sep = "  "
-  initialIdent = max 1 firstIdent
+printDecodeError = unsafePrintDecodeError true 1 "  " "ROOT"
 
 -- | Unsafe because no checking is done on the `Int` arg to determine
--- | if it's `>=1`.
+-- | if it's `>=1` nor whether `applyIndent` makes sense in the given context.
 -- |
--- | Fully control whether we're inside an `AccumulateError` context,
+-- | Fully control whether we should apply the indent to the next line of content,
 -- | how much to indent each error in `AccumulateError`, and 
 -- | what to use as a "tab"-like string sequence.
 -- | Assumes that all keys, hints, and decode error messages are single-line `String`s.

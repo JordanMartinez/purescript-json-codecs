@@ -1,3 +1,13 @@
+-- | Unidirectional, value-based JSON codecs.
+-- | This module should be imported using a qualified `J` or `Json` alias:
+-- | ```
+-- | import Codec.Json.Unidirectional.Value as J
+-- | import Codec.Json.Unidirectional.Value as Json
+-- | ```
+-- | thereby causing `to*` and `from*` code to read like so:
+-- | - `J.fromInt`/`Json.fromInt`, which reads "encode an `Int` to `Json`"
+-- | - `J.toInt`/`Json.toInt`, which reads "decode `JSON` to an `Int`"
+--
 -- @inline export altAccumulate arity=2
 -- @inline export altAccumulateLazy arity=1
 -- @inline export fromPrimitiveArray(..).fromPrimitive arity=1
@@ -49,15 +59,6 @@
 -- @inline export fromRecordPropArrayNil(..).fromRecordPropArray arity=3
 -- @inline export fromRecordPropArrayCons(..).fromRecordPropArray arity=3
 -- @inline export fromRecordPropArrayFailure(..).fromRecordPropArray always
--- | Unidirectional, value-based JSON codecs.
--- | This module should be imported using a qualified `J` or `Json` alias:
--- | ```
--- | import Codec.Json.Unidirectional.Value as J
--- | import Codec.Json.Unidirectional.Value as Json
--- | ```
--- | thereby causing `to*` and `from*` code to read like so:
--- | - `J.fromInt`/`Json.fromInt`, which reads "encode an `Int` to `Json`"
--- | - `J.toInt`/`Json.toInt`, which reads "decode `JSON` to an `Int`"
 module Codec.Json.Unidirectional.Value
   ( DecodeError(..)
   , accumulateErrors

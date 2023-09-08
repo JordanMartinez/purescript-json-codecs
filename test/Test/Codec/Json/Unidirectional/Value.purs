@@ -2,14 +2,14 @@ module Test.Codec.Json.Unidirectional.Value where
 
 import Prelude
 
-import Codec.Json.Unidirectional.Value (DecodeError(..), accumulateErrors, fromArray, fromBoolean, fromInt, fromNumber, fromObject, fromRecord, fromRequired, fromString, fromUnit, printDecodeError, toArray, toBoolean, toInt, toNumber, toObject, toRecord, toRequired, toString)
-import Data.Argonaut.Core (Json)
+import Codec.Json.Unidirectional.Value (DecodeError(..), accumulateErrors, fromArray, fromBoolean, fromInt, fromNumber, fromObject, fromOption, fromOptionArray, fromOptionRename, fromRecord, fromRequired, fromRequired', fromRequiredRename, fromString, fromUnit, printDecodeError, toArray, toBoolean, toInt, toNumber, toObject, toRecord, toRequired, toString)
+import Data.Argonaut.Core (Json, stringifyWithIndent)
 import Data.Array as Array
 import Data.Either (Either, either)
 import Data.List as List
 import Data.List.NonEmpty as NEL
 import Data.List.Types (NonEmptyList)
-import Data.Maybe (fromJust)
+import Data.Maybe (Maybe(..), fromJust)
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Class.Console (log)
@@ -23,6 +23,9 @@ runOutput = do
   runDecoder "Decode Int to String" exampleString toInt
   runDecoder "Decode Record to Int" exampleRec toInt
   runDecoder "Decode Record incorrectly" exampleRec toRecIncorrectly
+  log "==="
+  log "Encoding record"
+  log $ stringifyWithIndent 2 $ encodedRecord
   log "==="
   log
     $ printDecodeError
@@ -100,10 +103,8 @@ exampleString :: Json
 exampleString = fromString "foo"
 
 exampleRec :: Json
-exampleRec =
-  fromRecord fromr value
-  where
-  fromr =
+exampleRec = exampleRecValue #
+  fromRecord
     { boolean: fromRequired fromBoolean
     , number: fromRequired fromNumber
     , string: fromRequired fromString
@@ -115,7 +116,8 @@ exampleRec =
         , bar: fromRequired fromUnit
         }
     }
-  value =
+  where
+  exampleRecValue =
     { boolean: true
     , number: 1.4
     , string: "hello"
@@ -133,3 +135,27 @@ exampleRec =
         }
     }
 
+encodedRecord :: Json
+encodedRecord = fromRecord
+  { req: fromRequired fromInt
+  , reqRen: fromRequiredRename "otherName" fromString
+  , zAppearsFirst: fromRequired' 1 fromString
+  , opt: fromOption fromString
+  , optRen: fromOptionRename "otherName2" fromString
+  , optArr: fromOptionArray fromString
+  , nested: fromRequired $ fromRecord
+      { other: fromRequired fromBoolean
+      , foo: fromOption fromBoolean
+      }
+  }
+  { req: 1
+  , reqRen: "two"
+  , zAppearsFirst: "three"
+  , opt: Nothing
+  , optRen: Just "hello"
+  , optArr: []
+  , nested:
+      { other: true
+      , foo: Just false
+      }
+  }

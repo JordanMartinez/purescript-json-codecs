@@ -2,132 +2,147 @@
 import * as $runtime from "../runtime.js";
 import * as Codec$dJson$dUnidirectional$dValue from "../Codec.Json.Unidirectional.Value/index.js";
 import * as Data$dArgonaut$dCore from "../Data.Argonaut.Core/index.js";
+import * as Data$dArray from "../Data.Array/index.js";
+import * as Data$dFoldable from "../Data.Foldable/index.js";
 import * as Data$dFunctor from "../Data.Functor/index.js";
 import * as Data$dInt from "../Data.Int/index.js";
 import * as Data$dMaybe from "../Data.Maybe/index.js";
-import * as Data$dTuple from "../Data.Tuple/index.js";
+import * as Data$dOrd from "../Data.Ord/index.js";
+import * as Data$dOrdering from "../Data.Ordering/index.js";
 import * as Foreign$dObject from "../Foreign.Object/index.js";
 import * as Type$dProxy from "../Type.Proxy/index.js";
 const encoder = /* #__PURE__ */ (() => {
-  const $0 = Codec$dJson$dUnidirectional$dValue.fromRecordObjCons(Codec$dJson$dUnidirectional$dValue.fromRecordObjCons(Codec$dJson$dUnidirectional$dValue.fromRecordObjCons(Codec$dJson$dUnidirectional$dValue.fromRecordObjCons(Codec$dJson$dUnidirectional$dValue.fromRecordObjCons(Codec$dJson$dUnidirectional$dValue.fromRecordObjCons(Codec$dJson$dUnidirectional$dValue.fromRecordObjNil)({
-    reflectSymbol: () => "reqRen"
-  })()())({reflectSymbol: () => "req"})()())({reflectSymbol: () => "optRen"})()())({reflectSymbol: () => "optArr"})()())({reflectSymbol: () => "opt"})()())({
-    reflectSymbol: () => "nested"
-  })()();
+  const $0 = Codec$dJson$dUnidirectional$dValue.fromRecordPropArrayCons(Codec$dJson$dUnidirectional$dValue.fromRecordPropArrayCons(Codec$dJson$dUnidirectional$dValue.fromRecordPropArrayCons(Codec$dJson$dUnidirectional$dValue.fromRecordPropArrayCons(Codec$dJson$dUnidirectional$dValue.fromRecordPropArrayCons(Codec$dJson$dUnidirectional$dValue.fromRecordPropArrayCons(Codec$dJson$dUnidirectional$dValue.fromRecordPropArrayCons(Codec$dJson$dUnidirectional$dValue.fromRecordPropArrayNil)({
+    reflectSymbol: () => "zAppearsFirst"
+  })()())({reflectSymbol: () => "reqRen"})()())({reflectSymbol: () => "req"})()())({reflectSymbol: () => "optRen"})()())({reflectSymbol: () => "optArr"})()())({
+    reflectSymbol: () => "opt"
+  })()())({reflectSymbol: () => "nested"})()();
   const $1 = {
-    req: (() => {
-      const $1 = Data$dTuple.Tuple(Data$dMaybe.Nothing);
-      return x => Data$dMaybe.$Maybe("Just", $1(Data$dArgonaut$dCore.fromNumber(Data$dInt.toNumber(x))));
-    })(),
-    reqRen: (() => {
-      const $1 = Data$dTuple.Tuple(Data$dMaybe.$Maybe("Just", "otherName"));
-      return x => Data$dMaybe.$Maybe("Just", $1(Data$dArgonaut$dCore.fromString(x)));
-    })(),
-    opt: Data$dMaybe.functorMaybe.map((() => {
-      const $1 = Data$dTuple.Tuple(Data$dMaybe.Nothing);
-      return x => $1(Data$dArgonaut$dCore.fromString(x));
-    })()),
-    optRen: Data$dMaybe.functorMaybe.map((() => {
-      const $1 = Data$dTuple.Tuple(Data$dMaybe.$Maybe("Just", "otherName2"));
-      return x => $1(Data$dArgonaut$dCore.fromString(x));
-    })()),
+    req: x => Data$dMaybe.$Maybe("Just", {key: Data$dMaybe.Nothing, insertionOrder: Data$dMaybe.Nothing, value: Data$dArgonaut$dCore.fromNumber(Data$dInt.toNumber(x))}),
+    reqRen: x => Data$dMaybe.$Maybe("Just", {key: Data$dMaybe.$Maybe("Just", "otherName"), insertionOrder: Data$dMaybe.Nothing, value: Data$dArgonaut$dCore.fromString(x)}),
+    zAppearsFirst: x => Data$dMaybe.$Maybe("Just", {key: Data$dMaybe.Nothing, insertionOrder: Data$dMaybe.$Maybe("Just", 1), value: Data$dArgonaut$dCore.fromString(x)}),
+    opt: v1 => {
+      if (v1.tag === "Just") { return Data$dMaybe.$Maybe("Just", {key: Data$dMaybe.Nothing, insertionOrder: Data$dMaybe.Nothing, value: Data$dArgonaut$dCore.fromString(v1._1)}); }
+      return Data$dMaybe.Nothing;
+    },
+    optRen: v1 => {
+      if (v1.tag === "Just") {
+        return Data$dMaybe.$Maybe("Just", {key: Data$dMaybe.$Maybe("Just", "otherName2"), insertionOrder: Data$dMaybe.Nothing, value: Data$dArgonaut$dCore.fromString(v1._1)});
+      }
+      return Data$dMaybe.Nothing;
+    },
     optArr: arr => {
       if (arr.length === 0) { return Data$dMaybe.Nothing; }
-      return Data$dMaybe.$Maybe("Just", Data$dTuple.$Tuple(Data$dMaybe.Nothing, Data$dArgonaut$dCore.fromArray(Data$dFunctor.arrayMap(Data$dArgonaut$dCore.fromString)(arr))));
+      return Data$dMaybe.$Maybe(
+        "Just",
+        {key: Data$dMaybe.Nothing, insertionOrder: Data$dMaybe.Nothing, value: Data$dArgonaut$dCore.fromArray(Data$dFunctor.arrayMap(Data$dArgonaut$dCore.fromString)(arr))}
+      );
     },
     nested: (() => {
-      const $1 = Codec$dJson$dUnidirectional$dValue.fromRecordObjCons(Codec$dJson$dUnidirectional$dValue.fromRecordObjCons(Codec$dJson$dUnidirectional$dValue.fromRecordObjNil)({
+      const $1 = Codec$dJson$dUnidirectional$dValue.fromRecordPropArrayCons(Codec$dJson$dUnidirectional$dValue.fromRecordPropArrayCons(Codec$dJson$dUnidirectional$dValue.fromRecordPropArrayNil)({
         reflectSymbol: () => "other"
       })()())({reflectSymbol: () => "foo"})()();
       const $2 = {
-        other: (() => {
-          const $2 = Data$dTuple.Tuple(Data$dMaybe.Nothing);
-          return x => Data$dMaybe.$Maybe("Just", $2(Data$dArgonaut$dCore.fromBoolean(x)));
-        })(),
-        foo: Data$dMaybe.functorMaybe.map((() => {
-          const $2 = Data$dTuple.Tuple(Data$dMaybe.Nothing);
-          return x => $2(Data$dArgonaut$dCore.fromBoolean(x));
-        })())
+        other: x => Data$dMaybe.$Maybe("Just", {key: Data$dMaybe.Nothing, insertionOrder: Data$dMaybe.Nothing, value: Data$dArgonaut$dCore.fromBoolean(x)}),
+        foo: v1 => {
+          if (v1.tag === "Just") {
+            return Data$dMaybe.$Maybe("Just", {key: Data$dMaybe.Nothing, insertionOrder: Data$dMaybe.Nothing, value: Data$dArgonaut$dCore.fromBoolean(v1._1)});
+          }
+          return Data$dMaybe.Nothing;
+        }
       };
-      const $3 = Data$dTuple.Tuple(Data$dMaybe.Nothing);
-      return x => Data$dMaybe.$Maybe("Just", $3(Data$dArgonaut$dCore.fromObject($1.fromRecordObj(Type$dProxy.Proxy)($2)(x))));
+      return x => Data$dMaybe.$Maybe(
+        "Just",
+        {
+          key: Data$dMaybe.Nothing,
+          insertionOrder: Data$dMaybe.Nothing,
+          value: Data$dArgonaut$dCore.fromObject(Data$dFoldable.foldlArray(acc => r => {
+            const $3 = r.key;
+            const $4 = r.value;
+            return Foreign$dObject.mutate($5 => () => {
+              $5[$3] = $4;
+              return $5;
+            })(acc);
+          })(Foreign$dObject.empty)(Data$dArray.sortBy(l => r => {
+            const $3 = Data$dOrd.ordInt.compare(l.insertionOrder)(r.insertionOrder);
+            const $4 = Data$dOrd.ordString.compare(l.key)(r.key);
+            if ($3 === "LT") { return Data$dOrdering.LT; }
+            if ($3 === "GT") { return Data$dOrdering.GT; }
+            if ($3 === "EQ") { return $4; }
+            $runtime.fail();
+          })($1.fromRecordPropArray(Type$dProxy.Proxy)($2)(x))))
+        }
+      );
     })()
   };
-  return values => Data$dArgonaut$dCore.fromObject($0.fromRecordObj(Type$dProxy.Proxy)($1)(values));
+  return values => Data$dArgonaut$dCore.fromObject(Data$dFoldable.foldlArray(acc => r => {
+    const $2 = r.key;
+    const $3 = r.value;
+    return Foreign$dObject.mutate($4 => () => {
+      $4[$2] = $3;
+      return $4;
+    })(acc);
+  })(Foreign$dObject.empty)(Data$dArray.sortBy(l => r => {
+    const $2 = Data$dOrd.ordInt.compare(l.insertionOrder)(r.insertionOrder);
+    const $3 = Data$dOrd.ordString.compare(l.key)(r.key);
+    if ($2 === "LT") { return Data$dOrdering.LT; }
+    if ($2 === "GT") { return Data$dOrdering.GT; }
+    if ($2 === "EQ") { return $3; }
+    $runtime.fail();
+  })($0.fromRecordPropArray(Type$dProxy.Proxy)($1)(values))));
 })();
-const test = j => Data$dArgonaut$dCore.fromObject((() => {
-  const $0 = Data$dArgonaut$dCore.fromString(j.reqRen);
-  const $1 = Data$dArgonaut$dCore.fromNumber(Data$dInt.toNumber(j.req));
-  const $2 = Data$dArgonaut$dCore.fromObject((() => {
-    const $2 = Data$dArgonaut$dCore.fromBoolean(j.nested.other);
-    const obj = Foreign$dObject.mutate($3 => () => {
-      $3.other = $2;
-      return $3;
-    })(Foreign$dObject.empty);
-    const $3 = Data$dTuple.Tuple(Data$dMaybe.Nothing);
-    if (j.nested.foo.tag === "Just") {
-      const $4 = $3(Data$dArgonaut$dCore.fromBoolean(j.nested.foo._1))._2;
-      const $5 = (() => {
-        if ($3(Data$dArgonaut$dCore.fromBoolean(j.nested.foo._1))._1.tag === "Nothing") { return "foo"; }
-        if ($3(Data$dArgonaut$dCore.fromBoolean(j.nested.foo._1))._1.tag === "Just") { return $3(Data$dArgonaut$dCore.fromBoolean(j.nested.foo._1))._1._1; }
+const test = j => Data$dArgonaut$dCore.fromObject(Data$dFoldable.foldlArray(acc => r => {
+  const $0 = r.key;
+  const $1 = r.value;
+  return Foreign$dObject.mutate($2 => () => {
+    $2[$0] = $1;
+    return $2;
+  })(acc);
+})(Foreign$dObject.empty)(Data$dArray.sortBy(l => r => {
+  const $0 = Data$dOrd.ordInt.compare(l.insertionOrder)(r.insertionOrder);
+  const $1 = Data$dOrd.ordString.compare(l.key)(r.key);
+  if ($0 === "LT") { return Data$dOrdering.LT; }
+  if ($0 === "GT") { return Data$dOrdering.GT; }
+  if ($0 === "EQ") { return $1; }
+  $runtime.fail();
+})((() => {
+  const arr = [
+    {key: "req", insertionOrder: 2147483647, value: Data$dArgonaut$dCore.fromNumber(Data$dInt.toNumber(j.req))},
+    {key: "otherName", insertionOrder: 2147483647, value: Data$dArgonaut$dCore.fromString(j.reqRen)},
+    {key: "zAppearsFirst", insertionOrder: 1, value: Data$dArgonaut$dCore.fromString(j.zAppearsFirst)}
+  ];
+  return [
+    {
+      key: "nested",
+      insertionOrder: 2147483647,
+      value: Data$dArgonaut$dCore.fromObject(Data$dFoldable.foldlArray(acc => r => {
+        const $0 = r.key;
+        const $1 = r.value;
+        return Foreign$dObject.mutate($2 => () => {
+          $2[$0] = $1;
+          return $2;
+        })(acc);
+      })(Foreign$dObject.empty)(Data$dArray.sortBy(l => r => {
+        const $0 = Data$dOrd.ordInt.compare(l.insertionOrder)(r.insertionOrder);
+        const $1 = Data$dOrd.ordString.compare(l.key)(r.key);
+        if ($0 === "LT") { return Data$dOrdering.LT; }
+        if ($0 === "GT") { return Data$dOrdering.GT; }
+        if ($0 === "EQ") { return $1; }
         $runtime.fail();
-      })();
-      return Foreign$dObject.mutate($6 => () => {
-        $6[$5] = $4;
-        return $6;
-      })(obj);
-    }
-    return obj;
-  })());
-  return Foreign$dObject.mutate($3 => () => {
-    $3.nested = $2;
-    return $3;
-  })((() => {
-    const obj = Foreign$dObject.mutate($3 => () => {
-      $3.req = $1;
-      return $3;
-    })(Foreign$dObject.mutate($3 => () => {
-      $3.otherName = $0;
-      return $3;
-    })(Foreign$dObject.empty));
-    const $3 = Data$dTuple.Tuple(Data$dMaybe.$Maybe("Just", "otherName2"));
-    const obj$1 = (() => {
-      if (j.optRen.tag === "Just") {
-        const $4 = $3(Data$dArgonaut$dCore.fromString(j.optRen._1))._2;
-        const $5 = (() => {
-          if ($3(Data$dArgonaut$dCore.fromString(j.optRen._1))._1.tag === "Nothing") { return "optRen"; }
-          if ($3(Data$dArgonaut$dCore.fromString(j.optRen._1))._1.tag === "Just") { return $3(Data$dArgonaut$dCore.fromString(j.optRen._1))._1._1; }
-          $runtime.fail();
-        })();
-        return Foreign$dObject.mutate($6 => () => {
-          $6[$5] = $4;
-          return $6;
-        })(obj);
-      }
-      return obj;
-    })();
-    const obj$2 = (() => {
-      if (j.optArr.length === 0) { return obj$1; }
-      const $4 = Data$dArgonaut$dCore.fromArray(Data$dFunctor.arrayMap(Data$dArgonaut$dCore.fromString)(j.optArr));
-      return Foreign$dObject.mutate($5 => () => {
-        $5.optArr = $4;
-        return $5;
-      })(obj$1);
-    })();
-    const $4 = Data$dTuple.Tuple(Data$dMaybe.Nothing);
-    if (j.opt.tag === "Just") {
-      const $5 = $4(Data$dArgonaut$dCore.fromString(j.opt._1))._2;
-      const $6 = (() => {
-        if ($4(Data$dArgonaut$dCore.fromString(j.opt._1))._1.tag === "Nothing") { return "opt"; }
-        if ($4(Data$dArgonaut$dCore.fromString(j.opt._1))._1.tag === "Just") { return $4(Data$dArgonaut$dCore.fromString(j.opt._1))._1._1; }
-        $runtime.fail();
-      })();
-      return Foreign$dObject.mutate($7 => () => {
-        $7[$6] = $5;
-        return $7;
-      })(obj$2);
-    }
-    return obj$2;
-  })());
-})());
+      })((() => {
+        const arr$1 = [{key: "other", insertionOrder: 2147483647, value: Data$dArgonaut$dCore.fromBoolean(j.nested.other)}];
+        if (j.nested.foo.tag === "Just") { return [{key: "foo", insertionOrder: 2147483647, value: Data$dArgonaut$dCore.fromBoolean(j.nested.foo._1)}, ...arr$1]; }
+        return arr$1;
+      })())))
+    },
+    ...(() => {
+      const arr$1 = j.optRen.tag === "Just" ? [{key: "otherName2", insertionOrder: 2147483647, value: Data$dArgonaut$dCore.fromString(j.optRen._1)}, ...arr] : arr;
+      const arr$2 = j.optArr.length === 0
+        ? arr$1
+        : [{key: "optArr", insertionOrder: 2147483647, value: Data$dArgonaut$dCore.fromArray(Data$dFunctor.arrayMap(Data$dArgonaut$dCore.fromString)(j.optArr))}, ...arr$1];
+      if (j.opt.tag === "Just") { return [{key: "opt", insertionOrder: 2147483647, value: Data$dArgonaut$dCore.fromString(j.opt._1)}, ...arr$2]; }
+      return arr$2;
+    })()
+  ];
+})())));
 export {encoder, test};

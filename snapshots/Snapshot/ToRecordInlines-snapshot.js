@@ -2,7 +2,6 @@
 import * as $runtime from "../runtime.js";
 import * as Codec$dJson$dUnidirectional$dValue from "../Codec.Json.Unidirectional.Value/index.js";
 import * as Data$dEither from "../Data.Either/index.js";
-import * as Data$dList$dTypes from "../Data.List.Types/index.js";
 import * as Data$dMaybe from "../Data.Maybe/index.js";
 import * as Foreign$dObject from "../Foreign.Object/index.js";
 import * as Type$dProxy from "../Type.Proxy/index.js";
@@ -105,17 +104,7 @@ const decoder = /* #__PURE__ */ (() => {
             const $5 = $1.toRecordObj(Type$dProxy.Proxy)($2)($4._1);
             if ($5.tag === "Left") {
               const v2 = $2.foo(k => Foreign$dObject._lookup(Data$dMaybe.Nothing, Data$dMaybe.Just, k, $4._1), "foo");
-              if (v2.tag === "Left") {
-                return Data$dEither.$Either(
-                  "Left",
-                  $3($5._1.tag === "AccumulateError"
-                    ? Codec$dJson$dUnidirectional$dValue.$DecodeError("AccumulateError", Data$dList$dTypes.$List("Cons", v2._1, $5._1._1))
-                    : Codec$dJson$dUnidirectional$dValue.$DecodeError(
-                        "AccumulateError",
-                        Data$dList$dTypes.$List("Cons", v2._1, Data$dList$dTypes.$List("Cons", $5._1, Data$dList$dTypes.Nil))
-                      ))
-                );
-              }
+              if (v2.tag === "Left") { return Data$dEither.$Either("Left", $3(Codec$dJson$dUnidirectional$dValue.accumulateErrors($5._1)(v2._1))); }
               return Data$dEither.$Either("Left", $3($5._1));
             }
             if ($5.tag === "Right") {
@@ -141,17 +130,7 @@ const decoder = /* #__PURE__ */ (() => {
       const $3 = $0.toRecordObj(Type$dProxy.Proxy)($1)($2._1);
       if ($3.tag === "Left") {
         const v2 = $1.nested(k => Foreign$dObject._lookup(Data$dMaybe.Nothing, Data$dMaybe.Just, k, $2._1), "nested");
-        if (v2.tag === "Left") {
-          return Data$dEither.$Either(
-            "Left",
-            $3._1.tag === "AccumulateError"
-              ? Codec$dJson$dUnidirectional$dValue.$DecodeError("AccumulateError", Data$dList$dTypes.$List("Cons", v2._1, $3._1._1))
-              : Codec$dJson$dUnidirectional$dValue.$DecodeError(
-                  "AccumulateError",
-                  Data$dList$dTypes.$List("Cons", v2._1, Data$dList$dTypes.$List("Cons", $3._1, Data$dList$dTypes.Nil))
-                )
-          );
-        }
+        if (v2.tag === "Left") { return Data$dEither.$Either("Left", Codec$dJson$dUnidirectional$dValue.accumulateErrors($3._1)(v2._1)); }
         return Data$dEither.$Either("Left", $3._1);
       }
       if ($3.tag === "Right") {
@@ -268,17 +247,7 @@ const test = j => {
             const $5 = $1.toRecordObj(Type$dProxy.Proxy)($2)($4._1);
             if ($5.tag === "Left") {
               const v2 = $2.foo(k => Foreign$dObject._lookup(Data$dMaybe.Nothing, Data$dMaybe.Just, k, $4._1), "foo");
-              if (v2.tag === "Left") {
-                return Data$dEither.$Either(
-                  "Left",
-                  $3($5._1.tag === "AccumulateError"
-                    ? Codec$dJson$dUnidirectional$dValue.$DecodeError("AccumulateError", Data$dList$dTypes.$List("Cons", v2._1, $5._1._1))
-                    : Codec$dJson$dUnidirectional$dValue.$DecodeError(
-                        "AccumulateError",
-                        Data$dList$dTypes.$List("Cons", v2._1, Data$dList$dTypes.$List("Cons", $5._1, Data$dList$dTypes.Nil))
-                      ))
-                );
-              }
+              if (v2.tag === "Left") { return Data$dEither.$Either("Left", $3(Codec$dJson$dUnidirectional$dValue.accumulateErrors($5._1)(v2._1))); }
               return Data$dEither.$Either("Left", $3($5._1));
             }
             if ($5.tag === "Right") {
@@ -303,17 +272,7 @@ const test = j => {
     const $3 = $0.toRecordObj(Type$dProxy.Proxy)($1)($2._1);
     if ($3.tag === "Left") {
       const v2 = $1.nested(k => Foreign$dObject._lookup(Data$dMaybe.Nothing, Data$dMaybe.Just, k, $2._1), "nested");
-      if (v2.tag === "Left") {
-        return Data$dEither.$Either(
-          "Left",
-          $3._1.tag === "AccumulateError"
-            ? Codec$dJson$dUnidirectional$dValue.$DecodeError("AccumulateError", Data$dList$dTypes.$List("Cons", v2._1, $3._1._1))
-            : Codec$dJson$dUnidirectional$dValue.$DecodeError(
-                "AccumulateError",
-                Data$dList$dTypes.$List("Cons", v2._1, Data$dList$dTypes.$List("Cons", $3._1, Data$dList$dTypes.Nil))
-              )
-        );
-      }
+      if (v2.tag === "Left") { return Data$dEither.$Either("Left", Codec$dJson$dUnidirectional$dValue.accumulateErrors($3._1)(v2._1)); }
       return Data$dEither.$Either("Left", $3._1);
     }
     if ($3.tag === "Right") {

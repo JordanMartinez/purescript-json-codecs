@@ -39,7 +39,7 @@
 -- @inline export toOptionAssocArray arity=2
 -- @inline export toRecordObjNil(..).toRecordObj arity=2
 -- @inline export toRecordObjCons(..).toRecordObj arity=2
--- @inline export toRecordObjFailure(..).fromRecordObj always
+-- @inline export toRecordObjFailure(..).toRecordObj always
 -- @inline export fromRecordObjNil(..).fromRecordObj arity=3
 -- @inline export fromRecordObjCons(..).fromRecordObj arity=3
 -- @inline export fromRecordObjFailure(..).fromRecordObj always

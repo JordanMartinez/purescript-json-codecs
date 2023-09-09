@@ -24,7 +24,7 @@ encoder :: Foo -> Json
 encoder = fromRecord
   { req: fromRequired fromInt
   , reqRen: fromRequiredRename "otherName" fromString
-  , zAppearsFirst: fromRequired' 1 fromString
+  , zAppearsFirst: fromRequired' @1 fromString
   , opt: fromOption fromString
   , optRen: fromOptionRename "otherName2" fromString
   , optArr: fromOptionArray fromString

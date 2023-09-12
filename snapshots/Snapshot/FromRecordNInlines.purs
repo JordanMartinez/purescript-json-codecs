@@ -1,14 +1,15 @@
 -- @inline export encoder arity=1
-module Snapshot.FromRecordInlines where
+module Snapshot.FromRecordNInlines where
 
 import Prelude
 
-import Codec.Json.Unidirectional.Value (fromBoolean, fromInt, fromOption, fromOption', fromOptionArray, fromOptionArray', fromOptionAssocArray, fromOptionAssocArray', fromOptionRename, fromOptionRename', fromRecord, fromRequired, fromRequired', fromRequiredRename, fromRequiredRename', fromString)
+import Codec.Json.Unidirectional.Value (fromBoolean, fromInt, fromOption, fromOption', fromOptionArray, fromOptionArray', fromOptionAssocArray, fromOptionAssocArray', fromOptionRename, fromOptionRename', fromRecord, fromRecordN, fromRequired, fromRequired', fromRequiredRename, fromRequiredRename', fromString)
 import Data.Argonaut.Core (Json)
 import Data.Maybe (Maybe)
+import Data.Newtype (class Newtype)
 import Data.Tuple (Tuple)
 
-type Foo =
+newtype Foo = Foo
   { req :: Int
   , req' :: Int
   , reqRen :: String
@@ -27,8 +28,10 @@ type Foo =
       }
   }
 
+derive instance Newtype Foo _
+
 encoder :: Foo -> Json
-encoder = fromRecord
+encoder = fromRecordN Foo
   { req: fromRequired fromInt
   , req': fromRequired' @1 fromInt
   , reqRen: fromRequiredRename "otherName" fromString

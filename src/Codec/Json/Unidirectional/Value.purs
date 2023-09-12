@@ -17,9 +17,9 @@
 -- @inline export underIndex arity=1
 -- @inline export underKey arity=1
 -- @inline export toIdentity arity=1
--- @inline export fromRecord arity=2
+-- @inline export fromRecord arity=4
 -- @inline export toRecord arity=2
--- @inline export fromRecordN arity=3
+-- @inline export fromRecordN arity=4
 -- @inline export toRecordN arity=3
 -- @inline export toStatic arity=1
 -- @inline export fromRequired arity=1
@@ -28,26 +28,25 @@
 -- @inline export fromRequiredRename arity=2
 -- @inline export fromRequiredRename' arity=2
 -- @inline export toRequiredRename arity=2
--- @inline export fromOption arity=1
--- @inline export fromOption' arity=1
+-- @inline export fromOption arity=2
+-- @inline export fromOption' arity=2
 -- @inline export toOption arity=1
--- @inline export fromOptionRename arity=2
--- @inline export fromOptionRename' arity=2
+-- @inline export fromOptionRename arity=3
+-- @inline export fromOptionRename' arity=3
 -- @inline export toOptionRename arity=2
 -- @inline export toOptionDefault arity=2
 -- @inline export toOptionDefaultRename arity=3
--- @inline export fromOptionArray arity=1
--- @inline export fromOptionArray' arity=1
+-- @inline export fromOptionArray arity=2
+-- @inline export fromOptionArray' arity=2
 -- @inline export toOptionArray arity=1
--- @inline export fromOptionAssocArray arity=2
--- @inline export fromOptionAssocArray' arity=2
+-- @inline export fromOptionAssocArray arity=3
+-- @inline export fromOptionAssocArray' arity=3
 -- @inline export toOptionAssocArray arity=2
 -- @inline export toRecordObjNil(..).toRecordObj arity=2
 -- @inline export toRecordObjCons(..).toRecordObj arity=2
 -- @inline export toRecordObjFailure(..).toRecordObj always
--- @inline export fromRecordObjNil(..).fromRecordObj arity=3
+-- @inline export fromRecordObjCons arity=4
 -- @inline export fromRecordObjCons(..).fromRecordObj arity=3
--- @inline export fromRecordObjFailure(..).fromRecordObj always
 module Codec.Json.Unidirectional.Value
   ( DecodeError(..)
   , accumulateErrors

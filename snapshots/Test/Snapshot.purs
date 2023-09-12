@@ -18,9 +18,10 @@ main = do
     copyFile "output-es"
       (\outputEsDir mod _ -> Path.concat [ outputEsDir, mod, "index.js" ])
       (\_ _ modName -> Path.concat [ "snapshots", "Snapshot", modName <> "-snapshot.js" ])
-    copyFile "output"
-      (\outputDir mod _ -> Path.concat [ outputDir, mod, "index.js" ])
-      (\_ _ modName -> Path.concat [ "snapshots", "Snapshot", modName <> "-index.js" ])
+
+-- copyFile "output"
+--   (\outputDir mod _ -> Path.concat [ outputDir, mod, "index.js" ])
+--   (\_ _ modName -> Path.concat [ "snapshots", "Snapshot", modName <> "-index.js" ])
 
 copyFile :: String -> (String -> String -> String -> String) -> (String -> String -> String -> String) -> Aff Unit
 copyFile outputDir toJsFile toOutFile = do

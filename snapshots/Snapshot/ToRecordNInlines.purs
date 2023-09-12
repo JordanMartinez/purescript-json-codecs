@@ -1,15 +1,16 @@
 -- @inline export decoder arity=1
-module Snapshot.ToRecordInlines where
+module Snapshot.ToRecordNInlines where
 
 import Prelude
 
-import Codec.Json.Unidirectional.Value (DecodeError, toBoolean, toInt, toOption, toOptionArray, toOptionAssocArray, toOptionDefault, toOptionDefaultRename, toOptionRename, toRecord, toRequired, toRequiredRename, toStatic, toString)
+import Codec.Json.Unidirectional.Value (DecodeError, toBoolean, toInt, toOption, toOptionArray, toOptionAssocArray, toOptionDefault, toOptionDefaultRename, toOptionRename, toRecord, toRecordN, toRequired, toRequiredRename, toStatic, toString)
 import Data.Argonaut.Core (Json)
 import Data.Either (Either)
 import Data.Maybe (Maybe)
+import Data.Newtype (class Newtype)
 import Data.Tuple (Tuple)
 
-type Foo =
+newtype Foo = Foo
   { static :: Int
   , req :: Int
   , reqRen :: String
@@ -25,8 +26,10 @@ type Foo =
       }
   }
 
+derive instance Newtype Foo _
+
 decoder :: Json -> Either DecodeError Foo
-decoder = toRecord
+decoder = toRecordN Foo
   { static: toStatic 1
   , req: toRequired toInt
   , reqRen: toRequiredRename "otherName" toString

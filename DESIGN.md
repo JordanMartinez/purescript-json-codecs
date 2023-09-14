@@ -142,3 +142,7 @@ Via [the benchmarks](./bench/results), I learned
 - using an error type of `String`, adding path information via`lmap (append $ "." <> show key)`, and printing via `identity` is slower than other methods. It seems the overhead of `show` is what causes the slow down.
 - using an error type of `List String`, adding path information via `lmap (Cons $ "." <> show key)`, and printing via `fold` is slower than other methods.
 - using an error type of `DecodeError`, adding path information via `lmap (AtKey key)`, and printing via `printDecodeError` is the current fastest known method if one wants errors. If errors are not desired then `Maybe a` is the fastest decoding monad.
+
+### Inline Directives
+
+While adding inline directives for encoding is straight forward, doing so for decoding is not. As I learned while working on the `snapshots` folder and then later confirmed in a conversation with Nathan Faubion, error handling in general is exponential if you inline all error handling paths. For example, [ToRecordInlines.purs](./snapshots/Snapshot/ToRecordInlines.purs) currently produces [its snapshot](./snapshots/Snapshot/ToRecordInlines-snapshot.js) of 78 LOC. After inlining both the type class dictionary `toRecordObjCons`, its type class member `toRecordObj`, `altAccumulate`, and the `to*` functions (e.g. `toRequired`, `toOptionRename`, etc), it produced a file containing ~42,000 LOC.

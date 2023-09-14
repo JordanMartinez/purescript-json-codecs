@@ -1012,17 +1012,14 @@ instance toRecordObjCons ::
   ) =>
   ToRecordObj (RL.Cons sym (ToProp a) codecTail) { | codecs } { | values } where
   toRecordObj _ codecs j = do
-    rec <- onLeft (toRecordObj (Proxy :: Proxy codecTail) codecsRest j) \e1 ->
-      case runFn2 decoder (\k -> Object.lookup k j) lbl of
-        Left e2 -> Left $ accumulateErrors e1 e2
-        _ -> Left e1
-    a <- runFn2 decoder (\k -> Object.lookup k j) lbl
-    pure $ Record.insert _lbl a rec
+    case (toRecordObj (Proxy :: Proxy codecTail) codecsRest j) of
+      Left e1 ->
+        case runFn2 decoder (\k -> Object.lookup k j) lbl of
+          Left e2 -> Left $ accumulateErrors e1 e2
+          _ -> Left e1
+      Right rec -> do
+        (\a -> Record.insert _lbl a rec) <$> runFn2 decoder (\k -> Object.lookup k j) lbl
     where
-    onLeft :: forall e x. Either e x -> (e -> Either e x) -> Either e x
-    onLeft l f = case l of
-      Left l' -> f l'
-      x@(Right _) -> x
     lbl = reflectSymbol _lbl
     _lbl = (Proxy :: Proxy sym)
     (ToProp decoder) = Record.get _lbl codecs

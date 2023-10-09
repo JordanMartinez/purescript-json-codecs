@@ -2,19 +2,16 @@ module Test.Codec.Json.Unidirectional.Value where
 
 import Prelude
 
-import Codec.Json.Unidirectional.Value (DecodeError(..), accumulateErrors, fromArray, fromBoolean, fromInt, fromNumber, fromObject, fromOption, fromOptionArray, fromOptionRename, fromRecord, fromRequired, fromRequired', fromRequiredRename, fromString, fromUnit, printDecodeError, toArray, toBoolean, toInt, toNumber, toObject, toRecord, toRequired, toString)
+import Codec.Json.Unidirectional.Value (DecodeError, fromArray, fromBoolean, fromInt, fromNumber, fromObject, fromOption, fromOptionArray, fromOptionRename, fromRecord, fromRequired, fromRequired', fromRequiredRename, fromString, fromUnit, printDecodeError, toArray, toBoolean, toInt, toNumber, toObject, toRecord, toRequired, toString)
 import Data.Argonaut.Core (Json, stringifyWithIndent)
 import Data.Array as Array
 import Data.Either (Either, either)
-import Data.List as List
-import Data.List.NonEmpty as NEL
-import Data.List.Types (NonEmptyList)
-import Data.Maybe (Maybe(..), fromJust)
+import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Class.Console (log)
+import Foreign.Object (Object)
 import Foreign.Object as Object
-import Partial.Unsafe (unsafePartial)
 
 runOutput :: Effect Unit
 runOutput = do
@@ -26,50 +23,6 @@ runOutput = do
   log "==="
   log "Encoding record"
   log $ stringifyWithIndent 2 $ encodedRecord
-  log "==="
-  log
-    $ printDecodeError
-    $ AtKey "some-key"
-    $ AtIndex 0
-    $ AccumulateError
-    $ toNel
-        [ AccumulateError $ toNel [ AtIndex 0 $ DecodeError "Error0" ]
-        , AtKey "bar" $ AtIndex 1 $ DecodeError "Error1"
-        , AtKey "baz"
-            $ accumulateErrors
-                (AtIndex 0 $ DecodeError "Error2")
-                (AtIndex 1 $ DecodeError "Error3")
-        , AccumulateError
-            $ toNel
-                [ AccumulateError $ toNel [ AtIndex 1 $ DecodeError "Error4" ]
-                , AtKey "last1" $ DecodeError "Error5"
-                , AtKey "last2" $ DecodeError "Error6"
-                ]
-        , AccumulateError
-            $ toNel
-                [ AtKey "last3" $ DecodeError "Error7"
-                , AtKey "last4" $ DecodeError "Error8"
-                , AccumulateError $ toNel [ AtIndex 2 $ DecodeError "Error9" ]
-                ]
-        , AccumulateError
-            $ toNel
-                [ AccumulateError
-                    $ toNel
-                        [ AtKey "a" $ DecodeError "Error10"
-                        , AtKey "b" $ DecodeError "Error11"
-                        , AtKey "c" $ DecodeError "Error12"
-                        ]
-                , AccumulateError
-                    $ toNel
-                        [ AtKey "x" $ DecodeError "Error13"
-                        , AtKey "y" $ DecodeError "Error14"
-                        , AtKey "z" $ DecodeError "Error15"
-                        ]
-                ]
-        ]
-  where
-  toNel :: forall a. Array a -> NonEmptyList a
-  toNel = unsafePartial fromJust <<< NEL.fromList <<< List.fromFoldable
 
 runDecoder
   :: forall a
@@ -84,7 +37,18 @@ runDecoder msg example decoder =
     $ either printDecodeError show
     $ decoder example
 
-toRecIncorrectly :: Json -> Either DecodeError _
+toRecIncorrectly
+  :: Json
+  -> Either DecodeError
+       { array :: Object String
+       , boolean :: String
+       , int :: String
+       , number :: Boolean
+       , object :: Int
+       , record :: Array Int
+       , string :: Number
+       }
+
 toRecIncorrectly =
   toRecord
     { boolean: toRequired toString
@@ -139,7 +103,7 @@ encodedRecord :: Json
 encodedRecord = fromRecord
   { req: fromRequired fromInt
   , reqRen: fromRequiredRename "otherName" fromString
-  , zAppearsFirst: fromRequired' 1 fromString
+  , zAppearsFirst: fromRequired' @1 fromString
   , opt: fromOption fromString
   , optRen: fromOptionRename "otherName2" fromString
   , optArr: fromOptionArray fromString

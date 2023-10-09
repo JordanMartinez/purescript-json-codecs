@@ -8,8 +8,6 @@
 -- | - `J.fromInt`/`Json.fromInt`, which reads "encode an `Int` to `Json`"
 -- | - `J.toInt`/`Json.toInt`, which reads "decode `JSON` to an `Int`"
 --
--- @inline export altAccumulate arity=2
--- @inline export altAccumulateLazy arity=1
 -- @inline export fromPrimitiveArray(..).fromPrimitive arity=1
 -- @inline export fromPrimitiveObject(..).fromPrimitive arity=1
 -- @inline export fromPrimitiveRecord(..).fromPrimitive arity=2
@@ -17,44 +15,29 @@
 -- @inline export underIndex arity=1
 -- @inline export underKey arity=1
 -- @inline export toIdentity arity=1
--- @inline export fromRecord arity=2
--- @inline export toRecord arity=2
--- @inline export fromRecordN arity=3
+-- @inline export fromRecord arity=4
+-- @inline export toRecord arity=3
+-- @inline export fromRecordN arity=4
 -- @inline export toRecordN arity=3
 -- @inline export toStatic arity=1
 -- @inline export fromRequired arity=1
--- @inline export fromRequired' arity=2
--- @inline export toRequired arity=1
+-- @inline export fromRequired' arity=1
 -- @inline export fromRequiredRename arity=2
--- @inline export fromRequiredRename' arity=3
--- @inline export toRequiredRename arity=2
--- @inline export fromOption arity=1
+-- @inline export fromRequiredRename' arity=2
+-- @inline export fromOption arity=2
 -- @inline export fromOption' arity=2
--- @inline export toOption arity=1
--- @inline export fromOptionRename arity=2
+-- @inline export fromOptionRename arity=3
 -- @inline export fromOptionRename' arity=3
--- @inline export toOptionRename arity=2
--- @inline export toOptionDefault arity=2
--- @inline export toOptionDefaultRename arity=3
--- @inline export fromOptionArray arity=1
+-- @inline export fromOptionArray arity=2
 -- @inline export fromOptionArray' arity=2
--- @inline export toOptionArray arity=1
--- @inline export fromOptionAssocArray arity=2
+-- @inline export fromOptionAssocArray arity=3
 -- @inline export fromOptionAssocArray' arity=3
--- @inline export toOptionAssocArray arity=2
--- @inline export toRecordObjNil(..).toRecordObj arity=2
--- @inline export toRecordObjCons(..).toRecordObj arity=2
--- @inline export toRecordObjFailure(..).toRecordObj always
--- @inline export fromRecordPropArrayNil(..).fromRecordPropArray arity=3
--- @inline export fromRecordPropArrayCons(..).fromRecordPropArray arity=3
--- @inline export fromRecordPropArrayFailure(..).fromRecordPropArray always
+-- @inline export fromRecordObjCons arity=4
+-- @inline export fromRecordObjCons(..).fromRecordObj arity=3
 module Codec.Json.Unidirectional.Value
   ( DecodeError(..)
-  , accumulateErrors
-  , altAccumulate
-  , altAccumulateLazy
   , printDecodeError
-  , unsafePrintDecodeError
+  , printDecodeError'
   , coerce1
   , class FromPrimitive
   , fromPrimitive
@@ -160,12 +143,14 @@ module Codec.Json.Unidirectional.Value
   , toOptionAssocArray
   , class ToRecordObj
   , toRecordObj
-  , class FromRecordPropArray
-  , fromRecordPropArray
+  , class FromRecordObj
+  , fromRecordObj
   ) where
 
 import Prelude
 
+import Codec.Json.Unidirectional.Value.SortRowList (class IntThenAlphaSortedRowList, class ToOrdering)
+import Control.Alt ((<|>))
 import Data.Argonaut.Core (Json, caseJson)
 import Data.Argonaut.Core as Json
 import Data.Array as Array
@@ -173,7 +158,7 @@ import Data.Array.NonEmpty as NEA
 import Data.Array.NonEmpty.Internal (NonEmptyArray)
 import Data.Bifunctor (lmap)
 import Data.Either (Either(..), either, note)
-import Data.Foldable (foldMap, foldl)
+import Data.Foldable (foldl)
 import Data.FoldableWithIndex (foldlWithIndex)
 import Data.Function.Uncurried (Fn2, mkFn2, runFn2)
 import Data.Generic.Rep (class Generic)
@@ -182,11 +167,10 @@ import Data.Int as Int
 import Data.List (List)
 import Data.List as List
 import Data.List.NonEmpty as NEL
-import Data.List.Types (NonEmptyList, nelCons)
+import Data.List.Types (NonEmptyList)
 import Data.Map (Map)
 import Data.Map as Map
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
-import Data.Monoid (power)
 import Data.Newtype (class Newtype, unwrap)
 import Data.NonEmpty (NonEmpty(..))
 import Data.Nullable (Nullable, notNull, null, toMaybe)
@@ -222,74 +206,28 @@ import Unsafe.Coerce (unsafeCoerce)
 -- | An error type that 
 -- | - includes path-to-json information
 -- | - allows for custom decode messages
--- | - can accumulate errors at the same path location
 data DecodeError
   = AtKey String DecodeError
   | AtIndex Int DecodeError
   | DecodeError String
-  -- | Stores a reversed list of errors that happened at the same path.
-  -- | The error at `head` happened AFTER the errors in `tail`.
-  | AccumulateError (NonEmptyList DecodeError)
 
 derive instance Eq DecodeError
 derive instance Generic DecodeError _
 instance Show DecodeError where
   show x = genericShow x
 
--- | Prefer to use `altAccumulate` or `altAccumulateLazy`.
--- | The first error arg is assumed to have happened before the second error arg.
-accumulateErrors :: DecodeError -> DecodeError -> DecodeError
-accumulateErrors = case _, _ of
-  AccumulateError first', next -> AccumulateError $ nelCons next first'
-  first, next -> AccumulateError $ nelCons next $ NEL.singleton first
-
 -- | Pretty-prints the decode error over a multi-line string.
--- | Assumes that all keys, hints, and decode error messages are single-line `String`s.
--- | Indents using two spaces.
 printDecodeError :: DecodeError -> String
-printDecodeError = unsafePrintDecodeError true 1 "  " "ROOT"
+printDecodeError = printDecodeError' "ROOT"
 
--- | Unsafe because no checking is done on the `Int` arg to determine
--- | if it's `>=1` nor whether `applyIndent` makes sense in the given context.
--- |
--- | Fully control whether we should apply the indent to the next line of content,
--- | how much to indent each error in `AccumulateError`, and 
--- | what to use as a "tab"-like string sequence.
--- | Assumes that all keys, hints, and decode error messages are single-line `String`s.
-unsafePrintDecodeError :: Boolean -> Int -> String -> String -> DecodeError -> String
-unsafePrintDecodeError applyIndent indent sep acc = case _ of
+printDecodeError' :: String -> DecodeError -> String
+printDecodeError' acc = case _ of
   DecodeError msg ->
     acc <> " - " <> msg
   AtKey k next ->
-    unsafePrintDecodeError true indent sep (acc <> "." <> show k) next
+    printDecodeError' (acc <> "." <> show k) next
   AtIndex i next ->
-    unsafePrintDecodeError true indent sep (acc <> "[" <> show i <> "]") next
-  AccumulateError ls
-    | applyIndent -> do
-        acc
-          <> foldMap (unsafePrintDecodeError false (indent + 1) sep ("\n" <> power sep indent)) ls
-    | otherwise ->
-        acc
-          <> unsafePrintDecodeError false indent sep "" (NEL.head ls)
-          <> foldMap (unsafePrintDecodeError false indent sep ("\n" <> power sep (indent - 1))) (NEL.tail ls)
-
--- | Tries the first codec. If it fails, tries the second codec. If it fails, 
--- | errors from both are accumulated. Succeeds if either of the two codecs succeed.
-altAccumulate :: forall a. (Json -> Either DecodeError a) -> (Json -> Either DecodeError a) -> Json -> Either DecodeError a
-altAccumulate f g j = case f j of
-  x@(Right _) -> x
-  (Left e1) -> case g j of
-    x@(Right _) -> x
-    Left e2 -> Left $ accumulateErrors e1 e2
-
--- | Tries the first codec. If it fails, tries the second codec. If it fails, 
--- | errors from both are accumulated. Succeeds if either of the two codecs succeed.
-altAccumulateLazy :: forall a. Either DecodeError a -> (Unit -> Either DecodeError a) -> Either DecodeError a
-altAccumulateLazy f g = case f of
-  x@(Right _) -> x
-  (Left e1) -> case g unit of
-    x@(Right _) -> x
-    Left e2 -> Left $ accumulateErrors e1 e2
+    printDecodeError' (acc <> "[" <> show i <> "]") next
 
 -- | Indicates which values are primitive JSON values that can be encoded via `unsafeCoerce`.
 class FromPrimitive :: Type -> Constraint
@@ -357,7 +295,7 @@ toJNull json =
     json
 
 toNullDefaultOrA :: forall a. a -> (Json -> Either DecodeError a) -> Json -> Either DecodeError a
-toNullDefaultOrA def f = altAccumulate (\j -> def <$ toJNull j) f
+toNullDefaultOrA def f j = (def <$ toJNull j) <|> f j
 
 fromNullNothingOrJust :: forall a. (a -> Json) -> Maybe a -> Json
 fromNullNothingOrJust f = maybe Json.jsonNull f
@@ -369,7 +307,7 @@ fromNullable :: forall a. (a -> Json) -> Nullable a -> Json
 fromNullable fromA = toMaybe >>> fromNullNothingOrJust fromA
 
 toNullable :: forall a. (Json -> Either DecodeError a) -> Json -> Either DecodeError (Nullable a)
-toNullable toA = altAccumulate (\j -> null <$ toJNull j) (\j -> notNull <$> toA j)
+toNullable toA j = (null <$ toJNull j) <|> (notNull <$> toA j)
 
 fromBoolean :: Boolean -> Json
 fromBoolean = Json.fromBoolean
@@ -636,10 +574,8 @@ toEitherSingle
   -> (Json -> Either DecodeError b)
   -> Json
   -> Either DecodeError (Either a b)
-toEitherSingle toLeft toRight =
-  altAccumulate
-    (toObjSingleton "Left" toLeft >>> map Left)
-    (toObjSingleton "Right" toRight >>> map Right)
+toEitherSingle toLeft toRight j =
+  (Left <$> toObjSingleton "Left" toLeft j) <|> (Right <$> toObjSingleton "Right" toRight j)
 
 fromTuple :: forall a b. (a -> Json) -> (b -> Json) -> Tuple a b -> Json
 fromTuple fromA fromB (Tuple a b) =
@@ -807,17 +743,15 @@ toNonEmptySet toA = toArray toA >=> (note (DecodeError "Received empty set") <<<
 -- | }
 -- | ```
 fromRecord
-  :: forall codecs values codecsRL
-   . RowToList codecs codecsRL
-  => FromRecordPropArray codecsRL { | codecs } { | values }
+  :: forall codecs values alphaSortedCodecsRl insertOrderThenAlphaSortedCodecsRL
+   . RowToList codecs alphaSortedCodecsRl
+  => IntThenAlphaSortedRowList alphaSortedCodecsRl insertOrderThenAlphaSortedCodecsRL
+  => FromRecordObj insertOrderThenAlphaSortedCodecsRL { | codecs } { | values }
   => { | codecs }
   -> { | values }
   -> Json
-fromRecord codecs values =
-  fromRecordPropArray (Proxy :: Proxy codecsRL) codecs values
-    # Array.sortBy (\l r -> compare l.insertionOrder r.insertionOrder <> compare l.key r.key)
-    # flip foldl Object.empty (\acc r -> Object.insert r.key r.value acc)
-    # fromJObject
+fromRecord codecs values = fromJObject $
+  fromRecordObj (Proxy :: Proxy insertOrderThenAlphaSortedCodecsRL) codecs values
 
 -- | All labels must have a value of type `ToProp a`,
 -- | which can be obtained via functions like `toRequired*` and `toOption*`
@@ -860,9 +794,10 @@ toRecord codecs = toJObject >=>
 -- | so you don't need to add a type annotation to help
 -- | type inference.
 fromRecordN
-  :: forall n codecs values codecsRL
-   . RowToList codecs codecsRL
-  => FromRecordPropArray codecsRL { | codecs } { | values }
+  :: forall n codecs values alphaSortedCodecsRl insertOrderThenAlphaSortedCodecsRL
+   . RowToList codecs alphaSortedCodecsRl
+  => IntThenAlphaSortedRowList alphaSortedCodecsRl insertOrderThenAlphaSortedCodecsRL
+  => FromRecordObj insertOrderThenAlphaSortedCodecsRL { | codecs } { | values }
   => Newtype n { | values }
   => ({ | values } -> n)
   -> { | codecs }
@@ -895,21 +830,25 @@ newtype ToProp a = ToProp (Fn2 (String -> Maybe Json) String (Either DecodeError
 -- |
 -- | On `Nothing`, the key-value pair is not added to the JSON object.
 -- | On `Just`, both the JSON-encoded value and the key to use in the JSON object is provided.
--- | - `key`: on `Nothing`, the label associated with the record is used; on `Just`, the provided key is used
--- | - `insertionOrder`: controls the order of the keys' appearance in the JSON object with
--- |      lower values (e.g. 1) appearing before larger values (e.g. 100). When order is the same,
--- |      reverts to alphabetical ordering. Key order is computed via `fromMaybe top insertionOrder`.
--- | - `value`: the JSON value to use for the key
-newtype FromProp a = FromProp (a -> Maybe { key :: Maybe String, insertionOrder :: Maybe Int, value :: Json })
+-- |
+-- | The `Just`-wrapped `Tuple` is a key-value pair. For the key,
+-- | `Nothing` means the label associated with the record is used
+-- | while using `Just` means the provided key is used (e.g. renaming).
+newtype FromProp :: Int -> Type -> Type
+newtype FromProp insertionOrder a = FromProp (a -> Maybe (Tuple (Maybe String) Json))
+
+instance ToOrdering (FromProp insertionOrder a) insertionOrder
+
+type FromPropDefaultOrder a = FromProp 2147483647 a
 
 toStatic :: forall a. a -> ToProp a
 toStatic a = ToProp $ mkFn2 \_ _ -> pure a
 
-fromRequired :: forall a. (a -> Json) -> FromProp a
-fromRequired f = FromProp $ (Just <<< { key: Nothing, insertionOrder: Nothing, value: _ }) <$> f
+fromRequired :: forall a. (a -> Json) -> FromPropDefaultOrder a
+fromRequired f = FromProp $ (Just <<< Tuple Nothing) <$> f
 
-fromRequired' :: forall a. Int -> (a -> Json) -> FromProp a
-fromRequired' order f = FromProp $ (Just <<< { key: Nothing, insertionOrder: Just order, value: _ }) <$> f
+fromRequired' :: forall @i a. (a -> Json) -> FromProp i a
+fromRequired' f = FromProp $ (Just <<< Tuple Nothing) <$> f
 
 toRequired :: forall a. (Json -> Either DecodeError a) -> ToProp a
 toRequired f = ToProp $ mkFn2 \lookupFn recLabel ->
@@ -917,11 +856,11 @@ toRequired f = ToProp $ mkFn2 \lookupFn recLabel ->
     Nothing -> Left $ DecodeError $ "Missing field"
     Just j' -> f j'
 
-fromRequiredRename :: forall a. String -> (a -> Json) -> FromProp a
-fromRequiredRename str f = FromProp $ (Just <<< { key: Just str, insertionOrder: Nothing, value: _ }) <$> f
+fromRequiredRename :: forall a. String -> (a -> Json) -> FromPropDefaultOrder a
+fromRequiredRename str f = FromProp $ (Just <<< Tuple (Just str)) <$> f
 
-fromRequiredRename' :: forall a. Int -> String -> (a -> Json) -> FromProp a
-fromRequiredRename' order str f = FromProp $ (Just <<< { key: Just str, insertionOrder: Just order, value: _ }) <$> f
+fromRequiredRename' :: forall @i a. String -> (a -> Json) -> FromProp i a
+fromRequiredRename' str f = FromProp $ (Just <<< Tuple (Just str)) <$> f
 
 toRequiredRename :: forall a. String -> (Json -> Either DecodeError a) -> ToProp a
 toRequiredRename jsonLbl f = ToProp $ mkFn2 \lookupFn _ ->
@@ -931,21 +870,21 @@ toRequiredRename jsonLbl f = ToProp $ mkFn2 \lookupFn _ ->
 
 -- | If Nothing, does not add the coressponding key
 -- | If Just, adds the key and the encoded value to the JObject
-fromOption :: forall a. (a -> Json) -> FromProp (Maybe a)
-fromOption f = FromProp $ map ({ key: Nothing, insertionOrder: Nothing, value: _ } <<< f)
+fromOption :: forall a. (a -> Json) -> FromPropDefaultOrder (Maybe a)
+fromOption f = FromProp $ map (Tuple Nothing <<< f)
 
-fromOption' :: forall a. Int -> (a -> Json) -> FromProp (Maybe a)
-fromOption' order f = FromProp $ map ({ key: Nothing, insertionOrder: Just order, value: _ } <<< f)
+fromOption' :: forall @i a. (a -> Json) -> FromProp i (Maybe a)
+fromOption' f = FromProp $ map (Tuple Nothing <<< f)
 
 -- | Succeeds with Nothing if key wasn't found or with Just if key was found and value was succesfully tod.
 toOption :: forall a. (Json -> Either DecodeError a) -> ToProp (Maybe a)
 toOption f = toOptionDefault Nothing (map Just <$> f)
 
-fromOptionRename :: forall a. String -> (a -> Json) -> FromProp (Maybe a)
-fromOptionRename str f = FromProp $ map ({ key: Just str, insertionOrder: Nothing, value: _ } <<< f)
+fromOptionRename :: forall a. String -> (a -> Json) -> FromPropDefaultOrder (Maybe a)
+fromOptionRename str f = FromProp $ map (Tuple (Just str) <<< f)
 
-fromOptionRename' :: forall a. Int -> String -> (a -> Json) -> FromProp (Maybe a)
-fromOptionRename' order str f = FromProp $ map ({ key: Just str, insertionOrder: Just order, value: _ } <<< f)
+fromOptionRename' :: forall @i a. String -> (a -> Json) -> FromProp i (Maybe a)
+fromOptionRename' str f = FromProp $ map (Tuple (Just str) <<< f)
 
 toOptionRename :: forall a. String -> (Json -> Either DecodeError a) -> ToProp (Maybe a)
 toOptionRename rename f = toOptionDefaultRename rename Nothing (map Just <$> f)
@@ -962,15 +901,15 @@ toOptionDefaultRename jsonLbl a f = ToProp $ mkFn2 \lookupFn _ ->
     Nothing -> pure a
     Just j' -> lmap (AtKey jsonLbl) $ f j'
 
-fromOptionArray :: forall a. (a -> Json) -> FromProp (Array a)
+fromOptionArray :: forall a. (a -> Json) -> FromPropDefaultOrder (Array a)
 fromOptionArray f = FromProp $ \arr ->
   if Array.length arr == 0 then Nothing
-  else Just $ { key: Nothing, insertionOrder: Nothing, value: _ } $ fromArray f arr
+  else Just $ Tuple Nothing $ fromArray f arr
 
-fromOptionArray' :: forall a. Int -> (a -> Json) -> FromProp (Array a)
-fromOptionArray' order f = FromProp $ \arr ->
+fromOptionArray' :: forall @i a. (a -> Json) -> FromProp i (Array a)
+fromOptionArray' f = FromProp $ \arr ->
   if Array.length arr == 0 then Nothing
-  else Just $ { key: Nothing, insertionOrder: Just order, value: _ } $ fromArray f arr
+  else Just $ Tuple Nothing $ fromArray f arr
 
 toOptionArray :: forall a. (Json -> Either DecodeError a) -> ToProp (Array a)
 toOptionArray f = ToProp $ mkFn2 \lookupFn recLabel ->
@@ -978,15 +917,15 @@ toOptionArray f = ToProp $ mkFn2 \lookupFn recLabel ->
     Nothing -> pure []
     Just j' -> lmap (AtKey recLabel) $ toArray f j'
 
-fromOptionAssocArray :: forall a b. (a -> String) -> (b -> Json) -> FromProp (Array (Tuple a b))
+fromOptionAssocArray :: forall a b. (a -> String) -> (b -> Json) -> FromPropDefaultOrder (Array (Tuple a b))
 fromOptionAssocArray k' v' = FromProp $ \arr ->
   if Array.length arr == 0 then Nothing
-  else Just $ { key: Nothing, insertionOrder: Nothing, value: _ } $ Json.fromObject $ Array.foldl (\acc (Tuple k v) -> Object.insert (k' k) (v' v) acc) Object.empty arr
+  else Just $ Tuple Nothing $ Json.fromObject $ Array.foldl (\acc (Tuple k v) -> Object.insert (k' k) (v' v) acc) Object.empty arr
 
-fromOptionAssocArray' :: forall a b. Int -> (a -> String) -> (b -> Json) -> FromProp (Array (Tuple a b))
-fromOptionAssocArray' order k' v' = FromProp $ \arr ->
+fromOptionAssocArray' :: forall @i a b. (a -> String) -> (b -> Json) -> FromProp i (Array (Tuple a b))
+fromOptionAssocArray' k' v' = FromProp $ \arr ->
   if Array.length arr == 0 then Nothing
-  else Just $ { key: Nothing, insertionOrder: Just order, value: _ } $ Json.fromObject $ Array.foldl (\acc (Tuple k v) -> Object.insert (k' k) (v' v) acc) Object.empty arr
+  else Just $ Tuple Nothing $ Json.fromObject $ Array.foldl (\acc (Tuple k v) -> Object.insert (k' k) (v' v) acc) Object.empty arr
 
 toOptionAssocArray :: forall a b. (String -> Either DecodeError a) -> (Json -> Either DecodeError b) -> ToProp (Array (Tuple a b))
 toOptionAssocArray k' v' = ToProp $ mkFn2 \lookupFn recLabel ->
@@ -1020,17 +959,10 @@ instance toRecordObjCons ::
   ) =>
   ToRecordObj (RL.Cons sym (ToProp a) codecTail) { | codecs } { | values } where
   toRecordObj _ codecs j = do
-    rec <- onLeft (toRecordObj (Proxy :: Proxy codecTail) codecsRest j) \e1 ->
-      case runFn2 decoder (\k -> Object.lookup k j) lbl of
-        Left e2 -> Left $ accumulateErrors e1 e2
-        _ -> Left e1
+    rec <- toRecordObj (Proxy :: Proxy codecTail) codecsRest j
     a <- runFn2 decoder (\k -> Object.lookup k j) lbl
     pure $ Record.insert _lbl a rec
     where
-    onLeft :: forall e x. Either e x -> (e -> Either e x) -> Either e x
-    onLeft l f = case l of
-      Left l' -> f l'
-      x@(Right _) -> x
     lbl = reflectSymbol _lbl
     _lbl = (Proxy :: Proxy sym)
     (ToProp decoder) = Record.get _lbl codecs
@@ -1049,25 +981,25 @@ else instance toRecordObjFailure ::
   ToRecordObj (RL.Cons sym a codecTail) { | codecs } { | values } where
   toRecordObj _ _ _ = unsafeCrashWith "Impossible"
 
-class FromRecordPropArray :: RowList Type -> Type -> Type -> Constraint
-class FromRecordPropArray codecsRL codecs values | codecsRL -> codecs values where
-  fromRecordPropArray :: Proxy codecsRL -> codecs -> values -> Array { key :: String, insertionOrder :: Int, value :: Json }
+class FromRecordObj :: RowList Type -> Type -> Type -> Constraint
+class FromRecordObj codecsRL codecs values | codecsRL -> codecs values where
+  fromRecordObj :: Proxy codecsRL -> codecs -> values -> Object Json
 
-instance fromRecordPropArrayNil :: FromRecordPropArray RL.Nil {} {} where
-  fromRecordPropArray _ _ _ = []
+instance fromRecordObjNil :: FromRecordObj RL.Nil {} {} where
+  fromRecordObj _ _ _ = Object.empty
 
-instance fromRecordPropArrayCons ::
-  ( FromRecordPropArray codecTail { | cRest } { | vRest }
+instance fromRecordObjCons ::
+  ( FromRecordObj codecTail { | cRest } { | vRest }
   , IsSymbol sym
-  , Row.Cons sym (FromProp a) cRest codecs
+  , Row.Cons sym (FromProp i a) cRest codecs
   , Row.Cons sym a vRest values
   ) =>
-  FromRecordPropArray (RL.Cons sym (FromProp a) codecTail) { | codecs } { | values } where
-  fromRecordPropArray _ codecs values = do
-    let arr = fromRecordPropArray (Proxy :: Proxy codecTail) cRest vRest
+  FromRecordObj (RL.Cons sym (FromProp i a) codecTail) { | codecs } { | values } where
+  fromRecordObj _ codecs values = do
+    let obj = fromRecordObj (Proxy :: Proxy codecTail) cRest vRest
     case encoder a' of
-      Nothing -> arr
-      Just r -> Array.cons { key: fromMaybe lbl r.key, insertionOrder: fromMaybe top r.insertionOrder, value: r.value } arr
+      Nothing -> obj
+      Just (Tuple k v) -> Object.insert (fromMaybe lbl k) v obj
     where
     lbl = reflectSymbol _lbl
     _lbl = (Proxy :: Proxy sym)
@@ -1075,7 +1007,7 @@ instance fromRecordPropArrayCons ::
     a' = Record.get _lbl values
     cRest = unsafeCoerce codecs
     vRest = unsafeCoerce values
-else instance fromRecordPropArrayFailure ::
+else instance fromRecordObjFailure ::
   ( Fail
       ( Above
           (Beside (Beside (Text "Expected 'FromProp a' for label '") (Text sym)) (Beside (Text "' but got type: ") (Quote a)))
@@ -1084,5 +1016,5 @@ else instance fromRecordPropArrayFailure ::
           )
       )
   ) =>
-  FromRecordPropArray (RL.Cons sym a codecTail) { | codecs } { | values } where
-  fromRecordPropArray _ _ _ = unsafeCrashWith "Impossible"
+  FromRecordObj (RL.Cons sym a codecTail) { | codecs } { | values } where
+  fromRecordObj _ _ _ = unsafeCrashWith "Impossible"

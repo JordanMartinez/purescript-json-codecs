@@ -1,0 +1,26 @@
+
+### PrimitiveJsonError Output:
+
+Decode Int to Int:
+1
+
+Decode Int to String:
+ROOT - Expected a value of type Number but got String
+
+Decode Record to Int:
+ROOT - Expected a value of type Number but got Object
+
+Decode Record incorrectly:
+ROOT."string" - Expected a value of type Number but got String
+===
+Encoding record
+{
+  "zAppearsFirst": "three",
+  "otherName": "two",
+  "req": 1,
+  "otherName2": "hello",
+  "nested": {
+    "other": true,
+    "foo": false
+  }
+}

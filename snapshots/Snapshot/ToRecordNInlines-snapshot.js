@@ -3,6 +3,8 @@ import * as $runtime from "../runtime.js";
 import * as Codec$dJson$dUnidirectional$dValue from "../Codec.Json.Unidirectional.Value/index.js";
 import * as Data$dEither from "../Data.Either/index.js";
 import * as Type$dProxy from "../Type.Proxy/index.js";
+const Foo = x => x;
+const newtypeFoo_ = {Coercible0: () => {}};
 const decoder = /* #__PURE__ */ (() => {
   const $0 = Codec$dJson$dUnidirectional$dValue.toRecordObjCons(Codec$dJson$dUnidirectional$dValue.toRecordObjCons(Codec$dJson$dUnidirectional$dValue.toRecordObjCons(Codec$dJson$dUnidirectional$dValue.toRecordObjCons(Codec$dJson$dUnidirectional$dValue.toRecordObjCons(Codec$dJson$dUnidirectional$dValue.toRecordObjCons(Codec$dJson$dUnidirectional$dValue.toRecordObjCons(Codec$dJson$dUnidirectional$dValue.toRecordObjCons(Codec$dJson$dUnidirectional$dValue.toRecordObjCons(Codec$dJson$dUnidirectional$dValue.toRecordObjCons(Codec$dJson$dUnidirectional$dValue.toRecordObjNil)({
     reflectSymbol: () => "static"
@@ -40,4 +42,4 @@ const decoder = /* #__PURE__ */ (() => {
     $runtime.fail();
   };
 })();
-export {decoder};
+export {Foo, decoder, newtypeFoo_};

@@ -112,7 +112,7 @@ benchmark :: BenchProps -> Benchmark
 benchmark props = mkBenchmark
   { slug: "decode--nested-adt" <> props.pathOptimizedStr
   , title: "Decoding a nested ADT" <> props.titleOptimizedStr
-  , sizes: 1 Array... 5 <#> (_ * 50)
+  , sizes: 1 Array... 5 <#> (_ * 30)
   , sizeInterpretation: "Number used in various generators"
   , inputsPerSize: 1
   , gen: \n -> fromADT <$> genADT n

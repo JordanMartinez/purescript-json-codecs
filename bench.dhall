@@ -13,6 +13,7 @@
   , "foldable-traversable"
   , "foreign"
   , "foreign-readwrite"
+  , "gen"
   , "integers"
   , "json"
   , "json-codecs"
@@ -24,6 +25,8 @@
   , "ordered-collections"
   , "prelude"
   , "quickcheck"
+  , "strings"
+  , "tuples"
   , "unsafe-coerce"
   ]
 , packages = ./packages.dhall with json-codecs = ./spago.dhall as Location

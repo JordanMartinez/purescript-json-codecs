@@ -49,6 +49,3 @@ encoder = fromRecordN Foo
       , foo: fromOption fromBoolean
       }
   }
-
-test :: Foo -> Json
-test j = encoder j

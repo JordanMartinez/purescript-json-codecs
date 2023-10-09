@@ -47,5 +47,3 @@ encoder = fromRecord
       }
   }
 
-test :: Foo -> Json
-test j = encoder j

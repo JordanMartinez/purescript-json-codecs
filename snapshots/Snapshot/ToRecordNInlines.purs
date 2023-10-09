@@ -44,6 +44,3 @@ decoder = toRecordN Foo
       , foo: toOption toBoolean
       }
   }
-
-test :: Json -> Either DecodeError Foo
-test j = decoder j

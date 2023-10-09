@@ -8,8 +8,6 @@
 -- | - `J.fromInt`/`Json.fromInt`, which reads "encode an `Int` to `Json`"
 -- | - `J.toInt`/`Json.toInt`, which reads "decode `JSON` to an `Int`"
 --
--- @inline export altAccumulate arity=2
--- @inline export altAccumulateLazy arity=1
 -- @inline export fromPrimitiveArray(..).fromPrimitive arity=1
 -- @inline export fromPrimitiveObject(..).fromPrimitive arity=1
 -- @inline export fromPrimitiveRecord(..).fromPrimitive arity=2
@@ -38,11 +36,8 @@
 -- @inline export fromRecordObjCons(..).fromRecordObj arity=3
 module Codec.Json.Unidirectional.Value
   ( DecodeError(..)
-  , accumulateErrors
-  , altAccumulate
-  , altAccumulateLazy
   , printDecodeError
-  , unsafePrintDecodeError
+  , printDecodeError'
   , coerce1
   , class FromPrimitive
   , fromPrimitive
@@ -155,6 +150,7 @@ module Codec.Json.Unidirectional.Value
 import Prelude
 
 import Codec.Json.Unidirectional.Value.SortRowList (class IntThenAlphaSortedRowList, class ToOrdering)
+import Control.Alt ((<|>))
 import Data.Argonaut.Core (Json, caseJson)
 import Data.Argonaut.Core as Json
 import Data.Array as Array
@@ -162,7 +158,7 @@ import Data.Array.NonEmpty as NEA
 import Data.Array.NonEmpty.Internal (NonEmptyArray)
 import Data.Bifunctor (lmap)
 import Data.Either (Either(..), either, note)
-import Data.Foldable (foldMap, foldl)
+import Data.Foldable (foldl)
 import Data.FoldableWithIndex (foldlWithIndex)
 import Data.Function.Uncurried (Fn2, mkFn2, runFn2)
 import Data.Generic.Rep (class Generic)
@@ -171,11 +167,10 @@ import Data.Int as Int
 import Data.List (List)
 import Data.List as List
 import Data.List.NonEmpty as NEL
-import Data.List.Types (NonEmptyList, nelCons)
+import Data.List.Types (NonEmptyList)
 import Data.Map (Map)
 import Data.Map as Map
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
-import Data.Monoid (power)
 import Data.Newtype (class Newtype, unwrap)
 import Data.NonEmpty (NonEmpty(..))
 import Data.Nullable (Nullable, notNull, null, toMaybe)
@@ -211,74 +206,28 @@ import Unsafe.Coerce (unsafeCoerce)
 -- | An error type that 
 -- | - includes path-to-json information
 -- | - allows for custom decode messages
--- | - can accumulate errors at the same path location
 data DecodeError
   = AtKey String DecodeError
   | AtIndex Int DecodeError
   | DecodeError String
-  -- | Stores a reversed list of errors that happened at the same path.
-  -- | The error at `head` happened AFTER the errors in `tail`.
-  | AccumulateError (NonEmptyList DecodeError)
 
 derive instance Eq DecodeError
 derive instance Generic DecodeError _
 instance Show DecodeError where
   show x = genericShow x
 
--- | Prefer to use `altAccumulate` or `altAccumulateLazy`.
--- | The first error arg is assumed to have happened before the second error arg.
-accumulateErrors :: DecodeError -> DecodeError -> DecodeError
-accumulateErrors = case _, _ of
-  AccumulateError first', next -> AccumulateError $ nelCons next first'
-  first, next -> AccumulateError $ nelCons next $ NEL.singleton first
-
 -- | Pretty-prints the decode error over a multi-line string.
--- | Assumes that all keys, hints, and decode error messages are single-line `String`s.
--- | Indents using two spaces.
 printDecodeError :: DecodeError -> String
-printDecodeError = unsafePrintDecodeError true 1 "  " "ROOT"
+printDecodeError = printDecodeError' "ROOT"
 
--- | Unsafe because no checking is done on the `Int` arg to determine
--- | if it's `>=1` nor whether `applyIndent` makes sense in the given context.
--- |
--- | Fully control whether we should apply the indent to the next line of content,
--- | how much to indent each error in `AccumulateError`, and 
--- | what to use as a "tab"-like string sequence.
--- | Assumes that all keys, hints, and decode error messages are single-line `String`s.
-unsafePrintDecodeError :: Boolean -> Int -> String -> String -> DecodeError -> String
-unsafePrintDecodeError applyIndent indent sep acc = case _ of
+printDecodeError' :: String -> DecodeError -> String
+printDecodeError' acc = case _ of
   DecodeError msg ->
     acc <> " - " <> msg
   AtKey k next ->
-    unsafePrintDecodeError true indent sep (acc <> "." <> show k) next
+    printDecodeError' (acc <> "." <> show k) next
   AtIndex i next ->
-    unsafePrintDecodeError true indent sep (acc <> "[" <> show i <> "]") next
-  AccumulateError ls
-    | applyIndent -> do
-        acc
-          <> foldMap (unsafePrintDecodeError false (indent + 1) sep ("\n" <> power sep indent)) ls
-    | otherwise ->
-        acc
-          <> unsafePrintDecodeError false indent sep "" (NEL.head ls)
-          <> foldMap (unsafePrintDecodeError false indent sep ("\n" <> power sep (indent - 1))) (NEL.tail ls)
-
--- | Tries the first codec. If it fails, tries the second codec. If it fails, 
--- | errors from both are accumulated. Succeeds if either of the two codecs succeed.
-altAccumulate :: forall a. (Json -> Either DecodeError a) -> (Json -> Either DecodeError a) -> Json -> Either DecodeError a
-altAccumulate f g j = case f j of
-  x@(Right _) -> x
-  (Left e1) -> case g j of
-    x@(Right _) -> x
-    Left e2 -> Left $ accumulateErrors e1 e2
-
--- | Tries the first codec. If it fails, tries the second codec. If it fails, 
--- | errors from both are accumulated. Succeeds if either of the two codecs succeed.
-altAccumulateLazy :: forall a. Either DecodeError a -> (Unit -> Either DecodeError a) -> Either DecodeError a
-altAccumulateLazy f g = case f of
-  x@(Right _) -> x
-  (Left e1) -> case g unit of
-    x@(Right _) -> x
-    Left e2 -> Left $ accumulateErrors e1 e2
+    printDecodeError' (acc <> "[" <> show i <> "]") next
 
 -- | Indicates which values are primitive JSON values that can be encoded via `unsafeCoerce`.
 class FromPrimitive :: Type -> Constraint
@@ -346,7 +295,7 @@ toJNull json =
     json
 
 toNullDefaultOrA :: forall a. a -> (Json -> Either DecodeError a) -> Json -> Either DecodeError a
-toNullDefaultOrA def f = altAccumulate (\j -> def <$ toJNull j) f
+toNullDefaultOrA def f j = (def <$ toJNull j) <|> f j
 
 fromNullNothingOrJust :: forall a. (a -> Json) -> Maybe a -> Json
 fromNullNothingOrJust f = maybe Json.jsonNull f
@@ -358,7 +307,7 @@ fromNullable :: forall a. (a -> Json) -> Nullable a -> Json
 fromNullable fromA = toMaybe >>> fromNullNothingOrJust fromA
 
 toNullable :: forall a. (Json -> Either DecodeError a) -> Json -> Either DecodeError (Nullable a)
-toNullable toA = altAccumulate (\j -> null <$ toJNull j) (\j -> notNull <$> toA j)
+toNullable toA j = (null <$ toJNull j) <|> (notNull <$> toA j)
 
 fromBoolean :: Boolean -> Json
 fromBoolean = Json.fromBoolean
@@ -625,10 +574,8 @@ toEitherSingle
   -> (Json -> Either DecodeError b)
   -> Json
   -> Either DecodeError (Either a b)
-toEitherSingle toLeft toRight =
-  altAccumulate
-    (toObjSingleton "Left" toLeft >>> map Left)
-    (toObjSingleton "Right" toRight >>> map Right)
+toEitherSingle toLeft toRight j =
+  (Left <$> toObjSingleton "Left" toLeft j) <|> (Right <$> toObjSingleton "Right" toRight j)
 
 fromTuple :: forall a b. (a -> Json) -> (b -> Json) -> Tuple a b -> Json
 fromTuple fromA fromB (Tuple a b) =
@@ -1012,13 +959,9 @@ instance toRecordObjCons ::
   ) =>
   ToRecordObj (RL.Cons sym (ToProp a) codecTail) { | codecs } { | values } where
   toRecordObj _ codecs j = do
-    case (toRecordObj (Proxy :: Proxy codecTail) codecsRest j) of
-      Left e1 ->
-        case runFn2 decoder (\k -> Object.lookup k j) lbl of
-          Left e2 -> Left $ accumulateErrors e1 e2
-          _ -> Left e1
-      Right rec -> do
-        (\a -> Record.insert _lbl a rec) <$> runFn2 decoder (\k -> Object.lookup k j) lbl
+    rec <- toRecordObj (Proxy :: Proxy codecTail) codecsRest j
+    a <- runFn2 decoder (\k -> Object.lookup k j) lbl
+    pure $ Record.insert _lbl a rec
     where
     lbl = reflectSymbol _lbl
     _lbl = (Proxy :: Proxy sym)

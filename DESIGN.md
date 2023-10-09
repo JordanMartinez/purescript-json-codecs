@@ -87,7 +87,6 @@ So, this library tries to get the best tradeoff via `Either DecodeError`:
 - slightly slower than just using `Maybe`
 - still faster than `Either JsonDecodeError`
 - still fairly debuggable
-- still allows error accumulation (unlike `JsonDecodeError`)
 - still allows custom error messages (unlike `JsonDecodeError`)
 
 ### Allowing Hints
@@ -125,6 +124,12 @@ While this can work, it again drowns out the full JSON path. Moreover, too many 
 
 So, I chose not to include hints in the `DecodeError` type (shown next). Since one will often need to add logging statements to the decoder to see what's going on, they can abuse the `AtKey` constructor to insert such hint information temporarily exactly where they need it, debug the problem, and then remove the abuse.
 
+### Accumulating Errors
+
+Another design decision we could make is whether to report all errors in a json decode pass rather than just the first one. In other words, if a JSON value is missing two keys that are required, rather than only reporting that the first key is missing in the error message, the error would report both keys.
+
+While this library initially did things in that way, the resulting codec was slower on the happy decoding path than other libraries. So, I removed this feature from the library.
+
 ## DecodeError
 
 ```purs
@@ -134,8 +139,6 @@ data DecodeError
   | AtIndex Int DecodeError
   -- leaf error
   | DecodeError String
-  -- allows opt-in accumulation without needing to use `Semigroup.V` newtype
-  | AccumulateError (NonEmptyList DecodeError)
 ```
 
 Via [the benchmarks](./bench/results), I learned
@@ -145,4 +148,4 @@ Via [the benchmarks](./bench/results), I learned
 
 ### Inline Directives
 
-While adding inline directives for encoding is straight forward, doing so for decoding is not. As I learned while working on the `snapshots` folder and then later confirmed in a conversation with Nathan Faubion, error handling in general is exponential if you inline all error handling paths. For example, [ToRecordInlines.purs](./snapshots/Snapshot/ToRecordInlines.purs) currently produces [its snapshot](./snapshots/Snapshot/ToRecordInlines-snapshot.js) of 78 LOC. After inlining both the type class dictionary `toRecordObjCons`, its type class member `toRecordObj`, `altAccumulate`, and the `to*` functions (e.g. `toRequired`, `toOptionRename`, etc), it produced a file containing ~42,000 LOC.
+While adding inline directives for encoding is straight forward, doing so for decoding is not. As I learned while working on the `snapshots` folder and then later confirmed in a conversation with Nathan Faubion, error handling in general is exponential if you inline all error handling paths. For example, [ToRecordInlines.purs](./snapshots/Snapshot/ToRecordInlines.purs) currently produces [its snapshot](./snapshots/Snapshot/ToRecordInlines-snapshot.js) of 78 LOC. After inlining both the type class dictionary `toRecordObjCons`, its type class member `toRecordObj`, and the `to*` functions (e.g. `toRequired`, `toOptionRename`, etc), it produced a file containing ~42,000 LOC.

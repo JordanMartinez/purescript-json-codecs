@@ -10,3 +10,4 @@
 /.spago
 .vscode
 /output-es/
+/spago.lock

@@ -5,9 +5,9 @@
     "microtime": "^3.1.1"
   },
   "scripts": {
-    "bench-unoptimized": "spago -x bench.dhall run",
-    "bench-optimized": "purs-backend-es --version && spago -x bench-optimized.dhall build && OPTIMIZED=1 ./bench-optimized.mjs",
+    "bench-unoptimized": "spago build -p json-codecs-benchmarks --purs-args 'bench/**/*.purs' && node -e \"import('./output/Main/index.js').then(m => m.main())\"",
+    "bench-optimized": "purs-backend-es --version && spago fetch -p json-codecs-benchmarks && spago sources -p json-codecs-benchmarks | xargs purs compile --codegen corefn,js 'bench/**/*.purs' && purs-backend-es build && OPTIMIZED=1 ./bench-optimized.mjs",
     "bench": "npm run bench-unoptimized && npm run bench-optimized",
-    "snapshots": "spago -x snapshots.dhall build --purs-args \"-g corefn,js\" && purs-backend-es build && spago -x snapshots.dhall run -m Test.Snapshot"
+    "snapshots": "spago fetch -p json-codecs-snapshots && spago sources -p json-codecs-snapshots | xargs purs compile --codegen corefn,js 'snapshots/**/*.purs' && purs-backend-es build && node -e \"import('./output/Test.Snapshot/index.js').then(m => m.main())\""
   }
 }

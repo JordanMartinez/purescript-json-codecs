@@ -23,32 +23,28 @@ jobs:
 
       - name: Setup PS toolchain
         run: |
-          npm i -g purescript@0.15.10 spago purescript-psa purs-tidy
+          npm i -g purescript@0.15.10 spago@1.0.5 purescript-psa purs-tidy
 
       - name: Cache PureScript dependencies
         uses: actions/cache@v3
         with:
-          key: ${{ runner.os }}-spago-${{ hashFiles('**/*.dhall') }}
+          key: ${{ runner.os }}-spago-${{ hashFiles('**/spago.yaml') }}
           path: |
             .spago
             output
 
 
-      # Compile the library/project
-      #   censor-lib: ignore warnings emitted by dependencies
-      #   strict: convert warnings into errors
-      # Note: `purs-args` actually forwards these args to `psa`
       - name: Build the project
         run: |
-          spago build --purs-args "--censor-lib --strict"
+          spago build -p json-codecs
 
       - name: Run tests
         run: |
-          spago -x test.dhall test
+          spago test -p json-codecs
 
       - name: Build the benchmarks
         run: |
-          spago -x bench.dhall build
+          spago build -p json-codecs-benchmarks --purs-args 'bench/**/*.purs'
 
       - name: Check Formatting
         run: |

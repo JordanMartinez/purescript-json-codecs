@@ -1,0 +1,91 @@
+package:
+  name: json-codecs
+  build:
+    strict: true
+  publish:
+    version: 5.0.1
+    license: MIT
+    location:
+      githubOwner: jordanmartinez
+      githubRepo: purescript-json-codecs
+  dependencies:
+    - argonaut-core: ">=7.0.0 <8.0.0"
+    - arrays: ">=7.2.0 <8.0.0"
+    - bifunctors: ">=6.0.0 <7.0.0"
+    - control: ">=6.0.0 <7.0.0"
+    - either: ">=6.1.0 <7.0.0"
+    - foldable-traversable: ">=6.0.0 <7.0.0"
+    - foreign-object: ">=4.1.0 <5.0.0"
+    - functions: ">=6.0.0 <7.0.0"
+    - identity: ">=6.0.0 <7.0.0"
+    - integers: ">=6.0.0 <7.0.0"
+    - lists: ">=7.0.0 <8.0.0"
+    - maybe: ">=6.0.0 <7.0.0"
+    - newtype: ">=5.0.0 <6.0.0"
+    - nonempty: ">=7.0.0 <8.0.0"
+    - nullable: ">=6.0.0 <7.0.0"
+    - ordered-collections: ">=3.0.0 <4.0.0"
+    - partial: ">=4.0.0 <5.0.0"
+    - prelude: ">=6.0.1 <7.0.0"
+    - record: ">=4.0.0 <5.0.0"
+    - safe-coerce: ">=2.0.0 <3.0.0"
+    - strings: ">=6.0.1 <7.0.0"
+    - these: ">=6.0.0 <7.0.0"
+    - tuples: ">=7.0.0 <8.0.0"
+    - unsafe-coerce: ">=6.0.0 <7.0.0"
+  test:
+    main: Test.Main
+    dependencies:
+      - console: ">=6.0.0 <7.0.0"
+      - effect: ">=4.0.0 <5.0.0"
+workspace:
+  buildOpts:
+    censorLibraryWarnings: all
+  extraPackages:
+    benchotron:
+      git: https://github.com/JordanMartinez/purescript-benchotron.git
+      ref: 0c5342db5caf4608e4c0eb199ec2de3cb95b7d4e
+      dependencies:
+        - ansi: ">=7.0.0 <8.0.0"
+        - arrays: ">=7.2.0 <8.0.0"
+        - datetime: ">=6.1.0 <7.0.0"
+        - effect: ">=4.0.0 <5.0.0"
+        - exceptions: ">=6.0.0 <7.0.0"
+        - exists: ">=6.0.0 <7.0.0"
+        - foldable-traversable: ">=6.0.0 <7.0.0"
+        - formatters: ">=7.0.0 <8.0.0"
+        - identity: ">=6.0.0 <7.0.0"
+        - integers: ">=6.0.0 <7.0.0"
+        - js-date: ">=8.0.0 <9.0.0"
+        - lcg: ">=4.0.0 <5.0.0"
+        - lists: ">=7.0.0 <8.0.0"
+        - maybe: ">=6.0.0 <7.0.0"
+        - node-buffer: ">=8.0.0 <9.0.0"
+        - node-fs: ">=8.2.0 <9.0.0"
+        - node-process: ">=10.0.0 <11.0.0"
+        - node-readline: ">=7.0.0 <8.0.0"
+        - node-streams: ">=7.0.0 <8.0.0"
+        - now: ">=6.0.0 <7.0.0"
+        - ordered-collections: ">=3.0.0 <4.0.0"
+        - partial: ">=4.0.0 <5.0.0"
+        - prelude: ">=6.0.1 <7.0.0"
+        - profunctor: ">=6.0.0 <7.0.0"
+        - quickcheck: ">=8.0.1 <9.0.0"
+        - strings: ">=6.0.1 <7.0.0"
+        - transformers: ">=6.0.0 <7.0.0"
+        - tuples: ">=7.0.0 <8.0.0"
+        - unfoldable: ">=6.0.0 <7.0.0"
+    json:
+      git: https://github.com/purescript/purescript-json.git
+      ref: b06c9d5bddaf4dc11b09b94bc31c379722396648
+      dependencies:
+        - prelude: ">=6.0.1 <7.0.0"
+        - functions: ">=6.0.0 <7.0.0"
+        - integers: ">=6.0.0 <7.0.0"
+        - maybe: ">=6.0.0 <7.0.0"
+        - either: ">=6.1.0 <7.0.0"
+        - tuples: ">=7.0.0 <8.0.0"
+        - foldable-traversable: ">=6.0.0 <7.0.0"
+        - gen: ">=4.0.0 <5.0.0"
+        - strings: ">=6.0.1 <7.0.0"
+        - unfoldable: ">=6.0.0 <7.0.0"
